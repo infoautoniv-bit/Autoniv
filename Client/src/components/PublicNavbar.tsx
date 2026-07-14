@@ -55,11 +55,13 @@ function MagBtn({
   );
 }
 
+type AuthMode = 'login' | 'register' | 'forgot_password' | 'reset_password';
+
 export function PublicNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authDialog, setAuthDialog] = useState<'login' | 'register' | null>(null);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authDialog, setAuthDialog] = useState<AuthMode | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
   const navRef = useRef<HTMLElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -403,8 +405,8 @@ export function PublicNavbar() {
           mode={authMode}
           onClose={closeAuth}
           onSwitch={(m) => {
-            setAuthMode(m === 'forgot_password' || m === 'reset_password' ? 'login' : m);
-            setAuthDialog(m === 'forgot_password' || m === 'reset_password' ? 'login' : m);
+            setAuthMode(m);
+            setAuthDialog(m);
           }}
         />
       </Suspense>

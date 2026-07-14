@@ -23,9 +23,11 @@ const Blog = lazy(() => import("./Blog").then(m => ({ default: m.Blog })));
 const Pricing = lazy(() => import("./Pricing").then(m => ({ default: m.Pricing })));
 const Contact = lazy(() => import("./Contact").then(m => ({ default: m.Contact })));
 
+type AuthMode = 'login' | 'register' | 'forgot_password' | 'reset_password';
+
 export function LandingSection() {
-  const [authDialog, setAuthDialog] = useState<'login' | 'register' | null>(null);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authDialog, setAuthDialog] = useState<AuthMode | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [activeUseCase, setActiveUseCase] = useState(0);
 
   const openAuth = useCallback((mode: 'login' | 'register') => {
@@ -92,8 +94,8 @@ export function LandingSection() {
           mode={authMode}
           onClose={closeAuth}
           onSwitch={(m) => {
-            setAuthMode(m === 'forgot_password' || m === 'reset_password' ? 'login' : m);
-            setAuthDialog(m === 'forgot_password' || m === 'reset_password' ? 'login' : m);
+            setAuthMode(m);
+            setAuthDialog(m);
           }}
         />
       </Suspense>

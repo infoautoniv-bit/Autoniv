@@ -68,8 +68,9 @@ function AnimatedValue({ value }: { value: string }) {
 export function Nav({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: boolean; setMobileMenuOpen: (v: boolean) => void }) {
   const location = useLocation();
   const drawerRef = useRef<HTMLDivElement>(null);
-  const [authDialog, setAuthDialog] = useState<'login' | 'register' | null>(null);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  type AuthMode = 'login' | 'register' | 'forgot_password' | 'reset_password';
+  const [authDialog, setAuthDialog] = useState<AuthMode | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
 
   const openAuth = (mode: 'login' | 'register') => {
     setAuthMode(mode);
@@ -276,8 +277,8 @@ export function Nav({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: boo
           mode={authMode}
           onClose={closeAuth}
           onSwitch={(m) => {
-            setAuthMode(m === 'forgot_password' || m === 'reset_password' ? 'login' : m);
-            setAuthDialog(m === 'forgot_password' || m === 'reset_password' ? 'login' : m);
+            setAuthMode(m);
+            setAuthDialog(m);
           }}
         />
       </Suspense>
