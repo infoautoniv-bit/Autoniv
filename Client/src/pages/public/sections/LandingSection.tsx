@@ -3,15 +3,15 @@ import { PublicNavbar } from "../../../components/PublicNavbar";
 import Footer from "../Footer";
 import { USPSlider } from "./USPSlider";
 import { Hero } from "./Hero";
+import { Demo } from "./Demo";
 import { Features } from "./Features";
 import { Services } from "./ServicesSection";
 import { VoiceAgentService, ChatAgentService } from "./services";
+import { DeferRender } from "../../../components/DeferRender";
 
 const AuthDialog = lazy(() =>
   import("../AuthDialog").then((m) => ({ default: m.AuthDialog }))
 );
-
-const Demo = lazy(() => import("./Demo").then((m) => ({ default: m.Demo })));
 const HowItWorks = lazy(() => import("./HowItWorks").then(m => ({ default: m.HowItWorks })));
 const Comparison = lazy(() => import("./Comparison").then(m => ({ default: m.Comparison })));
 const Industry = lazy(() => import("./Industry").then(m => ({ default: m.Industry })));
@@ -44,48 +44,66 @@ export function LandingSection() {
         <div className="box-wrap">
           <USPSlider />
           <Hero openAuth={openAuth} />
-          <Suspense fallback={<div style={{ minHeight: 400 }} />}>
-            <Demo />
-          </Suspense>
+          <Demo />
             <div id="features">
               <Features />
             </div>
             <Services openAuth={openAuth} />
             <VoiceAgentService />
             <ChatAgentService />
-          <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-            <Comparison />
-          </Suspense>
-          <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-            <div id="how-it-works">
-              <HowItWorks openAuth={openAuth} />
-            </div>
-          </Suspense>
-          <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-            <Industry activeUseCase={activeUseCase} setActiveUseCase={setActiveUseCase} openAuth={openAuth} />
-          </Suspense>
-          <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-            <CaseStudiesSection />
-          </Suspense>
-          <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-            <Blog />
-          </Suspense>
-          <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-            <Pricing />
-          </Suspense>
-          <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-            <Contact />
-          </Suspense>
+          <DeferRender height={500}>
+            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+              <Comparison />
+            </Suspense>
+          </DeferRender>
+          <DeferRender height={600}>
+            <Suspense fallback={<div style={{ minHeight: 600 }} />}>
+              <div id="how-it-works">
+                <HowItWorks openAuth={openAuth} />
+              </div>
+            </Suspense>
+          </DeferRender>
+          <DeferRender height={600}>
+            <Suspense fallback={<div style={{ minHeight: 600 }} />}>
+              <Industry activeUseCase={activeUseCase} setActiveUseCase={setActiveUseCase} openAuth={openAuth} />
+            </Suspense>
+          </DeferRender>
+          <DeferRender height={500}>
+            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+              <CaseStudiesSection />
+            </Suspense>
+          </DeferRender>
+          <DeferRender height={500}>
+            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+              <Blog />
+            </Suspense>
+          </DeferRender>
+          <DeferRender height={600}>
+            <Suspense fallback={<div style={{ minHeight: 600 }} />}>
+              <Pricing />
+            </Suspense>
+          </DeferRender>
+          <DeferRender height={500}>
+            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+              <Contact />
+            </Suspense>
+          </DeferRender>
 
-          <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-            <Testimonials />
-          </Suspense>
-          <Suspense fallback={<div style={{ minHeight: 400 }} />}>
-            <FAQ />
-          </Suspense>
-          <Suspense fallback={<div style={{ minHeight: 300 }} />}>
-            <CTABanner openAuth={openAuth} />
-          </Suspense>
+          <DeferRender height={500}>
+            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+              <Testimonials />
+            </Suspense>
+          </DeferRender>
+          <DeferRender height={400}>
+            <Suspense fallback={<div style={{ minHeight: 400 }} />}>
+              <FAQ />
+            </Suspense>
+          </DeferRender>
+          <DeferRender height={300}>
+            <Suspense fallback={<div style={{ minHeight: 300 }} />}>
+              <CTABanner openAuth={openAuth} />
+            </Suspense>
+          </DeferRender>
         </div>
       </div>
       <Footer />

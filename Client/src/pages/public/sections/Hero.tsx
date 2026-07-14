@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { motion, useScroll, useTransform, useReducedMotion, useMotionValue, useSpring, animate } from "framer-motion";
 import { MicrophoneIcon, PhoneIcon, SpeakerWaveIcon, Squares2X2Icon } from "@heroicons/react/24/outline";
 import { WAVE_HEIGHTS } from "./data";
@@ -75,6 +75,7 @@ function FloatingCard({
       transition={{ duration: 0.6, delay, ease: easeOut }}
     >
       <motion.div
+        style={reduced ? undefined : { willChange: "transform" }}
         animate={reduced ? undefined : { y: floatY }}
         transition={{ duration, repeat: Infinity, ease: "easeInOut", delay: delay + 0.3 }}
         whileHover={reduced ? undefined : { scale: 1.05, y: -4, transition: { duration: 0.25, ease: easeOut } }}
@@ -85,6 +86,21 @@ function FloatingCard({
   );
 }
 
+// Cheap, compositor-only pulse ring used in place of animated box-shadow.
+// box-shadow keyframes force a repaint every frame; scale+opacity on a
+// pseudo layer is GPU-composited and effectively free.
+function PulseRing({ color }: { color: string }) {
+  return (
+    <motion.span
+      aria-hidden
+      className="absolute inset-0 rounded-[inherit] pointer-events-none"
+      style={{ background: color, willChange: "transform, opacity" }}
+      animate={{ scale: [1, 1.25, 1.25], opacity: [0.35, 0, 0] }}
+      transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+    />
+  );
+}
+
 export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void }) {
   const reduced = useReducedMotion() ?? false;
   const ref = useRef<HTMLElement>(null);
@@ -92,10 +108,20 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 1024);
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    let t: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(t);
+      t = setTimeout(() => setIsMobile(window.innerWidth < 1024), 150);
+    };
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
+
+  // Single flag for "skip decorative/expensive animation work".
+  const lowPower = reduced || isMobile;
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -132,6 +158,29 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
     hidden: { opacity: 0, y: 12 },
     show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeOut } },
   };
+
+  // Precompute wave-bar geometry once and only recompute when device class
+  // changes — avoids re-deriving envelope math for ~80 bars on every render.
+  const bgBars = useMemo(
+    () =>
+      WAVE_HEIGHTS.map((baseH, i) => {
+        const center = (WAVE_HEIGHTS.length - 1) / 2;
+        const dist = Math.abs(i - center);
+        const envelope = Math.max(0.15, 1 - (dist / center) * 0.7);
+        return Math.max(4, baseH * envelope * 0.45);
+      }),
+    [],
+  );
+  const fgBars = useMemo(
+    () =>
+      WAVE_HEIGHTS.map((baseH, i) => {
+        const center = (WAVE_HEIGHTS.length - 1) / 2;
+        const dist = Math.abs(i - center);
+        const envelope = Math.max(0.15, 1 - (dist / center) * 0.7);
+        return { h: Math.max(5, baseH * envelope), dist };
+      }),
+    [],
+  );
 
   return (
     <section ref={ref} className="section-box tint" style={{ contain: "layout style", contentVisibility: "auto", containIntrinsicSize: "auto 700px" } as React.CSSProperties}>
@@ -178,20 +227,21 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                       }}
                     >
                       <motion.span
-                        animate={reduced ? undefined : { rotate: [0, 15, -10, 0] }}
+                        animate={lowPower ? undefined : { rotate: [0, 15, -10, 0] }}
                         transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.4, ease: "easeInOut" }}
                         className="inline-block"
                       >
                         ✦
                       </motion.span>
                       AI Voice • Chat Solutions
-                      {/* shimmer sweep */}
-                      {!reduced && (
+                      {/* shimmer sweep — desktop only, skipped on mobile/reduced-motion */}
+                      {!lowPower && (
                         <motion.span
                           className="absolute inset-0 pointer-events-none"
                           style={{
                             background:
                               "linear-gradient(110deg, transparent 40%, rgba(37,99,235,0.25) 50%, transparent 60%)",
+                            willChange: "transform",
                           }}
                           initial={{ x: "-120%" }}
                           animate={{ x: "120%" }}
@@ -236,27 +286,29 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
       onClick={() => openAuth("register")}
       whileHover={reduced ? undefined : { y: -3, scale: 1.02, boxShadow: "0 10px 28px rgba(16,185,129,0.35)" }}
       whileTap={reduced ? undefined : { scale: 0.97 }}
-      animate={reduced ? undefined : { boxShadow: ["0 4px 14px rgba(16,185,129,0.25)", "0 4px 22px rgba(16,185,129,0.4)", "0 4px 14px rgba(16,185,129,0.25)"] }}
-      transition={{ boxShadow: { duration: 2.4, repeat: Infinity, ease: "easeInOut" }, default: { type: "spring", stiffness: 400, damping: 22 } }}
+      transition={{ type: "spring", stiffness: 400, damping: 22 }}
       className="font-bold flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-white relative overflow-hidden"
       style={{
         background: "var(--gg)",
         minHeight: "48px",
         fontSize: "15px",
+        boxShadow: "0 4px 14px rgba(16,185,129,0.25)",
       }}
     >
+      {/* compositor-friendly pulse instead of animated box-shadow */}
+      {!lowPower && <PulseRing color="rgba(16,185,129,0.45)" />}
       <motion.svg
-        className="w-4 h-4"
+        className="w-4 h-4 relative"
         fill="currentColor"
         viewBox="0 0 24 24"
-        animate={reduced ? undefined : { rotate: [0, 12, -8, 0] }}
+        animate={lowPower ? undefined : { rotate: [0, 12, -8, 0] }}
         transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
       >
         <path d="M13 2L3 14h6l-1 8 10-12h-6l1-8z" />
       </motion.svg>
-      Book a Free Demo
+      <span className="relative">Book a Free Demo</span>
       <motion.svg
-        className="w-4 h-4"
+        className="w-4 h-4 relative"
         fill="none"
         stroke="currentColor"
         strokeWidth="2.5"
@@ -284,7 +336,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
       <motion.span
         className="flex items-center justify-center rounded-full shrink-0"
         style={{ width: "22px", height: "22px", background: "#2563EB" }}
-        animate={reduced ? undefined : { scale: [1, 1.15, 1] }}
+        animate={lowPower ? undefined : { scale: [1, 1.15, 1] }}
         transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
       >
         <svg className="w-3 h-3" fill="white" viewBox="0 0 24 24">
@@ -321,7 +373,9 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
             src={av.img}
             alt={av.alt}
             className="w-full h-full object-cover"
-            loading="lazy"
+            loading="eager"
+            fetchPriority={i === 0 ? "high" : "auto"}
+            decoding="async"
           />
         </motion.div>
       ))}
@@ -357,16 +411,19 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                   transition={{ duration: 0.6, ease: easeOut, delay: 0.1 }}
                   className="mt-4 lg:col-span-5 flex justify-center items-center relative min-h-[380px] sm:min-h-[450px] lg:min-h-[580px] z-10 w-full order-2 lg:order-2 pt-4 lg:pt-0"
                 >
+                  {/* Glow orbs: blur + scale animation is one of the most expensive
+                      combos on mobile GPUs, so we only animate on desktop and
+                      render a static glow everywhere else. */}
                   <motion.div
-                    style={{ y: yGlow }}
+                    style={{ y: yGlow, willChange: lowPower ? undefined : "transform, opacity" }}
                     className="absolute top-[20%] left-[20%] w-[320px] h-[320px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.16)_0%,transparent_70%)] filter blur-3xl pointer-events-none"
-                    animate={reduced ? undefined : { scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }}
+                    animate={lowPower ? undefined : { scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }}
                     transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                   />
                   <motion.div
-                    style={{ y: yGlow }}
+                    style={{ y: yGlow, willChange: lowPower ? undefined : "transform, opacity" }}
                     className="absolute bottom-[20%] right-[10%] w-[260px] h-[260px] rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.12)_0%,transparent_70%)] filter blur-3xl pointer-events-none"
-                    animate={reduced ? undefined : { scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
+                    animate={lowPower ? undefined : { scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
                     transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
                   />
 
@@ -374,7 +431,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                   <motion.div
                     animate={reduced || isMobile ? undefined : { y: [0, -12, 0] }}
                     transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                    style={{ rotate: phoneRotate }}
+                    style={{ rotate: phoneRotate, willChange: lowPower ? undefined : "transform" }}
                     onMouseMove={handlePhoneMouseMove}
                     onMouseLeave={handlePhoneMouseLeave}
                   >
@@ -421,44 +478,38 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
           <motion.div
             className="absolute rounded-full border border-cyan-400/20 z-0"
             style={{ width: "90px", height: "90px" }}
-            animate={reduced || isMobile ? undefined : { scale: [1, 1.08, 1] }}
+            animate={lowPower ? undefined : { scale: [1, 1.08, 1] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           />
           <motion.div
             className="absolute rounded-full border border-cyan-400/10 z-0"
             style={{ width: "120px", height: "120px" }}
-            animate={reduced || isMobile ? undefined : { scale: [1, 1.12, 1] }}
+            animate={lowPower ? undefined : { scale: [1, 1.12, 1] }}
             transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
           />
           <motion.div
             className="absolute rounded-full border border-cyan-400/[0.06] z-0"
             style={{ width: "155px", height: "155px" }}
-            animate={reduced || isMobile ? undefined : { scale: [1, 1.16, 1] }}
+            animate={lowPower ? undefined : { scale: [1, 1.16, 1] }}
             transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
           />
 
           {/* BG wave bars — behind orb, z-10 */}
           <div className="absolute inset-0 flex items-center justify-center gap-[2px] z-10 pointer-events-none">
-            {WAVE_HEIGHTS.map((baseH, i) => {
-              const center = (WAVE_HEIGHTS.length - 1) / 2;
-              const dist = Math.abs(i - center);
-              const envelope = Math.max(0.15, 1 - (dist / center) * 0.7);
-              const h = Math.max(4, baseH * envelope * 0.45);
-              return (
-                <div
-                  key={i}
-                  className="rounded-full flex-shrink-0"
-                  style={{
-                    width: "2px",
-                    height: `${h}px`,
-                    background: "rgba(34,211,238,0.12)",
-                    animation: isMobile ? "none" : "bgWaveBounce 1.2s ease-in-out infinite",
-                    animationDelay: `${i * 0.045}s`,
-                    transformOrigin: "center",
-                  }}
-                />
-              );
-            })}
+            {bgBars.map((h, i) => (
+              <div
+                key={i}
+                className="rounded-full flex-shrink-0"
+                style={{
+                  width: "2px",
+                  height: `${h}px`,
+                  background: "rgba(34,211,238,0.12)",
+                  animation: isMobile ? "none" : "bgWaveBounce 1.2s ease-in-out infinite",
+                  animationDelay: `${i * 0.045}s`,
+                  transformOrigin: "center",
+                }}
+              />
+            ))}
           </div>
 
           {/* Orb — z-20 */}
@@ -491,13 +542,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
           {/* FG wave bars — in front of orb, z-30, center hidden */}
           <div className="absolute inset-0 flex items-center justify-center gap-[2px] z-30 pointer-events-none">
-            {WAVE_HEIGHTS.map((baseH, i) => {
-              const center = (WAVE_HEIGHTS.length - 1) / 2;
-              const dist = Math.abs(i - center);
-              const envelope = Math.max(0.15, 1 - (dist / center) * 0.7);
-              // Full height — no * 0.5 reduction, taller bars
-              const h = Math.max(5, baseH * envelope);
-
+            {fgBars.map(({ h, dist }, i) => {
               if (dist < 7) {
                 return (
                   <div
@@ -563,11 +608,11 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
             <motion.div
               whileHover={reduced ? undefined : { scale: 1.1 }}
               whileTap={reduced ? undefined : { scale: 0.9 }}
-              animate={reduced ? undefined : { boxShadow: ["0 0 0 0 rgba(239,68,68,0.4)", "0 0 0 8px rgba(239,68,68,0)", "0 0 0 0 rgba(239,68,68,0)"] }}
-              transition={{ boxShadow: { duration: 2, repeat: Infinity, ease: "easeOut" } }}
-              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20 cursor-pointer hover:bg-red-600 transition-colors"
+              className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20 cursor-pointer hover:bg-red-600 transition-colors"
             >
-              <PhoneIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white transform rotate-[135deg]" />
+              {/* compositor-friendly pulse instead of animated box-shadow */}
+              {!lowPower && <PulseRing color="rgba(239,68,68,0.5)" />}
+              <PhoneIcon className="relative w-4 h-4 sm:w-5 sm:h-5 text-white transform rotate-[135deg]" />
             </motion.div>
           </div>
         </motion.div>
@@ -580,7 +625,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
                   {/* Card 1: Incoming Call - Top Right */}
                   <FloatingCard
-                    reduced={reduced || isMobile}
+                    reduced={lowPower}
                     delay={0.5}
                     duration={5.5}
                     floatY={[0, -9, 0]}
@@ -593,7 +638,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                         </span>
                         <motion.span
                           className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-blue-500"
-                          animate={reduced || isMobile ? undefined : { opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
+                          animate={lowPower ? undefined : { opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
                           transition={{ duration: 1.4, repeat: Infinity }}
                         />
                       </div>
@@ -621,7 +666,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
                   {/* Card 2: Appointment Booked - Bottom Right */}
                   <FloatingCard
-                    reduced={reduced || isMobile}
+                    reduced={lowPower}
                     delay={0.65}
                     duration={6}
                     floatY={[0, -7, 0]}
@@ -630,7 +675,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                     <div className="bg-[var(--surface)] backdrop-blur-md rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 shadow-[0_8px_28px_rgba(37,99,235,0.10)] border border-[rgba(37,99,235,0.2)] flex items-center gap-1.5 sm:gap-3">
                       <motion.div
                         className="w-5 h-5 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-[rgba(37,99,235,0.08)] border border-[rgba(37,99,235,0.2)] flex items-center justify-center text-xs sm:text-lg flex-shrink-0"
-                        animate={reduced || isMobile ? undefined : { rotate: [0, -8, 8, 0] }}
+                        animate={lowPower ? undefined : { rotate: [0, -8, 8, 0] }}
                         transition={{ duration: 3, repeat: Infinity, repeatDelay: 1.5, ease: "easeInOut" }}
                       >
                         📅
@@ -654,7 +699,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
                   {/* Card 3: AI Assistant - Top Left */}
                   <FloatingCard
-                    reduced={reduced || isMobile}
+                    reduced={lowPower}
                     delay={0.8}
                     duration={5.2}
                     floatY={[0, -8, 0]}
@@ -697,7 +742,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
                   {/* Card 4: Leads Captured - Bottom Left */}
                   <FloatingCard
-                    reduced={reduced || isMobile}
+                    reduced={lowPower}
                     delay={0.95}
                     duration={5.8}
                     floatY={[0, -10, 0]}
@@ -808,7 +853,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                         "linear-gradient(270deg, #F5F7FA, transparent)",
                     }}
                   />
-                  <div className="flex gap-8 sm:gap-16 items-center animate-marquee opacity-90">
+                  <div className="flex gap-8 sm:gap-16 items-center animate-marquee opacity-90" style={{ willChange: "transform" }}>
                     {[...Array(2)].flatMap((_, dup) =>
                       [
                         { n: "HealthFirst", c: "#0EA5E9", icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" },

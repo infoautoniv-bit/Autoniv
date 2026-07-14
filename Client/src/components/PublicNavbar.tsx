@@ -184,6 +184,7 @@ export function PublicNavbar() {
             <img
               src={LOGO_SRC}
               alt="Autoniv"
+              fetchPriority="high"
               className="h-30 sm:h-30 w-auto object-contain transition-transform hover:scale-105"
             />
           </Link>
