@@ -1,0 +1,29 @@
+# Autoniv · llms.txt
+
+> **Autoniv** is an AI voice agents platform that deploys intelligent voice agents to handle business calls 24/7 in 20+ languages. Automate appointments, qualify leads, and boost conversions with autonomous AI phone agents.
+
+## Core Pages
+
+- [Homepage](https://autoniv.com/): AI voice agents for business — automate calls, appointments, and lead qualification
+- [About Us](https://autoniv.com/about): Our mission to make AI voice technology accessible for every business
+- [Help Center](https://autoniv.com/help): Documentation, guides, and support for Autoniv
+- [Pricing](https://autoniv.com/#pricing): Transparent pricing plans for AI voice agents
+
+## Resources
+
+- [Blog](https://autoniv.com/blog): Insights on AI voice technology, automation trends, and business use cases
+- [Press](https://autoniv.com/press): Autoniv in the news — media coverage and press releases
+- [Careers](https://autoniv.com/careers): Join the Autoniv team — open roles and company culture
+
+## Legal
+
+- [Privacy Policy](https://autoniv.com/privacy): How Autoniv collects, uses, and protects your data
+- [Terms & Conditions](https://autoniv.com/terms): Terms governing use of the Autoniv platform
+
+## Products
+
+- AI Voice Agents: Autonomous voice agents that handle inbound and outbound calls
+- Lead Qualification: AI-powered lead scoring and qualification via voice conversations
+- Appointment Scheduling: Automated booking and calendar management through voice agents
+- Multi-language Support: Voice agents operating in 20+ languages for global reach
+- Call Analytics: Real-time insights and reporting on call performance and outcomes
