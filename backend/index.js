@@ -67,6 +67,13 @@ app.disable('x-powered-by');
 app.disable('etag');
 
 app.use(requestIdMiddleware());
+
+// Prevent search bots from indexing API endpoints
+app.use((req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+  next();
+});
+
 app.use(buildHelmet());
 app.use(buildCors());
 app.options('*', buildCors());
