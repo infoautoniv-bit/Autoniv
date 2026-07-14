@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from './hooks/useStore';
 import { logout, checkAuth, login as loginAction, register as registerAction, verifyOtp as verifyOtpAction, googleLogin as googleLoginAction } from './store/slices/authSlice';
 import { useEffect, lazy, Suspense, type ReactNode } from 'react';
@@ -163,6 +163,54 @@ function AppRoutes() {
   const { user } = useAuth();
   const initialized = useAppSelector((s) => s.auth.initialized);
   const token = useAppSelector((s) => s.auth.token);
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+    let title = 'Autoniv - AI Voice Agents for Business';
+    
+    if (path === '/') title = 'Autoniv - AI Voice Agents for Business | Automate Calls with AI';
+    else if (path === '/login') title = 'Login - Autoniv';
+    else if (path === '/register') title = 'Register - Autoniv';
+    else if (path === '/forgot-password') title = 'Reset Password - Autoniv';
+    else if (path === '/privacy') title = 'Privacy Policy - Autoniv';
+    else if (path === '/terms') title = 'Terms & Conditions - Autoniv';
+    else if (path === '/help') title = 'Help Center - Autoniv';
+    else if (path === '/about') title = 'About Us - Autoniv';
+    else if (path === '/careers') title = 'Careers - Autoniv';
+    else if (path === '/blog') title = 'Blog & News - Autoniv';
+    else if (path === '/press') title = 'Press Room - Autoniv';
+    else if (path === '/services') title = 'AI Voice Services - Autoniv';
+    else if (path === '/case-studies') title = 'Case Studies - Autoniv';
+    else if (path.startsWith('/case-studies/')) title = 'Case Study Details - Autoniv';
+    else if (path === '/pricing') title = 'Pricing Plans - Autoniv';
+    else if (path === '/news') title = 'Latest News - Autoniv';
+    else if (path.startsWith('/dashboard')) {
+      if (path === '/dashboard/agents') title = 'My Voice Agents - Autoniv';
+      else if (path.includes('/agents/new')) title = 'Create Voice Agent - Autoniv';
+      else if (path.includes('/agents/custom-call')) title = 'Custom Call Test - Autoniv';
+      else if (path === '/dashboard/calls') title = 'Call History - Autoniv';
+      else if (path === '/dashboard/leads') title = 'My Leads - Autoniv';
+      else if (path === '/dashboard/appointments') title = 'My Appointments - Autoniv';
+      else if (path === '/dashboard/chat') title = 'My Chatbots - Autoniv';
+      else if (path === '/dashboard/billing') title = 'Billing & Plan - Autoniv';
+      else if (path === '/dashboard/add-ons') title = 'Billing Add-ons - Autoniv';
+      else title = 'User Dashboard - Autoniv';
+    } else if (path.startsWith('/admin')) {
+      if (path === '/admin/users') title = 'Manage Users - Admin';
+      else if (path === '/admin/agents') title = 'Manage Voice Agents - Admin';
+      else if (path === '/admin/calls') title = 'Call Logs - Admin';
+      else if (path === '/admin/leads') title = 'Leads Directory - Admin';
+      else if (path === '/admin/appointments') title = 'Appointments Directory - Admin';
+      else if (path === '/admin/billing') title = 'Billing Logs - Admin';
+      else if (path === '/admin/upgrade-requests') title = 'Upgrade Requests - Admin';
+      else if (path === '/admin/add-ons') title = 'Manage Add-ons - Admin';
+      else if (path === '/admin/chat') title = 'Chat Sessions - Admin';
+      else title = 'Admin Dashboard - Autoniv';
+    }
+
+    document.title = title;
+  }, [location.pathname]);
 
   // Only block render if we have a token but haven't validated it yet
   if (token && !initialized) return <LoadingScreen />;
