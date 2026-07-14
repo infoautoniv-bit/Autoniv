@@ -86,30 +86,34 @@ export function hashRefreshToken(token) {
 }
 
 export function tokenResponse({ user, dashboardStats, accessToken, refreshToken }) {
-  let chatPlan = user.chatPlan;
-  let voicePlan = user.voicePlan;
+  let chatPlan = user.chatPlan || 'none';
+  let voicePlan = user.voicePlan || 'none';
+  const userPlan = user.plan || 'chat_free';
+
   if (!chatPlan || chatPlan === 'none') {
-    const plan = user.plan || 'chat_free';
-    if (plan.startsWith('chat_')) {
-      chatPlan = plan;
-      voicePlan = voicePlan || 'none';
-    } else if (plan.startsWith('voice_')) {
+    if (userPlan.startsWith('chat_')) {
+      chatPlan = userPlan;
+    } else if (userPlan.startsWith('voice_')) {
       chatPlan = 'none';
-      voicePlan = plan;
-    } else if (plan.startsWith('both_')) {
-      chatPlan = plan.replace('both_', 'chat_');
-      voicePlan = plan.replace('both_', 'voice_');
+    } else if (userPlan.startsWith('both_')) {
+      chatPlan = userPlan.replace('both_', 'chat_');
     } else {
-      chatPlan = `chat_${plan}`;
-      voicePlan = `voice_${plan}`;
+      chatPlan = `chat_${userPlan}`;
     }
   }
+
   if (!voicePlan || voicePlan === 'none') {
-    const plan = user.plan || 'chat_free';
-    if (plan.startsWith('voice_')) voicePlan = plan;
-    else if (plan.startsWith('both_')) voicePlan = plan.replace('both_', 'voice_');
-    else voicePlan = `voice_${plan}`;
+    if (userPlan.startsWith('voice_')) {
+      voicePlan = userPlan;
+    } else if (userPlan.startsWith('chat_')) {
+      voicePlan = 'none';
+    } else if (userPlan.startsWith('both_')) {
+      voicePlan = userPlan.replace('both_', 'voice_');
+    } else {
+      voicePlan = `voice_${userPlan}`;
+    }
   }
+
   chatPlan = chatPlan || 'none';
   voicePlan = voicePlan || 'none';
 
