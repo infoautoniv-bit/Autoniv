@@ -213,8 +213,7 @@ button {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  background-size: 200% auto;
-  animation: shimmer-move 4s ease-in-out infinite;
+  background-size: 100% auto;
 }
 
 .gradient-border {
@@ -746,7 +745,7 @@ textarea::placeholder {
 
 /* ── Slow drifting gradient (Hero headline / backgrounds) ── */
 @keyframes gradientDrift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.animated-gradient{background-size:200% 200%;animation:gradientDrift 9s ease-in-out infinite;will-change:background-position;}
+.animated-gradient{background-size:100% auto;will-change:transform;}
 
 /* ── Hero clipped gradient headline (works across per-word reveal spans) ── */
 .hero-gradient-text{

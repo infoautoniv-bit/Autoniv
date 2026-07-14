@@ -3,7 +3,6 @@ import { PublicNavbar } from "../../../components/PublicNavbar";
 import Footer from "../Footer";
 import { USPSlider } from "./USPSlider";
 import { Hero } from "./Hero";
-import { Demo } from "./Demo";
 import { Features } from "./Features";
 import { Services } from "./ServicesSection";
 import { VoiceAgentService, ChatAgentService } from "./services";
@@ -12,6 +11,7 @@ const AuthDialog = lazy(() =>
   import("../AuthDialog").then((m) => ({ default: m.AuthDialog }))
 );
 
+const Demo = lazy(() => import("./Demo").then((m) => ({ default: m.Demo })));
 const HowItWorks = lazy(() => import("./HowItWorks").then(m => ({ default: m.HowItWorks })));
 const Comparison = lazy(() => import("./Comparison").then(m => ({ default: m.Comparison })));
 const Industry = lazy(() => import("./Industry").then(m => ({ default: m.Industry })));
@@ -44,7 +44,9 @@ export function LandingSection() {
         <div className="box-wrap">
           <USPSlider />
           <Hero openAuth={openAuth} />
-          <Demo />
+          <Suspense fallback={<div style={{ minHeight: 400 }} />}>
+            <Demo />
+          </Suspense>
             <div id="features">
               <Features />
             </div>

@@ -137,7 +137,7 @@ export const SpectrumField = memo(function SpectrumField({ active }: { active: b
               style={{
                 width: 3,
                 borderRadius: 99,
-                height: active ? `${h}%` : "2%",
+                height: `${h}%`,
                 background: isLeftHalf
                   ? "linear-gradient(180deg,#5eead4,#10b981)"
                   : "linear-gradient(180deg,#7dd3fc,#3b82f6)",
@@ -147,12 +147,13 @@ export const SpectrumField = memo(function SpectrumField({ active }: { active: b
                     ? "0 0 4px rgba(16,185,129,0.3)"
                     : "0 0 4px rgba(59,130,246,0.3)"
                   : "none",
+                transform: active ? "scaleY(1)" : "scaleY(0.12)",
+                transformOrigin: "center",
                 animation: active
                   ? `waveBounce ${3.0 + (i % 6) * 0.35}s ease-in-out ${i * 0.05}s infinite`
                   : "none",
-                transition: "height .5s ease, opacity .5s ease",
+                transition: "transform .4s ease, opacity .4s ease",
                 flexShrink: 0,
-                transform: "none",
               }}
             />
           );
