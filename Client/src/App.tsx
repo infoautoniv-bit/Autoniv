@@ -269,6 +269,7 @@ function AppRoutes() {
         {/* Catch-all route for 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      {!user && <UnifiedAssistantWidget />}
     </Suspense>
   );
 }
@@ -278,7 +279,6 @@ export default function App() {
     <BrowserRouter>
       <ErrorBoundary>
         <AppRoutes />
-        <UnifiedAssistantWidget />
       </ErrorBoundary>
     </BrowserRouter>
   );
