@@ -150,18 +150,19 @@ export const HeroContent = React.memo(function HeroContent({
 
           <motion.button
             onClick={() => openAuth("register")}
-            whileHover={reduced ? undefined : { y: -3, scale: 1.02, boxShadow: "0 10px 24px rgba(37,99,235,0.18)" }}
+            whileHover={reduced ? undefined : 
+              { y: -3, scale: 1.02, boxShadow: "0 10px 24px rgba(37,99,235,0.18)" }}
             whileTap={reduced ? undefined : { scale: 0.97 }}
-            className="font-bold flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl relative overflow-hidden cursor-pointer"
+            className="font-bold flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl relative overflow-hidden cursor-pointer backdrop-blur-md"
             style={{
-              background: "rgba(37,99,235,0.06)",
+              background: "rgba(37,99,235,0.08)",
               color: "#2563EB",
               border: "1px solid rgba(37,99,235,0.25)",
               minHeight: "48px",
               fontSize: "15px",
             }}
           >
-            <svg className="w-4 h-4" fill="white" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="#2563EB" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
             Watch Live Demo

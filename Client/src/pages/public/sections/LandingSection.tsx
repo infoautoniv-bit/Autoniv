@@ -6,17 +6,9 @@ import { Features } from "./Features";
 import { Services } from "./ServicesSection";
 import { VoiceAgentService, ChatAgentService } from "./services";
 import { DeferRender } from "../../../components/DeferRender";
+import { Hero } from "./Hero/Hero";
 
-const Hero = lazy(() => import("./Hero/Hero").then(m => ({ default: m.Hero })));
 const Demo = lazy(() => import("./Demo/Demo").then(m => ({ default: m.Demo })));
-
-function HeroSkeleton() {
-  return (
-    <div style={{ minHeight: "700px", background: "linear-gradient(rgba(37,99,235,0.02) 1px,transparent 1px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: "32px", height: "32px", borderRadius: "50%", border: "2px solid rgba(37,99,235,0.2)", borderTopColor: "#2563EB", animation: "socialBounce 1s linear infinite" }} />
-    </div>
-  );
-}
 
 const AuthDialog = lazy(() =>
   import("../AuthDialog").then((m) => ({ default: m.AuthDialog }))
@@ -51,9 +43,7 @@ export function LandingSection() {
       <div className="page-bg" style={{ paddingTop: 120, paddingBottom: 8 }}>
         <div className="box-wrap">
           <USPSlider />
-          <Suspense fallback={<HeroSkeleton />}>
-            <Hero openAuth={openAuth} />
-          </Suspense>
+          <Hero openAuth={openAuth} />
           <DeferRender height={600}>
             <Suspense fallback={<div style={{ minHeight: 600 }} />}>
               <Demo />
