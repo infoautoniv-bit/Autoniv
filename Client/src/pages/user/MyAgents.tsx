@@ -730,15 +730,18 @@ export function MyAgents() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    const targetId = deleteTarget;
+    setDeleteTarget(null); // Close modal instantly from UI
     try {
-      await dispatch(deleteAgent(deleteTarget)).unwrap();
+      await dispatch(deleteAgent(targetId)).unwrap();
       addToast('Agent deleted successfully', 'success');
-      await dispatch(fetchMyAgents({ page, limit: 20 }));
+      // Quietly fetch in background to sync state with backend
+      dispatch(fetchMyAgents({ page, limit: 20 }));
     } catch (err) {
       console.error(err);
       addToast('Failed to delete agent', 'error');
-    } finally {
-      setDeleteTarget(null);
+      // Restore deleted agent to UI state if deletion failed on backend
+      dispatch(fetchMyAgents({ page, limit: 20 }));
     }
   };
 

@@ -220,6 +220,12 @@ const agentsSlice = createSlice({
         update(state.myAgents);
         saveToSession('cache:myAgents', state.myAgents);
       })
+      .addCase(deleteAgent.pending, (state, action) => {
+        const id = action.meta.arg;
+        state.myAgents = state.myAgents.filter((a) => !matchId(a, id));
+        state.items = state.items.filter((a) => !matchId(a, id));
+        saveToSession('cache:myAgents', state.myAgents);
+      })
       .addCase(deleteAgent.fulfilled, (state, action) => {
         const id = action.payload;
         state.myAgents = state.myAgents.filter((a) => !matchId(a, id));
