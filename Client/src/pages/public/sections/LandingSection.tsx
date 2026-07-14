@@ -37,7 +37,6 @@ type AuthMode = 'login' | 'register' | 'forgot_password' | 'reset_password';
 export function LandingSection() {
   const [authDialog, setAuthDialog] = useState<AuthMode | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
-  const [activeUseCase, setActiveUseCase] = useState(0);
 
   const openAuth = useCallback((mode: 'login' | 'register') => {
     setAuthMode(mode);
@@ -80,7 +79,7 @@ export function LandingSection() {
           </DeferRender>
           <DeferRender height={600}>
             <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-              <Industry activeUseCase={activeUseCase} setActiveUseCase={setActiveUseCase} openAuth={openAuth} />
+              <Industry />
             </Suspense>
           </DeferRender>
           <DeferRender height={500}>
