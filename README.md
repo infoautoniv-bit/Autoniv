@@ -17,6 +17,7 @@ The experience is designed as a premium enterprise SaaS tool — clean, powerful
 - [Repository Layout](#repository-layout)
 - [Quick Start](#quick-start)
 - [Environment Variables](#environment-variables)
+- [Deployment](#deployment)
 - [Backend](#backend)
   - [Data Models](#data-models)
   - [API Routes](#api-routes)
@@ -148,6 +149,33 @@ npm run lint     # run ESLint
 
 ### Frontend (`Client/.env`)
 - `VITE_API_URL` — backend API base URL (e.g. `http://localhost:3000`)
+
+---
+
+## Deployment
+
+### Backend
+The backend utilizes persistent WebSockets (`ws`) for Twilio and browser media streams. Therefore, **serverless hosts like Vercel/Netlify Functions cannot run the backend**. Use a persistent node server:
+
+#### 1. Render (Paid Starter - Recommended)
+- **Service Type**: Web Service
+- **Root Directory**: `backend`
+- **Build Command**: `npm install`
+- **Start Command**: `node index.js`
+- **Uptime**: Upgrading to the **Starter** ($7/month) plan prevents the server from spinning down. On the free tier, the server goes to sleep after 15 minutes. To avoid timeouts on free tier calls, use a ping service like [Cron-job.org](https://cron-job.org) to request `https://your-app.onrender.com/api/health` every 10 minutes (note: keeping it awake 24/7 may exceed the 750 free hours monthly limit).
+
+#### 2. Railway
+- **Root Directory**: `backend`
+- **Settings**: Railway does not put servers to sleep. Highly recommended for development, as it stays online 24/7.
+
+#### 3. Fly.io
+- Fly.io deploys micro-VMs close to edge users, minimizing latency for the voice engine. Run `fly launch` in `/backend` to deploy.
+
+### Frontend
+The frontend is a React SPA and can be deployed to **Vercel** or **Netlify**:
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Routing**: SPA routing fallback is pre-configured via [vercel.json](file:///e:/Saas/Client/vercel.json).
 
 ---
 
