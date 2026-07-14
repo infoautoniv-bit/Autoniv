@@ -338,8 +338,10 @@ export function CustomWebCall() {
 
   const active = status === 'listening' || status === 'speaking' || status === 'connecting';
   const filtered = myAgents.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    (a.prompt || '').toLowerCase().includes(search.toLowerCase())
+    !a.vapiId && (
+      a.name.toLowerCase().includes(search.toLowerCase()) ||
+      (a.prompt || '').toLowerCase().includes(search.toLowerCase())
+    )
   );
 
   /* ═══════════════════════════════════════════════════════════

@@ -647,7 +647,7 @@ export function MyAgents() {
   useEffect(() => () => { clearWebCallTimers(); }, [clearWebCallTimers]);
 
   const handleWebCall = async (agent: Agent) => {
-    if (!agent.vapiId || agent.useCustomEngine) {
+    if (!agent.vapiId) {
       navigate(`/dashboard/agents/custom-call/${agent.id}`);
       return;
     }
