@@ -537,6 +537,10 @@ export function MyAgents() {
 
   const maxAgents = user ? getMaxChatbots(user) : 3;
   const atLimit = maxAgents !== -1 ? agents.length >= maxAgents : false;
+  
+  const minutesLimit = user?.minutesLimit ?? 0;
+  const isUnlimited = minutesLimit === -1;
+  const hasVoicePlan = isUnlimited || minutesLimit > 0 || (user ? isVoicePlan(user) : false);
 
   const openCreate = () => {
     if (atLimit) {
@@ -828,7 +832,7 @@ export function MyAgents() {
                 </svg>
                 {atLimit ? 'Capacity Reclaimed' : 'Create Vapi Agent'}
               </button>
-              {!atLimit && (
+              {!atLimit && hasVoicePlan && (
                 <button
                   type="button"
                   onClick={() => navigate('/dashboard/agents/new-custom')}
@@ -1130,7 +1134,7 @@ export function MyAgents() {
             </svg>
             Deploy blank Vapi assistant
           </button>
-          {!atLimit && (
+          {!atLimit && hasVoicePlan && (
             <button
               type="button"
               onClick={() => navigate('/dashboard/agents/new-custom')}

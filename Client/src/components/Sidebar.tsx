@@ -745,7 +745,13 @@ export function Sidebar() {
     ? adminNavItems
     : userNavItems.filter((item) => {
         if (item.path === '/dashboard/chat') return isChat;
-        if (item.path === '/dashboard/agents' || item.path === '/dashboard/calls') return isVoice;
+        if (
+          item.path === '/dashboard/agents' ||
+          item.path === '/dashboard/agents/custom-call' ||
+          item.path === '/dashboard/calls'
+        ) {
+          return isVoice;
+        }
         return true;
       });
 
