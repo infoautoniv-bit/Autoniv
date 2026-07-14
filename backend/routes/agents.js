@@ -408,26 +408,19 @@ router.delete('/:id', async (req, res) => {
       }
     }
 
-    // Now delete Vapi assistant and fetch calls to delete
-    const [vapiResult, callsToDelete] = await Promise.all([
-      agent.vapiId
-        ? deleteVapiAssistant(agent.vapiId).catch(e =>
-            log.warn('vapi_delete_agent_failed', { error: e.message, userId: req.user?.userId })
-          )
-        : Promise.resolve(),
-      Call.find({ agentId: objId }).select('recordingUrl').lean(),
-    ]);
+    // Now delete Vapi assistant
+    if (agent.vapiId) {
+      try {
+        await deleteVapiAssistant(agent.vapiId);
+      } catch (e) {
+        log.warn('vapi_delete_agent_failed', { error: e.message, userId: req.user?.userId });
+      }
+    }
 
-    // Delete recordings and DB records in parallel
-    await Promise.all([
-      deleteRecordings(callsToDelete.map(c => c.recordingUrl)),
-      Lead.deleteMany({ agentId: objId }),
-      Appointment.deleteMany({ agentId: objId }),
-      Call.deleteMany({ agentId: objId }),
-      Agent.findByIdAndDelete(objId),
-    ]);
+    // Only delete the agent record itself, keeping calls, appointments, and leads
+    await Agent.findByIdAndDelete(objId);
 
-    res.json({ message: 'Agent and all associated data deleted successfully' });
+    res.json({ message: 'Agent deleted successfully' });
   } catch (err) {
     log.error('delete_agent_error', { error: err.message, userId: req.user?.userId });
     res.status(500).json({ message: 'Failed to delete agent' });
