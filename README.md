@@ -394,6 +394,3 @@ Use TailwindCSS utilities matching these tokens (e.g. `bg-indigo-600`, `text-vio
 **Change plan limits/features** — edit `PLAN_CONFIG` in `backend/db/models/User.js`; changes apply immediately to validation logic.
 
 **Seed test data** — `npm run seed` in `backend/`.
-#   A u t o n i v  
- #   A u t o n i v  
- 
