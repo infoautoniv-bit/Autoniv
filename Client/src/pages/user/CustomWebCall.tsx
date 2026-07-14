@@ -409,7 +409,7 @@ export function CustomWebCall() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/20 flex items-center justify-center text-3xl">🤖</div>
               <h3 className="text-lg font-bold text-white mb-1">No agents matched</h3>
               <p className="text-xs text-slate-400 mb-6">Create a voice receptionist or appointment agent in the panel first.</p>
-              <button onClick={() => navigate('/dashboard/agents/create')} className="cw-dark-btn">Create Agent</button>
+              <button onClick={() => navigate('/dashboard/agents/new-custom')} className="cw-dark-btn">Create Agent</button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
