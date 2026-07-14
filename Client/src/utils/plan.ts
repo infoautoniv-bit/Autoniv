@@ -105,14 +105,14 @@ export function getPlanConfigByKey(key: string): PlanConfig {
 /** Check if user has an active chat plan */
 export function isChatPlan(user: Pick<User, 'chatPlan' | 'chatEnabled' | 'role'>): boolean {
   if (user.role === 'admin') return true;
-  if (user.chatPlan) return user.chatPlan !== 'none';
+  if (user.chatPlan) return user.chatPlan !== 'none' && user.chatPlan.startsWith('chat_');
   return user.chatEnabled !== undefined ? user.chatEnabled : true;
 }
 
 /** Check if user has an active voice plan */
 export function isVoicePlan(user: Pick<User, 'voicePlan' | 'voiceEnabled' | 'role'>): boolean {
   if (user.role === 'admin') return true;
-  if (user.voicePlan) return user.voicePlan !== 'none';
+  if (user.voicePlan) return user.voicePlan !== 'none' && user.voicePlan.startsWith('voice_');
   return user.voiceEnabled !== undefined ? user.voiceEnabled : false;
 }
 
