@@ -744,16 +744,16 @@ export function Sidebar() {
   const navItems = isAdmin
     ? adminNavItems
     : userNavItems.filter((item) => {
-        if (item.path === '/dashboard/chat') return isChat;
-        if (
-          item.path === '/dashboard/agents' ||
-          item.path === '/dashboard/agents/custom-call' ||
-          item.path === '/dashboard/calls'
-        ) {
-          return isVoice;
-        }
-        return true;
-      });
+      if (item.path === '/dashboard/chat') return isChat;
+      if (
+        item.path === '/dashboard/agents' ||
+        item.path === '/dashboard/agents/custom-call' ||
+        item.path === '/dashboard/calls'
+      ) {
+        return isVoice;
+      }
+      return true;
+    });
 
   const renderLogo = (forceExpanded: boolean) => (
     <div className={`p-4 border-b border-white/5 ${isCollapsed && !forceExpanded ? 'px-3' : ''}`}>
@@ -765,7 +765,7 @@ export function Sidebar() {
 
         >
           <img
-            src="/image8.png"
+            src="/image8_original.png"
             alt="Logo"
             className="w-full h-full object-cover"
           />
