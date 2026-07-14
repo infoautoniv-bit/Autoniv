@@ -12,12 +12,28 @@ export function Demo() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const demoSectionRef = useRef<HTMLDivElement>(null);
   const demoRunningRef = useRef(false);
+  const demoDoneRef = useRef(false);
+  const isIntersectingRef = useRef(false);
 
   useEffect(() => { demoRunningRef.current = demoRunning; }, [demoRunning]);
+  useEffect(() => { demoDoneRef.current = demoDone; }, [demoDone]);
   useEffect(() => { const c = chatContainerRef.current; if (c) c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' }); }, [demoMsgs]);
   useEffect(() => () => { demoTimers.current.forEach(clearTimeout); }, []);
 
+  const stopDemo = () => {
+    demoRunningRef.current = false;
+    demoDoneRef.current = false;
+    demoTimers.current.forEach(clearTimeout);
+    demoTimers.current = [];
+    setDemoMsgs([]);
+    setSpeaking("idle");
+    setDemoDone(false);
+    setDemoRunning(false);
+  };
+
   const startDemo = () => {
+    demoRunningRef.current = true;
+    demoDoneRef.current = false;
     demoTimers.current.forEach(clearTimeout);
     demoTimers.current = [];
     setDemoMsgs([]);
@@ -25,17 +41,33 @@ export function Demo() {
     setDemoDone(false);
     setDemoRunning(true);
     CONVERSATION.forEach((msg, i) => {
-      const tS = setTimeout(() => setSpeaking(msg.role as "user" | "agent"), msg.delay - 350);
+      const tS = setTimeout(() => {
+        if (!isIntersectingRef.current) return;
+        setSpeaking(msg.role as "user" | "agent");
+      }, msg.delay - 350);
       const tM = setTimeout(() => {
+        if (!isIntersectingRef.current) return;
         setDemoMsgs((p) => [...p, { ...msg, id: i }]);
         const next = CONVERSATION[i + 1];
         const gap = next ? next.delay - msg.delay : 1800;
         if (gap > 900) {
-          const tI = setTimeout(() => setSpeaking("idle"), Math.min(gap - 400, 1200));
+          const tI = setTimeout(() => {
+            if (!isIntersectingRef.current) return;
+            setSpeaking("idle");
+          }, Math.min(gap - 400, 1200));
           demoTimers.current.push(tI);
         }
         if (i === CONVERSATION.length - 1) {
-          const tD = setTimeout(() => { setDemoMsgs([]); setDemoDone(false); startDemo(); }, 1800);
+          demoRunningRef.current = false;
+          demoDoneRef.current = true;
+          setDemoRunning(false);
+          setDemoDone(true);
+          const tD = setTimeout(() => {
+            if (!isIntersectingRef.current) return;
+            setDemoMsgs([]);
+            setDemoDone(false);
+            startDemo();
+          }, 1800);
           demoTimers.current.push(tD);
         }
       }, msg.delay);
@@ -47,10 +79,20 @@ export function Demo() {
     const el = demoSectionRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !demoRunningRef.current) setTimeout(() => startDemo(), 300);
-    }, { threshold: 0.2 });
+      isIntersectingRef.current = entry.isIntersecting;
+      if (entry.isIntersecting) {
+        if (!demoRunningRef.current && !demoDoneRef.current) {
+          startDemo();
+        }
+      } else {
+        stopDemo();
+      }
+    }, { threshold: 0.1 });
     obs.observe(el);
-    return () => obs.disconnect();
+    return () => {
+      obs.disconnect();
+      demoTimers.current.forEach(clearTimeout);
+    };
   }, []);
 
   return (

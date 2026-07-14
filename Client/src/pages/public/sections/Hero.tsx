@@ -11,6 +11,7 @@ const springSoft = { type: "spring" as const, stiffness: 260, damping: 24 };
 function CountUp({ to, duration = 1.6, suffix = "" }: { to: number; duration?: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [val, setVal] = useState(0);
+  const [inView, setInView] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
@@ -18,21 +19,27 @@ function CountUp({ to, duration = 1.6, suffix = "" }: { to: number; duration?: n
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true;
-          const controls = animate(0, to, {
-            duration,
-            ease: easeOut,
-            onUpdate: (v) => setVal(Math.round(v)),
-          });
-          return () => controls.stop();
+        if (entry.isIntersecting) {
+          setInView(true);
+          obs.disconnect();
         }
       },
       { threshold: 0.4 },
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [to, duration]);
+  }, []);
+
+  useEffect(() => {
+    if (!inView || started.current) return;
+    started.current = true;
+    const controls = animate(0, to, {
+      duration,
+      ease: easeOut,
+      onUpdate: (v) => setVal(Math.round(v)),
+    });
+    return () => controls.stop();
+  }, [inView, to, duration]);
 
   return (
     <span ref={ref}>
