@@ -5,9 +5,9 @@ const PLAN_CONFIG = User.PLAN_CONFIG;
 export function resolvePlans(user) {
   let chatPlan = user.chatPlan || 'none';
   let voicePlan = user.voicePlan || 'none';
+  const plan = user.plan || 'chat_free';
 
   if (!chatPlan || chatPlan === 'none' || !PLAN_CONFIG[chatPlan]) {
-    const plan = user.plan || 'chat_free';
     if (plan.startsWith('chat_')) {
       chatPlan = plan;
     } else if (plan.startsWith('voice_')) {
@@ -20,9 +20,10 @@ export function resolvePlans(user) {
   }
 
   if (!voicePlan || voicePlan === 'none' || !PLAN_CONFIG[voicePlan]) {
-    const plan = user.plan || 'chat_free';
     if (plan.startsWith('voice_')) {
       voicePlan = plan;
+    } else if (plan.startsWith('chat_')) {
+      voicePlan = 'none';
     } else if (plan.startsWith('both_')) {
       voicePlan = plan.replace('both_', 'voice_');
     } else {

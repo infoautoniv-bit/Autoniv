@@ -263,37 +263,37 @@ userSchema.pre('save', function (next) {
 
   let chatPlan = this.chatPlan;
   let voicePlan = this.voicePlan;
+  const legacyPlan = this.plan || 'chat_free';
 
   if (!chatPlan || chatPlan === 'none') {
-    const legacyPlan = this.plan || 'chat_free';
     if (legacyPlan.startsWith('chat_')) {
       chatPlan = legacyPlan;
-      voicePlan = voicePlan || 'none';
     } else if (legacyPlan.startsWith('voice_')) {
       chatPlan = 'none';
-      voicePlan = legacyPlan;
     } else if (legacyPlan.startsWith('both_')) {
       chatPlan = legacyPlan.replace('both_', 'chat_');
-      voicePlan = legacyPlan.replace('both_', 'voice_');
     } else {
       chatPlan = `chat_${legacyPlan}`;
-      voicePlan = `voice_${legacyPlan}`;
     }
     this.chatPlan = chatPlan;
-    this.voicePlan = voicePlan;
-  }
-  if (!voicePlan || voicePlan === 'none') {
-    const legacyPlan = this.plan || 'chat_free';
-    if (legacyPlan.startsWith('voice_')) this.voicePlan = legacyPlan;
-    else if (legacyPlan.startsWith('both_')) this.voicePlan = legacyPlan.replace('both_', 'voice_');
-    else this.voicePlan = `voice_${legacyPlan}`;
   }
 
-  // Enable both if combined plan
-  if (this.chatPlan && this.chatPlan !== 'none' && this.voicePlan && this.voicePlan !== 'none') {
-    this.chatEnabled = true;
-    this.voiceEnabled = true;
+  if (!voicePlan || voicePlan === 'none') {
+    if (legacyPlan.startsWith('voice_')) {
+      voicePlan = legacyPlan;
+    } else if (legacyPlan.startsWith('chat_')) {
+      voicePlan = 'none';
+    } else if (legacyPlan.startsWith('both_')) {
+      voicePlan = legacyPlan.replace('both_', 'voice_');
+    } else {
+      voicePlan = `voice_${legacyPlan}`;
+    }
+    this.voicePlan = voicePlan;
   }
+
+  // Set enabled flags
+  this.chatEnabled = this.chatPlan && this.chatPlan !== 'none';
+  this.voiceEnabled = this.voicePlan && this.voicePlan !== 'none';
 
   // Set chat limits from chat plan
   if (this.chatPlan && this.chatPlan !== 'none') {
@@ -301,6 +301,8 @@ userSchema.pre('save', function (next) {
     if (chatConfig) {
       this.chatLimit = chatConfig.limits.conversations;
     }
+  } else {
+    this.chatLimit = 0;
   }
 
   // Set voice limits from voice plan
@@ -310,6 +312,9 @@ userSchema.pre('save', function (next) {
       this.callsLimit = voiceConfig.limits.calls;
       this.minutesLimit = voiceConfig.limits.minutes;
     }
+  } else {
+    this.callsLimit = 0;
+    this.minutesLimit = 0;
   }
 
   next();
@@ -321,28 +326,30 @@ userSchema.pre('save', function (next) {
 userSchema.methods.getResolvedPlans = function () {
   let chatPlan = this.chatPlan;
   let voicePlan = this.voicePlan;
+  const legacyPlan = this.plan || 'chat_free';
 
   if (!chatPlan || chatPlan === 'none') {
-    const legacyPlan = this.plan || 'chat_free';
     if (legacyPlan.startsWith('chat_')) {
       chatPlan = legacyPlan;
-      voicePlan = voicePlan || 'none';
     } else if (legacyPlan.startsWith('voice_')) {
       chatPlan = 'none';
-      voicePlan = legacyPlan;
     } else if (legacyPlan.startsWith('both_')) {
       chatPlan = legacyPlan.replace('both_', 'chat_');
-      voicePlan = legacyPlan.replace('both_', 'voice_');
     } else {
       chatPlan = `chat_${legacyPlan}`;
-      voicePlan = `voice_${legacyPlan}`;
     }
   }
+
   if (!voicePlan || voicePlan === 'none') {
-    const legacyPlan = this.plan || 'chat_free';
-    if (legacyPlan.startsWith('voice_')) voicePlan = legacyPlan;
-    else if (legacyPlan.startsWith('both_')) voicePlan = legacyPlan.replace('both_', 'voice_');
-    else voicePlan = `voice_${legacyPlan}`;
+    if (legacyPlan.startsWith('voice_')) {
+      voicePlan = legacyPlan;
+    } else if (legacyPlan.startsWith('chat_')) {
+      voicePlan = 'none';
+    } else if (legacyPlan.startsWith('both_')) {
+      voicePlan = legacyPlan.replace('both_', 'voice_');
+    } else {
+      voicePlan = `voice_${legacyPlan}`;
+    }
   }
 
   return { chatPlan: chatPlan || 'none', voicePlan: voicePlan || 'none' };
