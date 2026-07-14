@@ -57,7 +57,7 @@ const PLAN_CONFIG = {
   // ── Voice-only plans ──
   voice_free: {
     name: 'Voice Trial', monthlyPrice: 4999, monthlyPriceUSD: 59, setupFee: 0,
-    limits: { calls: 30, minutes: 30, chatbots: 0, conversations: 0 },
+    limits: { calls: 30, minutes: 30, chatbots: 1, conversations: 0 },
     features: {
       leadCapture: true, whatsappDelivery: true, upgradePath: true,
       customScripts: false, crmIntegration: false, analytics: false,
@@ -67,7 +67,7 @@ const PLAN_CONFIG = {
   },
   voice_starter: {
     name: 'Voice Foundation', monthlyPrice: 14999, monthlyPriceUSD: 179, setupFee: 14999,
-    limits: { calls: 120, minutes: 120, chatbots: 0, conversations: 0 },
+    limits: { calls: 120, minutes: 120, chatbots: 1, conversations: 0 },
     features: {
       leadCapture: true, whatsappDelivery: true, upgradePath: true,
       customScripts: false, crmIntegration: false, analytics: true,
@@ -77,7 +77,7 @@ const PLAN_CONFIG = {
   },
   voice_growth: {
     name: 'Voice Scale', monthlyPrice: 29999, monthlyPriceUSD: 359, setupFee: 39999,
-    limits: { calls: 400, minutes: 400, chatbots: 0, conversations: 0 },
+    limits: { calls: 400, minutes: 400, chatbots: 3, conversations: 0 },
     features: {
       leadCapture: true, whatsappDelivery: true, upgradePath: true,
       customScripts: true, crmIntegration: true, analytics: true,
@@ -87,7 +87,7 @@ const PLAN_CONFIG = {
   },
   voice_enterprise: {
     name: 'Voice Dominate', monthlyPrice: 74999, monthlyPriceUSD: 899, setupFee: 89999,
-    limits: { calls: 1200, minutes: -1, chatbots: 0, conversations: 0 },
+    limits: { calls: 1200, minutes: -1, chatbots: -1, conversations: 0 },
     features: {
       leadCapture: true, whatsappDelivery: true, upgradePath: true,
       customScripts: true, crmIntegration: true, analytics: true,
