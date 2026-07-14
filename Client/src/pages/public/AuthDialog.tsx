@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Modal } from '../../components/Modal';
@@ -105,7 +105,7 @@ function parseError(err: unknown, fallback: string): string {
 
 export function AuthDialog({ mode, isOpen, onClose, onSwitch }: AuthDialogProps) {
   const navigate = useNavigate();
-  const { login, register, verifyOtp, googleLogin } = useAuth();
+  const { login, register, verifyOtp } = useAuth();
 
   const [name, setName]               = useState('');
   const [email, setEmail]             = useState('');
@@ -134,6 +134,7 @@ export function AuthDialog({ mode, isOpen, onClose, onSwitch }: AuthDialogProps)
 
   const isLogin = mode === 'login';
 
+  /*
   const handleGoogleClick = () => {
     if (window.google) {
       const client = window.google.accounts.oauth2.initTokenClient({
@@ -204,6 +205,7 @@ export function AuthDialog({ mode, isOpen, onClose, onSwitch }: AuthDialogProps)
       initializeGoogle();
     }
   }, [isOpen, showOtp, mode, googleLogin, onClose, navigate]);
+  */
 
   // Reset form on mode change
   useEffect(() => {
@@ -692,6 +694,7 @@ export function AuthDialog({ mode, isOpen, onClose, onSwitch }: AuthDialogProps)
           {/* ── Login / Register Fields ───────────────────────────── */}
           {!showOtp && !isAuthFlow && (
             <>
+              {/*
               <button
                 type="button"
                 onClick={handleGoogleClick}
@@ -725,6 +728,7 @@ export function AuthDialog({ mode, isOpen, onClose, onSwitch }: AuthDialogProps)
                 <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 font-mono">Or continue with email</span>
                 <div className="flex-1 border-t border-white/10" />
               </div>
+              */}
 
               {!isLogin && (
                 <Field label="Full Name" error={touched.name ? fieldErrors.name : null}>
