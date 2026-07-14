@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-let fromEmail = process.env.RESEND_FROM || 'tanishaborana970@gmail.com';
+let fromEmail = process.env.RESEND_FROM;
 if (fromEmail && !fromEmail.includes('@')) {
   fromEmail = `noreply@${fromEmail}`;
 }

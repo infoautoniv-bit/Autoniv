@@ -894,7 +894,7 @@ export function MyAgents() {
               <span style={{ fontSize: 10, fontWeight: 500, color: isAtLimit ? '#ef4444' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                 {isUnlimited ? 'Unlimited' : isAtLimit ? 'Limit reached' : hasVoicePlan ? `${Math.round(pct)}%` : 'No voice plan'}
               </span>
-              {isAtLimit && (
+              {(isAtLimit || !hasVoicePlan) && (
                 <button type="button" onClick={() => navigate('/dashboard/billing')} style={{ fontSize: 10, fontWeight: 600, background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, textDecoration: 'underline', whiteSpace: 'nowrap' }}>Upgrade</button>
               )}
             </motion.div>

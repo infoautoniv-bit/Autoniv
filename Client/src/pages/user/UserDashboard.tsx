@@ -1913,7 +1913,7 @@ export function UserDashboard() {
                   {isVoice ? (
                     isUnlimitedMinutes
                       ? <span className="text-slate-400 font-semibold"> / ∞ mins</span>
-                      : minutesLimit > 0 && <span className="text-slate-400 font-semibold"> / {minutesLimit.toLocaleString()} mins</span>
+                      : <span className="text-slate-400 font-semibold"> / {minutesLimit > 0 ? minutesLimit.toLocaleString() : '—'} mins</span>
                   ) : (
                     user?.chatLimit === -1
                       ? <span className="text-slate-400 font-semibold"> / ∞ chats</span>
