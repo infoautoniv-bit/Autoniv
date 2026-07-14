@@ -432,6 +432,11 @@ userSchema.set('toJSON', {
     delete ret.password;
     delete ret.loginAttempts;
     delete ret.lockUntil;
+    delete ret.otpCode;
+    delete ret.otpExpiresAt;
+    delete ret.otpPurpose;
+    delete ret.apiKey;
+    delete ret.passwordChangedAt;
     return ret;
   },
 });
@@ -441,6 +446,11 @@ userSchema.set('toObject', {
     delete ret.password;
     delete ret.loginAttempts;
     delete ret.lockUntil;
+    delete ret.otpCode;
+    delete ret.otpExpiresAt;
+    delete ret.otpPurpose;
+    delete ret.apiKey;
+    delete ret.passwordChangedAt;
     return ret;
   },
 });
