@@ -884,52 +884,6 @@ export function AuthDialog({ mode, isOpen, onClose, onSwitch }: AuthDialogProps)
             </>
           )}
 
-          {/* ── Demo Credentials (login only) ──────────────────────── */}
-          {isLogin && !isAuthFlow && !showOtp && (
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center gap-2">
-                <span className="w-1 h-3.5 bg-emerald-500 rounded-full" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 font-mono">
-                  Demo Access Console
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'System Admin', email: 'admin@autoniv.ai', pwd: 'Password123@' },
-                  { label: 'General User', email: 'user@autoniv.ai', pwd: 'Test2@1234' },
-                ].map((d) => (
-                  <button
-                    key={d.label}
-                    type="button"
-                    onClick={() => { setEmail(d.email); setPassword(d.pwd); setTouched({}); setFieldErrors({}); }}
-                    className="px-3 py-2.5 rounded-xl text-left transition-all duration-300 cursor-pointer border flex flex-col justify-between"
-                    style={{ 
-                      background: 'rgba(16,185,129,0.03)',
-                      borderColor: 'rgba(16,185,129,0.08)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(16,185,129,0.06)';
-                      e.currentTarget.style.borderColor = 'rgba(16,185,129,0.2)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(16,185,129,0.03)';
-                      e.currentTarget.style.borderColor = 'rgba(16,185,129,0.08)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <div>
-                      <span className="text-[11px] font-extrabold text-white block">{d.label}</span>
-                      <span className="text-[9px] text-slate-550 block truncate mt-0.5">{d.email}</span>
-                    </div>
-                    <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-450 font-mono mt-2 self-start bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                      Auto-Fill
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <button
             type="submit"
