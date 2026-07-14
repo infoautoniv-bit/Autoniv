@@ -1048,9 +1048,11 @@ export function UserDashboard() {
 
   const loadData = useCallback(() => {
     dispatch(fetchMyStats());
-    dispatch(fetchMyCalls());
-    dispatch(fetchMyAgents());
-  }, [dispatch]);
+    if (isVoice) {
+      dispatch(fetchMyCalls({}));
+      dispatch(fetchMyAgents({}));
+    }
+  }, [dispatch, isVoice]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -1087,14 +1089,16 @@ export function UserDashboard() {
     setRetrying(true);
     await Promise.all([
       dispatch(fetchMyStats()),
-      dispatch(fetchMyCalls()),
-      dispatch(fetchMyAgents())
+      ...(isVoice ? [
+        dispatch(fetchMyCalls({})),
+        dispatch(fetchMyAgents({}))
+      ] : [])
     ]);
     setTimeout(() => { 
       setRetrying(false); 
       addToast('Dashboard data refreshed successfully ✨', 'success'); 
     }, 850);
-  }, [dispatch, addToast]);
+  }, [dispatch, isVoice, addToast]);
 
   const myAgentStats = useMemo(() => ({
     total:    myAgents.length,

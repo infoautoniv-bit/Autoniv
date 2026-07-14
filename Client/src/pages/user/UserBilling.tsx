@@ -258,13 +258,15 @@ export function UserBilling() {
   const [modalTab, setModalTab] = useState<'chat' | 'voice' | 'both'>('chat');
   const [currency, setCurrency] = useState<'usd' | 'inr'>('usd');
 
-  useEffect(() => {
-    dispatch(fetchMyUpgradeRequests());
-    dispatch(fetchMyAgents({ page: 1, limit: 50 }));
-  }, [dispatch]);
-
   const isChat = user ? isChatPlan(user) : true;
   const isVoice = user ? isVoicePlan(user) : false;
+
+  useEffect(() => {
+    dispatch(fetchMyUpgradeRequests({}));
+    if (isVoice) {
+      dispatch(fetchMyAgents({ page: 1, limit: 50 }));
+    }
+  }, [dispatch, isVoice]);
 
   const { plan: activePlanConfig, type: activePlanType } = getPlanConfig(user?.plan);
 
