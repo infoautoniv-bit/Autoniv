@@ -342,6 +342,7 @@ export function Demo() {
                               {[0, 1, 2, 3, 4].map((i) => (
                                 <rect
                                   key={i}
+                                  className="mini-wave-bar"
                                   x={i * 4}
                                   y={10 - [3, 4.5, 2.5, 4, 2][i] / 2}
                                   width="2"

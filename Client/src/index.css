@@ -791,3 +791,16 @@ textarea::placeholder {
   }
   .animated-gradient,.blob-float,.sparkle,.popular-border::before,.animate-marquee,.aurora-orb{animation:none !important;}
 }
+
+/* Disable continuous animations on mobile viewports for performance */
+@media (max-width: 1023px) {
+  .bg-wave-bar,
+  .fg-wave-bar,
+  .voice-orb-glow,
+  .spectrum-bar,
+  .glow-ring-orb-glow,
+  .mini-wave-bar {
+    animation: none !important;
+    transition: none !important;
+  }
+}

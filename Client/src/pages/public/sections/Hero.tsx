@@ -88,6 +88,15 @@ function FloatingCard({
 export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void }) {
   const reduced = useReducedMotion() ?? false;
   const ref = useRef<HTMLElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "end start"],
@@ -363,7 +372,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
                   {/* Phone Mockup - Smaller on mobile (slow float + cursor-tilt) */}
                   <motion.div
-                    animate={reduced ? undefined : { y: [0, -12, 0] }}
+                    animate={reduced || isMobile ? undefined : { y: [0, -12, 0] }}
                     transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                     style={{ rotate: phoneRotate }}
                     onMouseMove={handlePhoneMouseMove}
@@ -377,8 +386,8 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                  <motion.div
       className="w-full h-full bg-[#0a0a0a] border-[4px] sm:border-[6px] lg:border-[7px] border-[#1a1a1a] relative flex flex-col items-center p-2 sm:p-3 select-none"
       style={{
-        rotateX: tiltX,
-        rotateY: tiltY,
+        rotateX: isMobile ? 0 : tiltX,
+        rotateY: isMobile ? -18 : tiltY,
         transformPerspective: 1000,
       }}
     >
@@ -412,19 +421,19 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
           <motion.div
             className="absolute rounded-full border border-cyan-400/20 z-0"
             style={{ width: "90px", height: "90px" }}
-            animate={reduced ? undefined : { scale: [1, 1.08, 1] }}
+            animate={reduced || isMobile ? undefined : { scale: [1, 1.08, 1] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           />
           <motion.div
             className="absolute rounded-full border border-cyan-400/10 z-0"
             style={{ width: "120px", height: "120px" }}
-            animate={reduced ? undefined : { scale: [1, 1.12, 1] }}
+            animate={reduced || isMobile ? undefined : { scale: [1, 1.12, 1] }}
             transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
           />
           <motion.div
             className="absolute rounded-full border border-cyan-400/[0.06] z-0"
             style={{ width: "155px", height: "155px" }}
-            animate={reduced ? undefined : { scale: [1, 1.16, 1] }}
+            animate={reduced || isMobile ? undefined : { scale: [1, 1.16, 1] }}
             transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
           />
 
@@ -443,7 +452,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                     width: "2px",
                     height: `${h}px`,
                     background: "rgba(34,211,238,0.12)",
-                    animation: "bgWaveBounce 1.2s ease-in-out infinite",
+                    animation: isMobile ? "none" : "bgWaveBounce 1.2s ease-in-out infinite",
                     animationDelay: `${i * 0.045}s`,
                     transformOrigin: "center",
                   }}
@@ -459,7 +468,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
               width: "64px",
               height: "64px",
               background: "radial-gradient(circle at 35% 35%, #22d3ee, #0ea5e9, #1d4ed8)",
-              animation: "orbPulseGlow 3s ease-in-out infinite",
+              animation: isMobile ? "none" : "orbPulseGlow 3s ease-in-out infinite",
             }}
           >
             <div
@@ -512,7 +521,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                         ? "linear-gradient(180deg,#34d399,#059669)"
                         : "linear-gradient(180deg,#22d3ee,#0e7490)",
                     opacity: 0.65,
-                    animation: "waveBounce 1s ease-in-out infinite",
+                    animation: isMobile ? "none" : "waveBounce 1s ease-in-out infinite",
                     animationDelay: `${i * 0.045}s`,
                   }}
                 />
@@ -571,7 +580,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
                   {/* Card 1: Incoming Call - Top Right */}
                   <FloatingCard
-                    reduced={reduced}
+                    reduced={reduced || isMobile}
                     delay={0.5}
                     duration={5.5}
                     floatY={[0, -9, 0]}
@@ -584,7 +593,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                         </span>
                         <motion.span
                           className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-blue-500"
-                          animate={reduced ? undefined : { opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
+                          animate={reduced || isMobile ? undefined : { opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
                           transition={{ duration: 1.4, repeat: Infinity }}
                         />
                       </div>
@@ -612,7 +621,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
                   {/* Card 2: Appointment Booked - Bottom Right */}
                   <FloatingCard
-                    reduced={reduced}
+                    reduced={reduced || isMobile}
                     delay={0.65}
                     duration={6}
                     floatY={[0, -7, 0]}
@@ -621,7 +630,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
                     <div className="bg-[var(--surface)] backdrop-blur-md rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 shadow-[0_8px_28px_rgba(37,99,235,0.10)] border border-[rgba(37,99,235,0.2)] flex items-center gap-1.5 sm:gap-3">
                       <motion.div
                         className="w-5 h-5 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-[rgba(37,99,235,0.08)] border border-[rgba(37,99,235,0.2)] flex items-center justify-center text-xs sm:text-lg flex-shrink-0"
-                        animate={reduced ? undefined : { rotate: [0, -8, 8, 0] }}
+                        animate={reduced || isMobile ? undefined : { rotate: [0, -8, 8, 0] }}
                         transition={{ duration: 3, repeat: Infinity, repeatDelay: 1.5, ease: "easeInOut" }}
                       >
                         📅
@@ -645,7 +654,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
                   {/* Card 3: AI Assistant - Top Left */}
                   <FloatingCard
-                    reduced={reduced}
+                    reduced={reduced || isMobile}
                     delay={0.8}
                     duration={5.2}
                     floatY={[0, -8, 0]}
@@ -688,7 +697,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
 
                   {/* Card 4: Leads Captured - Bottom Left */}
                   <FloatingCard
-                    reduced={reduced}
+                    reduced={reduced || isMobile}
                     delay={0.95}
                     duration={5.8}
                     floatY={[0, -10, 0]}

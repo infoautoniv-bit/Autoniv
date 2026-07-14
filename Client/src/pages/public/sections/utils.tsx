@@ -133,6 +133,7 @@ export const SpectrumField = memo(function SpectrumField({ active }: { active: b
           return (
             <div
               key={i}
+              className="spectrum-bar"
               style={{
                 width: 3,
                 borderRadius: 99,
@@ -196,6 +197,7 @@ export const GlowRingOrb = memo(function GlowRingOrb({
     >
       {/* outer soft glow */}
       <div
+        className="glow-ring-orb-glow"
         style={{
           position: "absolute",
           width: s(140),
