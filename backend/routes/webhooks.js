@@ -168,8 +168,22 @@ async function handleCallEnded(call) {
     }
   }
 
-  const existing = await Call.findOne({ vapiCallId: call.id });
-  if (!existing) return;
+  let existing = await Call.findOne({ vapiCallId: call.id });
+  let userId = existing ? existing.userId : null;
+  let agentId = existing ? existing.agentId : null;
+
+  const assistantId = call.assistantId || call.assistant?.id;
+  if (!userId && assistantId) {
+    try {
+      const agent = await Agent.findOne({ vapiId: assistantId }).lean();
+      if (agent) {
+        agentId = agent._id;
+        userId = agent.userId;
+      }
+    } catch (err) {
+      log.error('webhook_resolve_agent_on_ended_failed', { error: err.message });
+    }
+  }
 
   const updates = {
     status,
@@ -178,11 +192,40 @@ async function handleCallEnded(call) {
     endedAt: endedAt || new Date().toISOString(),
     endedReason,
   };
-  if (callerNumber && (!existing.callerNumber || existing.callerNumber === 'Unknown')) {
+  if (callerNumber && (!existing || !existing.callerNumber || existing.callerNumber === 'Unknown')) {
     updates.callerNumber = safeString(callerNumber, 30);
   }
 
-  await Call.updateOne({ _id: existing._id }, updates);
+  if (existing) {
+    const updatesToApply = { ...updates };
+    if (!existing.userId && userId) {
+      updatesToApply.userId = userId;
+    }
+    if (!existing.agentId && agentId) {
+      updatesToApply.agentId = agentId;
+    }
+    await Call.updateOne({ _id: existing._id }, updatesToApply);
+  } else {
+    // Fallback: create the call document if the start event was missed
+    try {
+      existing = await Call.create({
+        _id: call.id,
+        agentId,
+        userId,
+        vapiCallId: call.id,
+        callerNumber: callerNumber ? safeString(callerNumber, 30) : null,
+        status,
+        duration,
+        recordingUrl,
+        startedAt: call.startedAt || new Date(new Date(updates.endedAt).getTime() - duration * 1000).toISOString(),
+        endedAt: updates.endedAt,
+        endedReason,
+      });
+      log.info('webhook_call_ended_fallback_created', { callId: call.id });
+    } catch (createErr) {
+      log.error('webhook_call_ended_fallback_create_failed', { callId: call.id, error: createErr.message });
+    }
+  }
 
   // If recordingUrl is still null, schedule a delayed retry
   if (!recordingUrl) {
@@ -203,15 +246,15 @@ async function handleCallEnded(call) {
     }, 30000);
   }
 
-  if (duration > 0) {
+  if (duration > 0 && userId) {
     const billingMinutes = Math.ceil(duration / 60);
     const flip = await Call.findOneAndUpdate(
       { vapiCallId: call.id, billed: { $ne: true } },
       { $set: { billed: true } }
     );
     if (flip) {
-      await User.findByIdAndUpdate(existing.userId, { $inc: { minutesUsed: billingMinutes, callsUsed: 1 } });
-      log.info('webhook_call_billed', { callId: call.id, billingMinutes });
+      await User.findByIdAndUpdate(userId, { $inc: { minutesUsed: billingMinutes, callsUsed: 1 } });
+      log.info('webhook_call_billed', { callId: call.id, billingMinutes, userId });
     } else {
       log.info('webhook_call_already_billed', { callId: call.id });
     }

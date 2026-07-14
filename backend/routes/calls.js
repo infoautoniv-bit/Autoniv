@@ -446,6 +446,21 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
       customer: { number: e164Number, name: req.user.userId },
     });
 
+    if (vapiCall && vapiCall.id) {
+      try {
+        await Call.create({
+          agentId: agent._id,
+          userId: agent.userId,
+          vapiCallId: vapiCall.id,
+          callerNumber: e164Number,
+          status: 'in-progress',
+          startedAt: new Date(),
+        });
+      } catch (dbErr) {
+        log.error('vapi_outbound_call_db_init_failed', { error: dbErr.message, callId: vapiCall.id });
+      }
+    }
+
     log.info('outbound_call_initiated', {
       userId: req.user.userId,
       agentId,
