@@ -791,15 +791,84 @@ textarea::placeholder {
   .animated-gradient,.blob-float,.sparkle,.popular-border::before,.animate-marquee,.aurora-orb{animation:none !important;}
 }
 
-/* Disable continuous animations on mobile viewports for performance */
-@media (max-width: 1023px) {
-  .bg-wave-bar,
-  .fg-wave-bar,
-  .voice-orb-glow,
-  .spectrum-bar,
-  .glow-ring-orb-glow,
-  .mini-wave-bar {
-    animation: none !important;
-    transition: none !important;
-  }
+/* ── GPU-accelerated Floats for cards ── */
+@keyframes cardFloat1 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -9px, 0); }
 }
+@keyframes cardFloat2 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -7px, 0); }
+}
+@keyframes cardFloat3 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -8px, 0); }
+}
+@keyframes cardFloat4 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+.card-float-1 { animation: cardFloat1 5.5s ease-in-out infinite; will-change: transform; }
+.card-float-2 { animation: cardFloat2 6.0s ease-in-out infinite; will-change: transform; }
+.card-float-3 { animation: cardFloat3 5.2s ease-in-out infinite; will-change: transform; }
+.card-float-4 { animation: cardFloat4 5.8s ease-in-out infinite; will-change: transform; }
+
+/* ── Glow Ring and Phone Mockup loop keyframes ── */
+@keyframes phoneFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -12px, 0); }
+}
+.phone-float { animation: phoneFloat 6s ease-in-out infinite; will-change: transform; }
+
+@keyframes orbPulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+.orb-pulse { animation: orbPulse 3s ease-in-out infinite; }
+
+@keyframes ringsPulse1 {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes ringsPulse2 {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.12); opacity: 0.9; }
+}
+@keyframes ringsPulse3 {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.16); opacity: 0.8; }
+}
+.rings-pulse-1 { animation: ringsPulse1 2.4s ease-in-out infinite; }
+.rings-pulse-2 { animation: ringsPulse2 2.8s ease-in-out infinite; }
+.rings-pulse-3 { animation: ringsPulse3 3.2s ease-in-out infinite; }
+
+@keyframes orbGlow {
+  0%, 100% { transform: scale(1) translate(-50%, -50%); opacity: 0.8; }
+  50% { transform: scale(1.2) translate(-41%, -41%); opacity: 1; }
+}
+.orb-glow-pulse { animation: orbGlow 2.6s ease-in-out infinite; transform-origin: top left; }
+
+@keyframes livePulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+  70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+.live-pulse { animation: livePulse 1.8s infinite; }
+
+@keyframes waveBounce {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1.2); }
+}
+.wave-bounce-anim { animation: waveBounce 1.2s ease-in-out infinite; transform-origin: center; }
+
+@keyframes travelPulse {
+  0% { left: 0%; }
+  100% { left: 100%; }
+}
+.travel-pulse-anim { animation: travelPulse 2s ease-in-out infinite; }
+
+@keyframes scanVertical {
+  0%, 100% { top: 0%; }
+  50% { top: 100%; }
+}
+.scan-vertical-anim { animation: scanVertical 4s ease-in-out infinite; }

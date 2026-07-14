@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, memo } from "react";
 import { motion, useScroll, useReducedMotion, useInView, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import { STEPS } from "./data";
 import { MagBtn } from "./utils";
@@ -7,13 +7,35 @@ import { EASE_OUT } from "./motionConstants";
 
 const STEP_COLORS = ["#2563EB", "#10B981", "#8B5CF6", "#F59E0B", "#EC4899"];
 
+const PARTICLE_COUNT = Array.from({ length: 14 });
+
+const STEP_4_METHODS = [
+  { label: "Phone Number", icon: "📞", val: "+1 (800) 555-0199", action: "Assigned" },
+  { label: "Web Widget", icon: "💬", val: "Embed Script Widget", action: "Configured" },
+  { label: "Webhook Integration", icon: "⚡", val: "POST /v1/calls", action: "Live" }
+] as const;
+
+const STEP_5_STATS = [
+  { n: "1,248", l: "Total Calls", color: "#60a5fa" },
+  { n: "98.2%", l: "CSAT Score", color: "#34d399" },
+  { n: "78%", l: "Auto deflection", color: "#a78bfa" },
+  { n: "₹12.50", l: "Cost / Call", color: "#fbbf24" }
+] as const;
+
+const STEP_3_DIALOG = [
+  { r: "user", t: "Hi, I need to reschedule my doctor visit for next Monday." },
+  { r: "agent", t: "Sure, let me check the openings. I have slots at 10 AM or 3 PM. Which works?" },
+  { r: "user", t: "10 AM works best." },
+  { r: "agent", t: "Done! Your appointment is rescheduled for Monday at 10 AM. ✓" }
+] as const;
+
 function colorFor(i: number) {
   return STEP_COLORS[i % STEP_COLORS.length];
 }
 
 // ─── Single timeline step ───────────────────────────────────────────────────
 
-function TimelineStep({
+const TimelineStep = memo(function TimelineStep({
   step,
   index,
   active,
@@ -100,11 +122,11 @@ function TimelineStep({
       </motion.div>
     </motion.div>
   );
-}
+});
 
 // ─── Previews for each step in Mock Console ───────────────────────────────
 
-function Step1Preview() {
+const Step1Preview = memo(function Step1Preview() {
   const [text, setText] = useState("");
   const fullText = "Create a friendly Patient Care coordinator voice agent for HealthFirst Clinic. It should answer FAQs, ask patients for their name, and book slots in Google Calendar.";
 
@@ -146,9 +168,9 @@ function Step1Preview() {
       )}
     </div>
   );
-}
+});
 
-function Step2Preview() {
+const Step2Preview = memo(function Step2Preview() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
       <div className="space-y-4">
@@ -183,31 +205,25 @@ function Step2Preview() {
       </div>
     </div>
   );
-}
+});
 
-function Step3Preview() {
+const Step3Preview = memo(function Step3Preview() {
   const [messages, setMessages] = useState<Array<{ r: string; t: string }>>([]);
 
   useEffect(() => {
-    const dialog = [
-      { r: "user", t: "Hi, I need to reschedule my doctor visit for next Monday." },
-      { r: "agent", t: "Sure, let me check the openings. I have slots at 10 AM or 3 PM. Which works?" },
-      { r: "user", t: "10 AM works best." },
-      { r: "agent", t: "Done! Your appointment is rescheduled for Monday at 10 AM. ✓" }
-    ];
-
     let current = 0;
+    let t: ReturnType<typeof setTimeout>;
     const addMessage = () => {
-      if (current < dialog.length) {
-        setMessages((prev) => [...prev, dialog[current]]);
+      if (current < STEP_3_DIALOG.length) {
+        setMessages((prev) => [...prev, STEP_3_DIALOG[current]]);
         current++;
-        setTimeout(addMessage, 2200);
+        t = setTimeout(addMessage, 2200);
       }
     };
 
-    const firstDelay = setTimeout(addMessage, 500);
+    t = setTimeout(addMessage, 500);
     return () => {
-      clearTimeout(firstDelay);
+      clearTimeout(t);
       setMessages([]);
     };
   }, []);
@@ -242,9 +258,9 @@ function Step3Preview() {
       </div>
     </div>
   );
-}
+});
 
-function Step4Preview() {
+const Step4Preview = memo(function Step4Preview() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -253,11 +269,7 @@ function Step4Preview() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { label: "Phone Number", icon: "📞", val: "+1 (800) 555-0199", action: "Assigned" },
-          { label: "Web Widget", icon: "💬", val: "Embed Script Widget", action: "Configured" },
-          { label: "Webhook Integration", icon: "⚡", val: "POST /v1/calls", action: "Live" }
-        ].map((item, k) => (
+        {STEP_4_METHODS.map((item, k) => (
           <div key={k} className="bg-slate-900/80 border border-white/5 rounded-xl p-4 hover:border-amber-500/20 transition-all duration-300">
             <span className="text-xl block mb-2">{item.icon}</span>
             <h4 className="text-[11px] text-slate-500 uppercase tracking-wider font-bold">{item.label}</h4>
@@ -270,9 +282,9 @@ function Step4Preview() {
       </div>
     </div>
   );
-}
+});
 
-function Step5Preview() {
+const Step5Preview = memo(function Step5Preview() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -284,12 +296,7 @@ function Step5Preview() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { n: "1,248", l: "Total Calls", color: "#60a5fa" },
-          { n: "98.2%", l: "CSAT Score", color: "#34d399" },
-          { n: "78%", l: "Auto deflection", color: "#a78bfa" },
-          { n: "₹12.50", l: "Cost / Call", color: "#fbbf24" }
-        ].map((stat, k) => (
+        {STEP_5_STATS.map((stat, k) => (
           <div key={k} className="bg-slate-900 border border-white/5 rounded-xl p-3.5 text-center">
             <div className="text-lg font-black font-mono" style={{ color: stat.color }}>{stat.n}</div>
             <div className="text-[9px] text-slate-500 uppercase tracking-wide font-bold mt-1">{stat.l}</div>
@@ -298,9 +305,9 @@ function Step5Preview() {
       </div>
     </div>
   );
-}
+});
 
-function StepConsolePreview({ index }: { index: number }) {
+const StepConsolePreview = memo(function StepConsolePreview({ index }: { index: number }) {
   const color = colorFor(index);
 
   return (
@@ -338,16 +345,15 @@ function StepConsolePreview({ index }: { index: number }) {
       </div>
     </motion.div>
   );
-}
+});
 
 // ─── Ambient floating particles in the background ───────────────────────────
 
-function AmbientParticles({ reduced }: { reduced: boolean }) {
+const AmbientParticles = memo(function AmbientParticles({ reduced }: { reduced: boolean }) {
   if (reduced) return null;
-  const particles = Array.from({ length: 14 });
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {particles.map((_, i) => {
+      {PARTICLE_COUNT.map((_, i) => {
         const size = 2 + (i % 3);
         const left = (i * 137.5) % 100;
         const color = colorFor(i);
@@ -372,7 +378,7 @@ function AmbientParticles({ reduced }: { reduced: boolean }) {
       })}
     </div>
   );
-}
+});
 
 // ─── Main section ────────────────────────────────────────────────────────────
 

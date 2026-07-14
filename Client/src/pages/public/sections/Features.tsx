@@ -1,8 +1,11 @@
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { features } from "./data";
 import { CountUp, GradientText } from "./anim";
 import { EASE_OUT } from "./motionConstants";
+
+const LANGUAGES = ["English", "हिन्दी", "Español", "Deutsch", "العربية", "தமிழ்", "বাংলা"] as const;
+const ANALYTICS_VALUES = [25, 45, 30, 60, 85, 55, 95] as const;
 
 const cardAnimations = [
   // Card 1: Slide from left (transform-only for GPU)
@@ -17,26 +20,23 @@ const cardAnimations = [
   { hidden: { opacity: 0, y: 60 }, visible: { opacity: 1, y: 0 } },
   // Card 6: Fade up (safe for mobile)
   { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } },
-];
+] as const;
 
 function renderVisualizer(index: number, color: string) {
   switch (index) {
-    case 0: // AI Voice Agents: Bouncing wave
+    case 0: // AI Voice Agents: Bouncing wave (CSS optimized)
       return (
         <div className="flex items-end justify-center gap-1 h-12 w-full px-2">
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((bar) => (
-            <motion.div
+          {Array.from({ length: 13 }).map((_, bar) => (
+            <div
               key={bar}
-              animate={{
-                height: ["8px", `${12 + Math.sin(bar * 0.5) * 18 + Math.random() * 8}px`, "8px"]
-              }}
-              transition={{
-                duration: 1.0 + (bar % 3) * 0.15,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
               className="w-1 rounded-full"
-              style={{ backgroundColor: color }}
+              style={{
+                backgroundColor: color,
+                height: "24px",
+                animation: `waveBounce ${1.0 + (bar % 3) * 0.15}s ease-in-out ${bar * 0.1}s infinite`,
+                transformOrigin: "center",
+              }}
             />
           ))}
         </div>
@@ -44,7 +44,7 @@ function renderVisualizer(index: number, color: string) {
     case 1: // Global Language Support: Floating language badges
       return (
         <div className="flex flex-wrap gap-1.5 justify-center items-center h-12 w-full px-2 overflow-hidden">
-          {["English", "हिन्दी", "Español", "Deutsch", "العربية", "தமிழ்", "বাংলা"].map((lang, idx) => (
+          {LANGUAGES.map((lang, idx) => (
             <span
               key={idx}
               className="text-[10px] font-extrabold px-2 py-0.5 rounded-full border transition-all duration-300 group-hover:scale-105"
@@ -73,7 +73,7 @@ function renderVisualizer(index: number, color: string) {
     case 3: // Smart Analytics: Neon bar chart
       return (
         <div className="flex items-end justify-between gap-1.5 h-12 w-full px-4">
-          {[25, 45, 30, 60, 85, 55, 95].map((val, idx) => (
+          {ANALYTICS_VALUES.map((val, idx) => (
             <div key={idx} className="flex-1 bg-slate-200/50 rounded-t h-full relative overflow-hidden">
               <motion.div
                 initial={{ height: 0 }}
@@ -87,28 +87,24 @@ function renderVisualizer(index: number, color: string) {
           ))}
         </div>
       );
-    case 4: // CRM Integration: Pulse traveling between system icons
+    case 4: // CRM Integration: Pulse traveling between system icons (CSS optimized)
       return (
         <div className="flex items-center justify-center gap-4 h-12 w-full px-4">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm border bg-white" style={{ borderColor: `${color}15`, color }}>🤖</div>
           <div className="relative flex-1 h-[2px] bg-slate-200">
-            <motion.div
-              animate={{ left: ["0%", "100%"] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute top-[-3px] w-2 h-2 rounded-full shadow-lg"
+            <div
+              className="absolute top-[-3px] w-2 h-2 rounded-full shadow-lg travel-pulse-anim"
               style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }}
             />
           </div>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm border bg-white" style={{ borderColor: `${color}15`, color }}>💼</div>
         </div>
       );
-    case 5: // Enterprise Security: Scanning security badge
+    case 5: // Enterprise Security: Scanning security badge (CSS optimized)
       return (
         <div className="relative flex items-center justify-center h-12 w-full overflow-hidden border rounded-xl bg-slate-50" style={{ borderColor: `${color}15` }}>
-          <motion.div
-            animate={{ top: ["0%", "100%", "0%"] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute left-0 right-0 h-[1.5px] opacity-70"
+          <div
+            className="absolute left-0 right-0 h-[1.5px] opacity-70 scan-vertical-anim"
             style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
           />
           <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-700">
@@ -121,7 +117,7 @@ function renderVisualizer(index: number, color: string) {
   }
 }
 
-function FeatureCard({ feature, index }: { feature: typeof features[0]; index: number }) {
+const FeatureCard = React.memo(function FeatureCard({ feature, index }: { feature: typeof features[0]; index: number }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
   const reduced = useReducedMotion() ?? false;
@@ -197,7 +193,7 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
       </div>
     </motion.div>
   );
-}
+});
 
 export function Features() {
   const reduced = useReducedMotion() ?? false;
@@ -206,8 +202,8 @@ export function Features() {
     <section id="features" className="section-box white">
       <div className="section-pad relative overflow-hidden">
         {/* Ambient gradients */}
-        <div style={{ position: "absolute", bottom: 0, right: "10%", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(37,99,235,0.05), transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "10%", left: "5%", width: "300px", height: "300px", background: "radial-gradient(circle, rgba(16,185,129,0.04), transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: 0, right: "10%", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(37, 99, 235, 0.05), transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "10%", left: "5%", width: "300px", height: "300px", background: "radial-gradient(circle, rgba(16, 185, 129, 0.04), transparent 70%)", pointerEvents: "none" }} />
 
         <div className="relative" style={{ zIndex: 1 }}>
           {/* Header with stagger */}

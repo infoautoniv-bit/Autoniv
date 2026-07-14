@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState, } from "react";
+import { Fragment, useRef, useState, memo } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { motion, useInView } from "framer-motion";
 
@@ -230,6 +230,13 @@ const trustItems = [
   { icon: "🎧", label: "24/7 Support", desc: "Always here to help" },
 ];
 
+const MODULE_STATS = [
+  { v: "6", l: "Modules" },
+  { v: "20+", l: "Languages" },
+  { v: "99.9%", l: "Uptime SLA" },
+  { v: "$0", l: "Setup Fees" },
+] as const;
+
 // ─── Animation variants ─────────────────────────────────────────────────────
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
@@ -277,14 +284,15 @@ const modalItemVariants = {
 
 // ─── Mini sparkline SVG per service (animated draw-in) ──────────────────────
 
-function Sparkline({ accent }: { accent: string }) {
+const SPARKLINE_POINTS = [
+  [0, 40], [16, 32], [32, 36], [48, 22], [64, 28], [80, 14], [96, 18], [112, 8],
+] as const;
+const SPARKLINE_PTS = SPARKLINE_POINTS.map(([x, y]) => `${x},${y}`).join(" ");
+const SPARKLINE_FILL = [...SPARKLINE_POINTS, [112, 48], [0, 48]].map(([x, y]) => `${x},${y}`).join(" ");
+
+const Sparkline = memo(function Sparkline({ accent }: { accent: string }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-20px" });
-  const points = [
-    [0, 40], [16, 32], [32, 36], [48, 22], [64, 28], [80, 14], [96, 18], [112, 8],
-  ];
-  const pts = points.map(([x, y]) => `${x},${y}`).join(" ");
-  const fill = [...points, [112, 48], [0, 48]].map(([x, y]) => `${x},${y}`).join(" ");
 
   return (
     <svg
@@ -295,7 +303,7 @@ function Sparkline({ accent }: { accent: string }) {
       className="w-full h-full"
     >
       <motion.polyline
-        points={fill}
+        points={SPARKLINE_FILL}
         fill={accent}
         fillOpacity="0.08"
         initial={{ opacity: 0 }}
@@ -303,7 +311,7 @@ function Sparkline({ accent }: { accent: string }) {
         transition={{ duration: 0.8, delay: 0.5 }}
       />
       <motion.polyline
-        points={pts}
+        points={SPARKLINE_PTS}
         fill="none"
         stroke={accent}
         strokeWidth="2"
@@ -336,11 +344,11 @@ function Sparkline({ accent }: { accent: string }) {
       />
     </svg>
   );
-}
+});
 
 // ─── Service Detail Dialog ─────────────────────────────────────────────────────
 
-function ServiceDetailDialog({
+const ServiceDetailDialog = memo(function ServiceDetailDialog({
   service,
   onClose,
   openAuth,
@@ -603,11 +611,11 @@ function ServiceDetailDialog({
       </Dialog>
     </Transition>
   );
-}
+});
 
 // ─── Service Card ─────────────────────────────────────────────────────────────
 
-function ServiceCard({
+const ServiceCard = memo(function ServiceCard({
   s,
   onLearnMore,
 }: {
@@ -786,7 +794,7 @@ function ServiceCard({
       </div>
     </motion.div>
   );
-}
+});
 
 // ─── Main Section ─────────────────────────────────────────────────────────────
 
@@ -903,12 +911,7 @@ export function Services({ openAuth }: { openAuth?: (mode: 'login' | 'register')
             animate={headerInView ? "show" : "hidden"}
             variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.4 } } }}
           >
-            {[
-              { v: "6", l: "Modules" },
-              { v: "20+", l: "Languages" },
-              { v: "99.9%", l: "Uptime SLA" },
-              { v: "$0", l: "Setup Fees" },
-            ].map((item, i) => (
+            {MODULE_STATS.map((item, i) => (
               <motion.div
                 key={i}
                 className="text-center"

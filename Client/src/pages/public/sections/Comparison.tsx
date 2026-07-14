@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, memo } from "react";
 import { motion, useInView } from "framer-motion";
 import { COMPARISON } from "./data";
 import { MotionReveal } from "./anim";
@@ -9,9 +9,18 @@ const competitors = [
   { key: "tidio", label: "Tidio" },
   { key: "freshchat", label: "Freshchat" },
   { key: "botpenguin", label: "BotPenguin" },
-];
+] as const;
 
-function CellValue({ value, isAutoniv = false }: { value: string; isAutoniv?: boolean }) {
+const SUMMARY_VERDICTS = [
+  { icon: "💰", label: "Best Value", desc: "Flat subscription, no surprises" },
+  { icon: "🚀", label: "Fastest Setup", desc: "Live in under 24 hours" },
+  { icon: "🌐", label: "INR Native", desc: "India-first pricing" },
+  { icon: "🛡️", label: "DPDP Compliant", desc: "Data privacy built-in" },
+  { icon: "💬", label: "WhatsApp Native", desc: "No add-on fees" },
+  { icon: "🎯", label: "No Seat Limits", desc: "Unlimited team access" },
+] as const;
+
+const CellValue = memo(function CellValue({ value, isAutoniv = false }: { value: string; isAutoniv?: boolean }) {
   const isCheck = value.startsWith("✓");
   const isCross = value.startsWith("✗");
 
@@ -51,9 +60,9 @@ function CellValue({ value, isAutoniv = false }: { value: string; isAutoniv?: bo
   }
 
   return <span className="font-semibold text-slate-700" style={{ fontSize: "12px" }}>{value}</span>;
-}
+});
 
-function ComparisonRow({ row, index }: { row: typeof COMPARISON[0]; index: number }) {
+const ComparisonRow = memo(function ComparisonRow({ row, index }: { row: typeof COMPARISON[0]; index: number }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const isVerdict = row.capability === "Verdict";
@@ -113,15 +122,12 @@ function ComparisonRow({ row, index }: { row: typeof COMPARISON[0]; index: numbe
       {/* Competitors */}
       {competitors.map((c) => {
         const val = row[c.key as keyof typeof row] as string;
-        const isWinner = val.startsWith("✓");
-        const isLoser = val.startsWith("✗");
-
         return (
           <td
             key={c.key}
             className="px-5 py-4 text-xs transition-colors duration-300"
             style={{
-              color: isWinner ? "#10B981" : isLoser ? "#ef4444" : "#64748b",
+              color: val.startsWith("✓") ? "#10B981" : val.startsWith("✗") ? "#ef4444" : "#64748b",
               background: "transparent",
             }}
           >
@@ -131,9 +137,9 @@ function ComparisonRow({ row, index }: { row: typeof COMPARISON[0]; index: numbe
       })}
     </motion.tr>
   );
-}
+});
 
-export function Comparison() {
+export const Comparison = memo(function Comparison() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -269,14 +275,7 @@ export function Comparison() {
 
           {/* Summary verdict */}
           <MotionReveal variant="fadeUp" className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[
-              { icon: "💰", label: "Best Value", desc: "Flat subscription, no surprises" },
-              { icon: "🚀", label: "Fastest Setup", desc: "Live in under 24 hours" },
-              { icon: "🌐", label: "INR Native", desc: "India-first pricing" },
-              { icon: "🛡️", label: "DPDP Compliant", desc: "Data privacy built-in" },
-              { icon: "💬", label: "WhatsApp Native", desc: "No add-on fees" },
-              { icon: "🎯", label: "No Seat Limits", desc: "Unlimited team access" },
-            ].map((item, i) => (
+            {SUMMARY_VERDICTS.map((item, i) => (
               <div
                 key={i}
                 className="group relative rounded-2xl p-5 text-center transition-all duration-500 hover:shadow-xl hover:-translate-y-1.5 overflow-hidden cursor-default"
@@ -304,4 +303,4 @@ export function Comparison() {
       </div>
     </section>
   );
-}
+});
