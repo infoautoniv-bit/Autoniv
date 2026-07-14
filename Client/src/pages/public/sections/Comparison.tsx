@@ -1,7 +1,6 @@
-import { useRef, memo } from "react";
-import { motion, useInView } from "framer-motion";
+import { useRef, useState, useEffect, memo } from "react";
 import { COMPARISON } from "./data";
-import { MotionReveal } from "./anim";
+import { Reveal } from "./utils";
 
 const competitors = [
   { key: "intercom", label: "Intercom" },
@@ -62,38 +61,25 @@ const CellValue = memo(function CellValue({ value, isAutoniv = false }: { value:
   return <span className="font-semibold text-slate-700" style={{ fontSize: "12px" }}>{value}</span>;
 });
 
-const ComparisonRow = memo(function ComparisonRow({ row, index }: { row: typeof COMPARISON[0]; index: number }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
+const ComparisonRow = memo(function ComparisonRow({ row, index, revealed }: { row: typeof COMPARISON[0]; index: number; revealed: boolean }) {
   const isVerdict = row.capability === "Verdict";
 
   return (
-    <motion.tr
-      ref={ref}
-      initial={{ opacity: 0, x: -20 }}
-      animate={inView ? { opacity: 1, x: 0 } : {}}
-      transition={{ duration: 0.5, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
-      className="group transition-all duration-300"
+    <tr
+      className="group transition-colors duration-200 hover:bg-blue-50/30"
       style={{
         borderBottom: index < COMPARISON.length - 1 ? "1px solid rgba(37,99,235,0.06)" : "none",
         background: isVerdict
           ? "linear-gradient(90deg, rgba(37,99,235,0.04), rgba(16,185,129,0.04))"
-          : "transparent",
-      }}
-      onMouseEnter={(e) => {
-        if (!isVerdict) {
-          e.currentTarget.style.background = "rgba(37,99,235,0.015)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isVerdict) {
-          e.currentTarget.style.background = "transparent";
-        }
+          : undefined,
+        opacity: revealed ? 1 : 0,
+        transform: revealed ? "none" : "translateX(-16px)",
+        transition: `opacity 0.5s cubic-bezier(.16,1,.3,1) ${index * 0.04}s, transform 0.5s cubic-bezier(.16,1,.3,1) ${index * 0.04}s`,
       }}
     >
       {/* Feature name - sticky */}
       <td
-        className="px-5 py-4 text-xs font-semibold sticky left-0 z-10 transition-colors duration-300"
+        className="px-5 py-4 text-xs font-semibold sticky left-0 z-10"
         style={{
           color: isVerdict ? "#0a0a0a" : "#334155",
           background: isVerdict
@@ -108,7 +94,7 @@ const ComparisonRow = memo(function ComparisonRow({ row, index }: { row: typeof 
 
       {/* Autoniv - highlighted */}
       <td
-        className="px-5 py-4 text-xs font-medium transition-all duration-300"
+        className="px-5 py-4 text-xs font-medium"
         style={{
           background: "linear-gradient(135deg, rgba(37,99,235,0.05), rgba(16,185,129,0.04))",
           color: row.autoniv.startsWith("✓") ? "#10B981" : row.autoniv.startsWith("✗") ? "#ef4444" : "#0a0a0a",
@@ -125,23 +111,38 @@ const ComparisonRow = memo(function ComparisonRow({ row, index }: { row: typeof 
         return (
           <td
             key={c.key}
-            className="px-5 py-4 text-xs transition-colors duration-300"
+            className="px-5 py-4 text-xs"
             style={{
               color: val.startsWith("✓") ? "#10B981" : val.startsWith("✗") ? "#ef4444" : "#64748b",
-              background: "transparent",
             }}
           >
             <CellValue value={val} />
           </td>
         );
       })}
-    </motion.tr>
+    </tr>
   );
 });
 
 export const Comparison = memo(function Comparison() {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const tableRef = useRef<HTMLDivElement>(null);
+  const [tableRevealed, setTableRevealed] = useState(false);
+
+  useEffect(() => {
+    const el = tableRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setTableRevealed(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.15 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   return (
     <section id="comparison" className="section-box tint" style={{ background: "#f8fafc" }}>
@@ -162,10 +163,10 @@ export const Comparison = memo(function Comparison() {
         style={{ background: "radial-gradient(ellipse, rgba(34,197,94,0.05), transparent 70%)" }}
       />
 
-      <div ref={ref} className="relative z-10 py-20 sm:py-28 px-4">
+      <div className="relative z-10 py-20 sm:py-28 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <MotionReveal variant="blurUp" className="text-center mb-14">
+          <Reveal className="text-center mb-14">
             <span
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold tracking-[0.18em] uppercase mb-6"
               style={{
@@ -191,18 +192,19 @@ export const Comparison = memo(function Comparison() {
             <p className="text-sm sm:text-base max-w-lg mx-auto mt-3" style={{ color: "#64748b" }}>
               We beat every competitor on every dimension. Real costs, real features — we did the math so you don't have to.
             </p>
-          </MotionReveal>
+          </Reveal>
 
           {/* Table */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.2 }}
+          <div
+            ref={tableRef}
             className="relative rounded-3xl overflow-hidden"
             style={{
               background: "rgba(255,255,255,0.98)",
               border: "1px solid rgba(37,99,235,0.12)",
               boxShadow: "0 30px 100px rgba(16,185,129,0.05), 0 0 0 1px rgba(37,99,235,0.03)",
+              opacity: tableRevealed ? 1 : 0,
+              transform: tableRevealed ? "none" : "translateY(20px)",
+              transition: "opacity 0.6s cubic-bezier(.16,1,.3,1) 0.1s, transform 0.6s cubic-bezier(.16,1,.3,1) 0.1s",
             }}
           >
             {/* Scroll hint for mobile */}
@@ -266,41 +268,43 @@ export const Comparison = memo(function Comparison() {
                 </thead>
                 <tbody>
                   {COMPARISON.map((row, index) => (
-                    <ComparisonRow key={index} row={row} index={index} />
+                    <ComparisonRow key={index} row={row} index={index} revealed={tableRevealed} />
                   ))}
                 </tbody>
               </table>
             </div>
-          </motion.div>
+          </div>
 
           {/* Summary verdict */}
-          <MotionReveal variant="fadeUp" className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {SUMMARY_VERDICTS.map((item, i) => (
-              <div
-                key={i}
-                className="group relative rounded-2xl p-5 text-center transition-all duration-500 hover:shadow-xl hover:-translate-y-1.5 overflow-hidden cursor-default"
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid rgba(37,99,235,0.08)",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.02)",
-                }}
-              >
-                {/* Accent hover wash */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{ background: "radial-gradient(circle at 50% 50%, rgba(16,185,129,0.08), transparent 70%)" }}
-                />
-                
-                {/* Border line indicator */}
-                <div className="absolute bottom-0 left-0 right-0 h-[2.5px] w-0 group-hover:w-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-emerald-500" />
-                
-                <div className="relative text-3xl mb-3 transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 inline-block">{item.icon}</div>
-                <div className="relative text-xs font-black tracking-wide" style={{ color: "#1e293b" }}>{item.label}</div>
-                <div className="relative text-[10px] mt-1.5 font-medium leading-relaxed" style={{ color: "#64748b" }}>{item.desc}</div>
-              </div>
+              <Reveal key={i} delay={i * 0.06} from="bottom">
+                <div
+                  className="group relative rounded-2xl p-5 text-center transition-[transform,box-shadow] duration-350 hover:shadow-xl hover:-translate-y-1.5 overflow-hidden cursor-default"
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid rgba(37,99,235,0.08)",
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.02)",
+                  }}
+                >
+                  {/* Accent hover wash */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    style={{ background: "radial-gradient(circle at 50% 50%, rgba(16,185,129,0.08), transparent 70%)" }}
+                  />
+                  
+                  {/* Border line indicator */}
+                  <div className="absolute bottom-0 left-0 right-0 h-[2.5px] w-0 group-hover:w-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-emerald-500" />
+                  
+                  <div className="relative text-3xl mb-3 transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 inline-block">{item.icon}</div>
+                  <div className="relative text-xs font-black tracking-wide" style={{ color: "#1e293b" }}>{item.label}</div>
+                  <div className="relative text-[10px] mt-1.5 font-medium leading-relaxed" style={{ color: "#64748b" }}>{item.desc}</div>
+                </div>
+              </Reveal>
             ))}
-          </MotionReveal>
+          </div>
         </div>
       </div>
     </section>
   );
 });
+

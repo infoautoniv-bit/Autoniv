@@ -203,16 +203,16 @@ export const Industry = memo(function Industry() {
 
           {/* ── Grid Layout ── */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left: Vertically stacked selector tabs */}
-            <div className="lg:col-span-4 space-y-2">
+            {/* Left: Responsive grid of selector tabs */}
+            <div className="lg:col-span-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-3 lg:gap-2.5">
               {useCases.map((item, idx) => {
                 const isActive = idx === activeUseCase;
                 return (
                   <motion.button
                     key={idx}
                     onClick={() => setActiveUseCase(idx)}
-                    whileHover={{ x: isActive ? 0 : 4 }}
-                    className="w-full flex items-center justify-between p-4.5 rounded-2xl text-left border-none cursor-pointer transition-all duration-300 relative overflow-hidden"
+                    whileHover={{ y: isActive ? 0 : -3, scale: isActive ? 1 : 1.01 }}
+                    className="w-full flex items-center justify-between p-3 sm:p-3.5 lg:p-4 rounded-2xl text-left border-none cursor-pointer transition-all duration-300 relative overflow-hidden"
                     style={{
                       background: isActive
                         ? "linear-gradient(135deg, rgba(37,99,235,0.065), rgba(16,185,129,0.04))"
@@ -238,7 +238,7 @@ export const Industry = memo(function Industry() {
                     </div>
 
                     <span
-                      className="text-xs transition-transform duration-300"
+                      className="hidden lg:inline text-xs transition-transform duration-300"
                       style={{
                         color: isActive ? "#2563EB" : "#94a3b8",
                         transform: isActive ? "translateX(0)" : "translateX(-4px)",

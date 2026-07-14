@@ -25,7 +25,7 @@ interface PhoneMockupProps {
   yGlow: any;
 }
 
-export const PhoneMockup = React.memo(function PhoneMockup({
+const PhoneMockup = React.memo(function PhoneMockup({
   reduced,
   isMobile,
   lowPower,
@@ -56,13 +56,13 @@ export const PhoneMockup = React.memo(function PhoneMockup({
       {/* Glow orbs: blur + scale animation via CSS classes */}
       <motion.div
         style={{ y: yGlow, willChange: "transform" }}
-        className={`absolute top-[20%] left-[20%] w-[320px] h-[320px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.16)_0%,transparent_70%)] filter blur-3xl pointer-events-none ${
+        className={`absolute top-[20%] left-[20%] w-[200px] h-[200px] sm:w-[260px] sm:h-[260px] lg:w-[320px] lg:h-[320px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.16)_0%,transparent_70%)] filter blur-3xl pointer-events-none ${
           lowPower ? "" : "animate-[orbPulse_6s_ease-in-out_infinite]"
         }`}
       />
       <motion.div
         style={{ y: yGlow, willChange: "transform" }}
-        className={`absolute bottom-[20%] right-[10%] w-[260px] h-[260px] rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.12)_0%,transparent_70%)] filter blur-3xl pointer-events-none ${
+        className={`absolute bottom-[20%] right-[10%] w-[160px] h-[160px] sm:w-[210px] sm:h-[210px] lg:w-[260px] lg:h-[260px] rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.12)_0%,transparent_70%)] filter blur-3xl pointer-events-none ${
           lowPower ? "" : "animate-[orbPulse_7s_ease-in-out_infinite_1s]"
         }`}
       />
@@ -103,15 +103,27 @@ export const PhoneMockup = React.memo(function PhoneMockup({
                 </p>
               </div>
 
-              {/* Orb + Waves */}
-              <div className="relative flex items-center justify-center" style={{ width: "160px", height: "100px" }}>
+              {/* Orb + Waves — sizes scale with the phone frame at each breakpoint */}
+              <div className="relative flex items-center justify-center w-[100px] h-[62px] sm:w-[130px] sm:h-[82px] lg:w-[160px] lg:h-[100px]">
                 {/* Rings (CSS animated) */}
-                <div className={`absolute rounded-full border border-cyan-400/20 z-0 ${lowPower ? "" : "rings-pulse-1"}`} style={{ width: "90px", height: "90px" }} />
-                <div className={`absolute rounded-full border border-cyan-400/10 z-0 ${lowPower ? "" : "rings-pulse-2"}`} style={{ width: "120px", height: "120px" }} />
-                <div className={`absolute rounded-full border border-cyan-400/[0.06] z-0 ${lowPower ? "" : "rings-pulse-3"}`} style={{ width: "155px", height: "155px" }} />
+                <div
+                  className={`absolute rounded-full border border-cyan-400/20 z-0 w-[55px] h-[55px] sm:w-[73px] sm:h-[73px] lg:w-[90px] lg:h-[90px] ${
+                    lowPower ? "" : "rings-pulse-1"
+                  }`}
+                />
+                <div
+                  className={`absolute rounded-full border border-cyan-400/10 z-0 w-[73px] h-[73px] sm:w-[98px] sm:h-[98px] lg:w-[120px] lg:h-[120px] ${
+                    lowPower ? "" : "rings-pulse-2"
+                  }`}
+                />
+                <div
+                  className={`absolute rounded-full border border-cyan-400/[0.06] z-0 w-[95px] h-[95px] sm:w-[127px] sm:h-[127px] lg:w-[155px] lg:h-[155px] ${
+                    lowPower ? "" : "rings-pulse-3"
+                  }`}
+                />
 
-                {/* BG wave bars — single SVG */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 160 100">
+                {/* BG wave bars — single SVG, viewBox keeps bars proportional to the container above */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 160 100" preserveAspectRatio="none">
                   {BG_BARS.map((h, i) => {
                     const spacing = 160 / BG_BARS.length;
                     const x = i * spacing + 1;
@@ -139,24 +151,29 @@ export const PhoneMockup = React.memo(function PhoneMockup({
                   })}
                 </svg>
 
-                {/* Orb (CSS animated) — z-20 */}
+                {/* Orb (CSS animated) — z-20, scales with breakpoint */}
                 <div
-                  className={`relative z-20 rounded-full flex items-center justify-center flex-shrink-0 ${lowPower ? "" : "orb-pulse"}`}
+                  className={`relative z-20 rounded-full flex items-center justify-center flex-shrink-0 w-10 h-10 sm:w-[52px] sm:h-[52px] lg:w-16 lg:h-16 ${
+                    lowPower ? "" : "orb-pulse"
+                  }`}
                   style={{
-                    width: "64px",
-                    height: "64px",
                     background: "radial-gradient(circle at 35% 35%, #22d3ee, #0ea5e9, #1d4ed8)",
                   }}
                 >
                   <div
-                    className="absolute rounded-full flex items-center justify-center"
+                    className="absolute rounded-full flex items-center justify-center inset-1"
                     style={{
-                      inset: "4px",
                       background: "radial-gradient(circle at 35% 35%, #0e7490, #0c4a6e)",
                       boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)",
                     }}
                   >
-                    <svg width="22" height="22" fill="none" stroke="#22d3ee" strokeWidth="2" viewBox="0 0 24 24">
+                    <svg
+                      className="w-3.5 h-3.5 sm:w-5 sm:h-5 lg:w-[22px] lg:h-[22px]"
+                      fill="none"
+                      stroke="#22d3ee"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -167,7 +184,7 @@ export const PhoneMockup = React.memo(function PhoneMockup({
                 </div>
 
                 {/* FG wave bars — single SVG */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 160 100">
+                <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 160 100" preserveAspectRatio="none">
                   {FG_BARS.map(({ h, dist }, i) => {
                     if (dist < 7) return null;
                     const spacing = 160 / FG_BARS.length;
@@ -230,7 +247,7 @@ export const PhoneMockup = React.memo(function PhoneMockup({
                     return (
                       <div key={idx} className="flex flex-col items-center">
                         <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#141414] border border-slate-700/30 flex items-center justify-center text-white/40 hover:scale-110 hover:border-cyan-500/50 transition-all duration-200 cursor-pointer">
-                          <IconComponent className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
+                          <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-[18px] lg:h-[18px]" />
                         </div>
                         <span className="text-[7px] sm:text-[9px] text-white/30 mt-0.5 sm:mt-1">
                           {item.label}
@@ -254,3 +271,6 @@ export const PhoneMockup = React.memo(function PhoneMockup({
     </div>
   );
 });
+
+export default PhoneMockup;
+export { PhoneMockup };
