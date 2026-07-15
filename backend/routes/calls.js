@@ -385,14 +385,17 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
         });
       }
 
-      // Calculate Twilio callback URL for incoming call
+      // Calculate Twilio callback URLs
       const baseWebhookUrl = process.env.WEBHOOK_URL || `https://${req.headers.host}`;
       let twilioWebhookUrl;
+      let twilioStatusCallbackUrl;
       if (baseWebhookUrl.endsWith('/api/webhooks/vapi')) {
         twilioWebhookUrl = baseWebhookUrl.replace('/vapi', '/incoming-call');
+        twilioStatusCallbackUrl = baseWebhookUrl.replace('/vapi', '/twilio/status');
       } else {
         const base = baseWebhookUrl.replace(/\/$/, '');
         twilioWebhookUrl = `${base}/api/webhooks/incoming-call`;
+        twilioStatusCallbackUrl = `${base}/api/webhooks/twilio/status`;
       }
 
       // Place Twilio outbound call using REST API
@@ -401,6 +404,8 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
         To: e164Number,
         From: fromNumber,
         Url: twilioWebhookUrl,
+        StatusCallback: twilioStatusCallbackUrl,
+        StatusCallbackMethod: 'POST',
       });
 
       const basicAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');

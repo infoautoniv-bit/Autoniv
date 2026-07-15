@@ -457,4 +457,58 @@ router.post('/incoming-call', async (req, res) => {
 </Response>`);
 });
 
+// POST /twilio/status — Twilio status callback for custom-engine calls
+router.post('/twilio/status', async (req, res) => {
+  try {
+    const { CallSid, CallStatus, CallDuration, To, From } = req.body || {};
+
+    if (!CallSid || !CallStatus) {
+      return res.sendStatus(400);
+    }
+
+    log.info('twilio_status_callback', { callSid: CallSid, status: CallStatus, duration: CallDuration });
+
+    res.sendStatus(200);
+
+    const finalStatuses = ['completed', 'busy', 'no-answer', 'canceled', 'failed'];
+    if (!finalStatuses.includes(CallStatus)) return;
+
+    const existing = await Call.findOne({ vapiCallId: CallSid });
+    if (!existing) {
+      log.warn('twilio_status_no_call_found', { callSid: CallSid });
+      return;
+    }
+
+    const statusMap = { completed: 'completed', busy: 'missed', 'no-answer': 'missed', canceled: 'missed', failed: 'failed' };
+    const mappedStatus = statusMap[CallStatus] || 'completed';
+    const duration = parseInt(CallDuration, 10) || 0;
+
+    const updates = {
+      status: mappedStatus,
+      duration,
+      endedAt: new Date(),
+      endedReason: CallStatus,
+    };
+    if (existing.callerNumber === null && From) {
+      updates.callerNumber = safeString(From, 30);
+    }
+
+    await Call.updateOne({ _id: existing._id }, updates);
+
+    if (duration > 0 && existing.userId && !existing.billed) {
+      const billingMinutes = Math.ceil(duration / 60);
+      const flip = await Call.findOneAndUpdate(
+        { _id: existing._id, billed: { $ne: true } },
+        { $set: { billed: true } }
+      );
+      if (flip) {
+        await User.findByIdAndUpdate(existing.userId, { $inc: { minutesUsed: billingMinutes, callsUsed: 1 } });
+        log.info('twilio_status_call_billed', { callSid: CallSid, billingMinutes, userId: existing.userId });
+      }
+    }
+  } catch (error) {
+    log.error('twilio_status_callback_error', { error: error.message });
+  }
+});
+
 export default router;

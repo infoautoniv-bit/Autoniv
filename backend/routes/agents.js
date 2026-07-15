@@ -620,7 +620,11 @@ async function configureTwilioIncomingWebhook(twilioAccountSid, twilioAuthToken,
   params.append('VoiceMethod', 'POST');
   params.append('VoiceFallbackUrl', webhookUrl);
   params.append('VoiceFallbackMethod', 'POST');
-  params.append('StatusCallback', 'https://api.vapi.ai/twilio/status');
+
+  // Derive status callback URL from the webhook base
+  const base = webhookUrl.replace(/\/$/, '');
+  const statusCallbackUrl = base.replace(/\/incoming-call$/, '') + '/twilio/status';
+  params.append('StatusCallback', statusCallbackUrl);
   params.append('StatusCallbackMethod', 'POST');
   
   const updateRes = await fetch(updateUrl, {
