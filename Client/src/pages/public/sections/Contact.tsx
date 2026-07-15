@@ -1,9 +1,23 @@
+import { useEffect } from "react";
 import { Reveal } from "./utils";
 import { ContactForm } from "./ContactForm";
+import { injectSchema } from "../../../utils/schema";
 
 const CONTACT_PHONE_RAW = import.meta.env.VITE_CONTACT_PHONE_RAW || '917065990307';
 
 export function Contact() {
+  useEffect(() => {
+    return injectSchema('contact-point-jsonld', {
+      '@context': 'https://schema.org',
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      email: 'support@autoniv.com',
+      telephone: '+91-98765-43210',
+      availableLanguage: ['English', 'Hindi', 'Spanish', 'French'],
+      areaServed: 'Global',
+    });
+  }, []);
+
   return (
     <section className="section-box white">
       <div className="section-pad relative overflow-hidden">

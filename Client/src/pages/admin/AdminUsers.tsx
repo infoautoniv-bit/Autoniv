@@ -9,6 +9,7 @@ import { DataTable } from '../../components/DataTable';
 import type { Column } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import type { User } from '../../types';
+import { logger } from '../../utils/logger';
 
 const spring = { type: 'spring', stiffness: 380, damping: 30 } as const;
 const fadeUp = {
@@ -685,7 +686,7 @@ export function AdminUsers() {
       }
       setModalOpen(false);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setSubmitting(false);
     }
@@ -701,7 +702,7 @@ export function AdminUsers() {
       await dispatch(deleteUser(deleteTarget)).unwrap();
       setDeleteTarget(null);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 
@@ -709,7 +710,7 @@ export function AdminUsers() {
     try {
       await dispatch(toggleBlockUser({ id, isActive: !isActive })).unwrap();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 
@@ -734,7 +735,7 @@ export function AdminUsers() {
 
       await dispatch(upgradePlan({ id: userId, plan: newPlan, chatPlan, voicePlan })).unwrap();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 
@@ -742,7 +743,7 @@ export function AdminUsers() {
     try {
       await dispatch(upgradePlan({ id: userId, plan: 'none', chatPlan: 'none', voicePlan: 'none' })).unwrap();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 

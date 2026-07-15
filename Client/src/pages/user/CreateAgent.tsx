@@ -6,10 +6,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
 import { AgentCard } from '../../components/AgentCard';
 import { VOICE_OPTIONS } from '../../config/voices';
-import { VOICE_TONE_SUFFIX, PROMPT_TEMPLATES } from '../../config/agentPrompts';
+import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import type { Agent } from '../../types';
 import { createPortal } from 'react-dom';
 import { agentService } from '../../services/api';
+import { logger } from '../../utils/logger';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const LANGUAGE_OPTIONS = [
@@ -302,7 +303,7 @@ export function CreateAgent() {
         const res = await agentService.getPhoneNumbers();
         setPhoneNumbers(res.data.phoneNumbers || []);
       } catch (err) {
-        console.error('Failed to fetch phone numbers:', err);
+        logger.error('Failed to fetch phone numbers:', err);
       } finally {
         setPhoneLoading(false);
       }

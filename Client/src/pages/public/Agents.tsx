@@ -7,6 +7,7 @@ import { BRAND, INK, SLATE, MUTE, HAIRLINE, SURFACE, TINT, MONO, SANS, Reveal, S
 import { motion, useInView, animate, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Pricing as PricingSection } from "./sections/Pricing";
+import { injectSchema, SERVICE_SCHEMAS } from "../../utils/schema";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -266,7 +267,7 @@ function Hero() {
               >
                 <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
                   <Link
-                    to="/register"
+                    to="/"
                     className="px-8 py-3.5 rounded-full text-sm font-bold text-white no-underline text-center inline-block"
                     style={{ background: BRAND, boxShadow: "0 8px 26px -4px rgba(16,185,129,0.34)" }}
                   >
@@ -461,7 +462,7 @@ function ServiceCard({ service, index }: { service: typeof SERVICES[0]; index: n
 
       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
         <Link
-          to="/register"
+          to="/"
           className="text-sm font-semibold flex items-center justify-center gap-2 py-3 px-6 rounded-xl no-underline cursor-pointer relative overflow-hidden group/cta"
           style={{ background: "linear-gradient(135deg, #f8faff, #f0f5ff)", border: "1.5px solid #e2e8f0", color: "#2563EB", boxShadow: "0 2px 8px rgba(37,99,235,0.08)" }}
         >
@@ -820,7 +821,7 @@ function CTASection() {
           >
             <motion.div whileHover={{ y: -2, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Link
-                to="/register"
+                to="/"
                 className="px-8 py-4 rounded-full text-sm font-bold text-white no-underline inline-block text-center"
                 style={{ background: BRAND, boxShadow: "0 8px 26px -4px rgba(16,185,129,0.34)" }}
               >
@@ -874,6 +875,17 @@ function ScrollProgress() {
 
 /* ─── Main ─── */
 export function Agents() {
+  useEffect(() => {
+    const schemas = [
+      { id: 'service-voice', schema: SERVICE_SCHEMAS.voiceAgent },
+      { id: 'service-chat', schema: SERVICE_SCHEMAS.chatAgent },
+      { id: 'service-phone', schema: SERVICE_SCHEMAS.phoneAnswering },
+      { id: 'service-appointment', schema: SERVICE_SCHEMAS.appointmentBooking },
+    ];
+    const cleanups = schemas.map(({ id, schema }) => injectSchema(id, schema));
+    return () => cleanups.forEach((fn) => fn());
+  }, []);
+
   return (
     <div style={{ minHeight: "100vh", background: TINT, fontFamily: SANS, color: INK }}>
       <ScrollProgress />

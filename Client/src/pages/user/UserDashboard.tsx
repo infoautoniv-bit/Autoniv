@@ -23,6 +23,7 @@ import { OnboardingTour } from '../../components/OnboardingTour';
 import { EmptyStateGuide } from '../../components/EmptyStateGuide';
 import VapiModule from '@vapi-ai/web';
 import { callService, apiKeyService } from '../../services/api';
+import { logger } from '../../utils/logger';
 import { COUNTRY_CODES } from '../../config/constants';
 import { useToast } from '../../hooks/useToast';
 import { ToastContainer } from '../../components/ToastContainer';
@@ -1078,7 +1079,7 @@ export function UserDashboard() {
         setWidgetApiKey(data.apiKey || null);
         setHasApiKey(data.hasKey || false);
       } catch (err) {
-        console.error('Failed to fetch API key:', err);
+        logger.error('Failed to fetch API key:', err);
       } finally {
         setApiKeyLoading(false);
       }
@@ -1359,7 +1360,7 @@ export function UserDashboard() {
       const onSpeechStart = () => { setWebCallMode('active'); };
       const onCallEnd = () => stopWebCall();
       const onError = (e: any) => {
-        console.error('[UserDashboard] Web Call VAPI error:', e);
+        logger.error('[UserDashboard] Web Call VAPI error:', e);
         setWebCallMode('error');
         setWebCallErrorMsg(e?.message || 'Call failed.');
         addToast(e?.message || 'Web Call error.', 'error');
@@ -1376,7 +1377,7 @@ export function UserDashboard() {
       webCallMaxDurationRef.current = setTimeout(() => stopWebCall(), 180_000); // 3 min duration
       addToast(`Connected with ${agent.name} via Web Call`, 'success');
     } catch (err: any) {
-      console.error('[UserDashboard] Web call failed:', err);
+      logger.error('[UserDashboard] Web call failed:', err);
       setWebCallMode('error');
       setWebCallErrorMsg(err?.message || 'Failed to start Web call');
       addToast(err?.message || 'Failed to start Web call', 'error');
@@ -1528,7 +1529,7 @@ export function UserDashboard() {
             </Tip>
 
             {isVoice && (
-              <Link to="/dashboard/ai-voice-agent/new">
+              <Link to="/dashboard/ai-voice-agent">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all text-white shadow-sm cursor-pointer hover:shadow-md"
                   style={{ background: T.gradient }}

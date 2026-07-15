@@ -403,7 +403,7 @@ export function Login() {
 
             <p className="text-center text-sm text-[var(--slate-gray)]">
               Don't have an account?{' '}
-              <Link to="/register" className="text-[var(--indigo)] hover:text-[#00c8b4] font-medium transition-colors">
+              <Link to="/" className="text-[var(--indigo)] hover:text-[#00c8b4] font-medium transition-colors">
                 Create one
               </Link>
             </p>

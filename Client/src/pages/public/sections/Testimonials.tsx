@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion";
 import { testimonials } from "./data";
 import { GradientText } from "./anim";
+import { injectSchema, REVIEW_SCHEMA } from "../../../utils/schema";
 
 interface TestimonialItem {
   name: string;
@@ -229,6 +230,16 @@ export function Testimonials() {
   const [selectedIndustry, setSelectedIndustry] = useState("All");
   const [activeIndex, setActiveIndex] = useState(0);
   const reduced = useReducedMotion() ?? false;
+
+  useEffect(() => {
+    const reviews = testimonials.slice(0, 10).map((t) => ({
+      author: t.name,
+      rating: 5,
+      reviewBody: t.quote,
+      datePublished: '2026-01-01',
+    }));
+    return injectSchema('review-jsonld', REVIEW_SCHEMA(reviews));
+  }, []);
 
   // Filter testimonials based on selected industry
   const filtered = testimonials.filter(

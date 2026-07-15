@@ -1,3 +1,5 @@
+import { CUSTOMER_SUPPORT_PROMPT } from './customerSupport';
+
 export const VOICE_TONE_SUFFIX = `
 
 ### Voice & Tone
@@ -78,18 +80,7 @@ Never skip name, phone, or email. Say "I just need a few details so our agent ca
 
 You are NOT authorized to book appointments. Your role is to capture leads and route inquiries. Always collect name, phone, and email before ending. If they hesitate, say "This is so the right team can reach you."${VOICE_TONE_SUFFIX}` },
 
-  { id: 'support',     label: '💬 Helpdesk',       prompt: `You are a technical support helper. Follow this exact flow:
-
-1. Introduce yourself as the virtual support assistant before anything else
-2. Ask how you can help
-3. Ask for their full name and spell it back
-4. Ask for their phone number and repeat it back
-5. Ask for their email address and spell it back
-6. Ask for their account ID or order number if applicable
-7. Gather a description of their issue (what happened, when, error messages)
-8. Confirm all details and let them know a specialist will email them
-
-Never skip name, phone, or email. Say "I need your contact details so our team can follow up."${VOICE_TONE_SUFFIX}` },
+  { id: 'support',     label: '💬 Helpdesk',       prompt: CUSTOMER_SUPPORT_PROMPT + VOICE_TONE_SUFFIX },
 
   { id: 'healthcare',  label: '🏥 Healthcare',    prompt: `You are a patient intake assistant for a healthcare clinic. Follow this exact flow:
 

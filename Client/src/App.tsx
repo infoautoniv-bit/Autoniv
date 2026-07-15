@@ -7,6 +7,7 @@ import { Breadcrumbs } from './components/Breadcrumbs';
 import ScrollToTop from './components/ScrollToTop';
 import LoadingScreen from './components/LoadingScreen';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { MetaRobots, PUBLIC_ROBOTS, PRIVATE_ROBOTS } from './components/MetaRobots';
 import { isChatPlan, isVoicePlan } from './utils/plan';
 import UnifiedAssistantWidget from './components/UnifiedAssistantWidget';
 
@@ -35,6 +36,7 @@ const UserBilling = lazy(() => import('./pages/user/UserBilling').then(m => ({ d
 const MyAddOns = lazy(() => import('./pages/user/MyAddOns').then(m => ({ default: m.MyAddOns })));
 const MyAppointments = lazy(() => import('./pages/user/MyAppointments').then(m => ({ default: m.MyAppointments })));
 const MyChat = lazy(() => import('./pages/user/MyChat').then(m => ({ default: m.MyChat })));
+const CustomerSupport = lazy(() => import('./pages/user/CustomerSupport').then(m => ({ default: m.CustomerSupport })));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
 const CreateUser = lazy(() => import('./pages/admin/CreateUser').then(m => ({ default: m.CreateUser })));
@@ -402,6 +404,11 @@ function AppRoutes() {
   return (
     <Suspense fallback={<LoadingScreen />}>
       <ScrollToTop />
+      <MetaRobots content={
+        (location.pathname.startsWith('/dashboard/support')) ? PUBLIC_ROBOTS :
+        (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/onboarding')) ? PRIVATE_ROBOTS :
+        PUBLIC_ROBOTS
+      } />
       <Routes>
         <Route path="/" element={home} />
         <Route path="/login" element={home} />
@@ -440,6 +447,7 @@ function AppRoutes() {
         <Route path="/dashboard/ai-chatbot" element={<ProtectedRoute feature="chat"><MyChat /></ProtectedRoute>} />
         <Route path="/dashboard/billing" element={<ProtectedRoute><UserBilling /></ProtectedRoute>} />
         <Route path="/dashboard/add-ons" element={<ProtectedRoute><MyAddOns /></ProtectedRoute>} />
+        <Route path="/dashboard/support" element={<CustomerSupport />} />
 
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />

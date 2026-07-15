@@ -6,6 +6,8 @@ import { USPSlider } from './sections/USPSlider';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import { BRAND, INK, SLATE, MUTE, HAIRLINE, SURFACE, TINT, MONO, SANS, Reveal, SectionLabel, GradientText, StatCard, CTADecorations } from './design';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '../../hooks/useToast';
+import { ToastContainer } from '../../components/ToastContainer';
 
 const NEWS_ARTICLES = [
   {
@@ -122,6 +124,7 @@ function ArticleModal({ article, onClose }: { article: typeof NEWS_ARTICLES[0] |
 
 export function News() {
   const [selectedArticle, setSelectedArticle] = useState<typeof NEWS_ARTICLES[0] | null>(null);
+  const { toasts, add: addToast, remove: removeToast } = useToast();
 
   return (
     <div style={{ minHeight: '100vh', background: TINT, fontFamily: SANS, color: INK }}>
@@ -458,7 +461,7 @@ export function News() {
                   <p style={{ fontSize: 14, color: SLATE, marginBottom: 28 }}>
                     Get product announcements, tips, and voice AI insights sent straight to your inbox.
                   </p>
-                  <form onSubmit={e => { e.preventDefault(); alert('Thank you for subscribing!'); }} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                  <form onSubmit={e => { e.preventDefault(); addToast('Thank you for subscribing!', 'success'); }} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
                     <input type="email" required placeholder="Enter your work email"
                       className="flex-1 px-5 py-3.5 rounded-xl text-sm outline-none transition-all"
                       style={{ background: 'white', border: `1px solid ${HAIRLINE}`, color: INK }}
@@ -489,7 +492,7 @@ export function News() {
                   Join 500+ businesses using Autoniv AI Voice Agents to capture more leads and serve customers 24/7.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-3">
-                  <Link to="/register"
+                  <Link to="/"
                     className="px-8 py-4 rounded-full text-sm font-bold text-white no-underline inline-block text-center transition-all duration-200"
                     style={{ background: BRAND, boxShadow: '0 8px 26px -4px rgba(16,185,129,0.34)' }}
                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px -4px rgba(16,185,129,0.44)'; }}
@@ -517,6 +520,7 @@ export function News() {
 
       <ScrollToTop />
       <Footer />
+      <ToastContainer toasts={toasts} remove={removeToast} />
     </div>
   );
 }

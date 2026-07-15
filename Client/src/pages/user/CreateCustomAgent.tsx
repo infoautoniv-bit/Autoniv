@@ -7,8 +7,9 @@ import { AgentCard } from '../../components/AgentCard';
 import type { Agent } from '../../types';
 import { createPortal } from 'react-dom';
 import { VOICE_OPTIONS } from '../../config/voices';
-import { VOICE_TONE_SUFFIX, PROMPT_TEMPLATES } from '../../config/agentPrompts';
+import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
+import { logger } from '../../utils/logger';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const LANGUAGE_OPTIONS = [

@@ -2,6 +2,7 @@ import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import hpp from 'hpp';
 import cors from 'cors';
+import crypto from 'crypto';
 import { IS_PROD, log } from '../services/logger.js';
 
 const DEFAULT_ORIGINS = [
@@ -47,8 +48,8 @@ export function buildCors() {
       cb(null, {
         origin: true,
         methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Vapi-Signature', 'X-Request-Id', 'X-Api-Key', 'x-api-key'],
-        exposedHeaders: ['X-Request-Id'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Vapi-Signature', 'X-Request-Id', 'X-Api-Key', 'x-api-key', 'X-CSRF-Token'],
+        exposedHeaders: ['X-Request-Id', 'X-CSRF-Token'],
         credentials: true,
         maxAge: 600,
       });
@@ -60,10 +61,42 @@ export function buildCors() {
 
 export function buildHelmet() {
   return helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          'https://www.googletagmanager.com',
+          'https://www.google-analytics.com',
+          'https://www.clarity.ms',
+          'https://bat.bing.com',
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+        mediaSrc: ["'self'", 'blob:', 'https://*.cloudinary.com'],
+        connectSrc: [
+          "'self'",
+          'https://api.vapi.ai',
+          'https://api.resend.com',
+          'https://*.cloudinary.com',
+          'https://www.google-analytics.com',
+          'https://www.clarity.ms',
+          'wss:',
+        ],
+        frameSrc: ["'self'", 'https://www.youtube.com', 'https://player.vimeo.com'],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        upgradeInsecureRequests: IS_PROD ? [] : null,
+      },
+    },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-    referrerPolicy: { policy: 'no-referrer' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     hsts: IS_PROD
       ? { maxAge: 63072000, includeSubDomains: true, preload: true }
       : false,
@@ -72,6 +105,84 @@ export function buildHelmet() {
     xssFilter: true,
     hidePoweredBy: true,
   });
+}
+
+// ─── CSRF Protection ────────────────────────────────────────────────────────
+
+const CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('hex');
+const CSRF_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
+
+function generateCsrfToken(sessionId) {
+  const payload = `${sessionId}:${Date.now()}:${crypto.randomBytes(16).toString('hex')}`;
+  const signature = crypto.createHmac('sha256', CSRF_SECRET).update(payload).digest('hex');
+  return Buffer.from(`${payload}:${signature}`).toString('base64');
+}
+
+function verifyCsrfToken(token, sessionId) {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf8');
+    const parts = decoded.split(':');
+    if (parts.length !== 4) return false;
+
+    const [tokenSessionId, timestamp, random, signature] = parts;
+    const payload = `${tokenSessionId}:${timestamp}:${random}`;
+    const expectedSignature = crypto.createHmac('sha256', CSRF_SECRET).update(payload).digest('hex');
+
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+      return false;
+    }
+
+    if (tokenSessionId !== sessionId) return false;
+
+    const age = Date.now() - parseInt(timestamp, 10);
+    if (age > CSRF_TOKEN_EXPIRY) return false;
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function csrfProtection(req, res, next) {
+  // Skip CSRF for GET, HEAD, OPTIONS (safe methods)
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+
+  // Skip for webhook routes (verified by signature)
+  if (req.path?.startsWith('/api/webhooks') || req.path?.startsWith('/api/twilio')) {
+    return next();
+  }
+
+  // Skip for widget routes (verified by API key)
+  if (req.path?.startsWith('/api/widget')) {
+    return next();
+  }
+
+  // Skip for auth routes (protected by rate limiting)
+  if (req.path?.startsWith('/api/auth')) {
+    return next();
+  }
+
+  const sessionId = req.user?.userId || req.ip || 'anonymous';
+  const csrfToken = req.headers['x-csrf-token'] || req.body?._csrf;
+
+  if (!csrfToken || !verifyCsrfToken(csrfToken, sessionId)) {
+    log.warn('csrf_validation_failed', {
+      ip: req.ip,
+      path: req.originalUrl,
+      method: req.method,
+    });
+    return res.status(403).json({ message: 'Invalid or missing CSRF token' });
+  }
+
+  next();
+}
+
+export function csrfTokenEndpoint(req, res) {
+  const sessionId = req.user?.userId || req.ip || 'anonymous';
+  const token = generateCsrfToken(sessionId);
+  res.json({ csrfToken: token });
 }
 
 export const mongoSanitizer = mongoSanitize({

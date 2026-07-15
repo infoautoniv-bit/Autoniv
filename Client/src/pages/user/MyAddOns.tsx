@@ -12,6 +12,7 @@ import { Modal } from '../../components/Modal';
 import { getCookie } from '../../services/cookies';
 import type { AddOnCatalogEntry, UserAddOn } from '../../types';
 import { isChatPlan, isVoicePlan } from '../../utils/plan';
+import { logger } from '../../utils/logger';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const T = {
@@ -334,7 +335,7 @@ export function MyAddOns() {
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (err) {
-      console.error('Download failed:', err);
+      logger.error('Download failed:', err);
       alert('Failed to download report. Please try again.');
     }
   }, []);

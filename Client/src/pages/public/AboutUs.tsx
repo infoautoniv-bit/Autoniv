@@ -5,6 +5,7 @@ import Footer from './Footer';
 import ScrollToTop from '../../components/ScrollToTop';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import { USPSlider } from './sections/USPSlider';
+import { injectSchema, LOCAL_BUSINESS_SCHEMA } from '../../utils/schema';
 
 /* ───────────────────────────────────────────────────────────
    Design tokens (kept in one place so every section reads off
@@ -296,6 +297,10 @@ function GradientText({ children }: { children: React.ReactNode }) {
 
 /* ─── Main Export ─── */
 export function AboutUS() {
+  useEffect(() => {
+    return injectSchema('local-business-jsonld', LOCAL_BUSINESS_SCHEMA);
+  }, []);
+
   const faqs = [
     { q: 'What exactly does Autoniv do?', a: 'Autoniv deploys AI voice agents that handle your business phone calls 24/7 — answering inbound calls, running outbound campaigns, qualifying leads, booking appointments, and following up with customers, all without adding headcount.' },
     { q: 'Is this just another IVR or phone bot?', a: "No. Traditional IVRs make callers press buttons and navigate menus. Autoniv's AI voice agents hold natural two-way conversations, handle unexpected questions, and respond intelligently — the way a trained human rep would." },
@@ -354,7 +359,7 @@ export function AboutUS() {
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-3">
                 <Link
-                  to="/register"
+                  to="/"
                   className="px-8 py-3.5 rounded-full text-sm font-bold text-white no-underline inline-block text-center transition-all duration-200"
                   style={{
                     background: BRAND,
@@ -752,7 +757,7 @@ export function AboutUS() {
                     No long implementations. No complex tech. Just a working AI voice agent in under 48 hours.
                   </p>
                   <Link
-                    to="/register"
+                    to="/"
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white no-underline transition-all duration-200"
                     style={{ background: BRAND, boxShadow: '0 6px 18px -4px rgba(16,185,129,0.28)' }}
                     onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
@@ -860,7 +865,7 @@ export function AboutUS() {
                   </p>
                   <div className="flex flex-col sm:flex-row justify-center gap-3">
                     <Link
-                      to="/register"
+                      to="/"
                       className="px-8 py-4 rounded-full text-sm font-bold text-white no-underline inline-block text-center transition-all duration-200"
                       style={{ background: BRAND, boxShadow: '0 8px 26px -4px rgba(16,185,129,0.34)' }}
                       onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px -4px rgba(16,185,129,0.44)'; }}

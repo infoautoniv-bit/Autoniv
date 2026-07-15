@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../../hooks/useStore';
 import { fetchMyAgents } from '../../store/slices/agentsSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VOICE_OPTIONS } from '../../config/voices';
+import { logger } from '../../utils/logger';
 
 /* ─────────────────────────────────────────────────────────────
    Types & Utilities
@@ -212,7 +213,7 @@ export function CustomWebCall() {
         }
       };
     } catch (e) {
-      console.error('[Audio Playback Error]', e);
+      logger.error('[Audio Playback Error]', e);
     }
   }, []);
 

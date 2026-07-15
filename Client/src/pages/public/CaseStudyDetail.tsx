@@ -442,7 +442,7 @@ export default function CaseStudyDetail() {
 
                 <div className="flex flex-col gap-3">
                   <Link
-                    to="/register"
+                    to="/"
                     className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-bold text-white no-underline transition-all hover:-translate-y-0.5 text-xs"
                     style={{
                       background: 'linear-gradient(135deg,#2563EB,#10B981)',

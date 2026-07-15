@@ -35,6 +35,8 @@ import {
   buildHelmet,
   mongoSanitizer,
   hppGuard,
+  csrfProtection,
+  csrfTokenEndpoint,
 } from './middleware/security.js';
 import { globalLimiter } from './middleware/rateLimiters.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -103,6 +105,7 @@ app.use(compression());
 app.use(mongoSanitizer);
 app.use(hppGuard);
 app.use(globalLimiter);
+app.use(csrfProtection);
 
 app.use('/api', (req, res, next) => {
   if (req.method === 'GET') {
@@ -124,6 +127,8 @@ app.get('/api/health', (req, res) => {
     db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
   });
 });
+
+app.get('/api/csrf-token', csrfTokenEndpoint);
 
 app.use('/api/recordings', express.static('recordings'));
 app.use('/api/vapi', vapiProxy);

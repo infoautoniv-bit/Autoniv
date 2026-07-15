@@ -6,6 +6,7 @@ import { DataTable } from '../../components/DataTable';
 import type { Column } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import type { Call } from '../../types';
+import { logger } from '../../utils/logger';
 
 // ─── Animation presets ────────────────────────────────────────────────
 const spring = { type: 'spring', stiffness: 380, damping: 30 } as const;
@@ -249,7 +250,7 @@ export function AdminCalls() {
       await dispatch(syncCalls()).unwrap();
       await dispatch(fetchAllCalls({ page, limit: 20 }));
     } catch (error) {
-      console.error('Sync failed:', error);
+      logger.error('Sync failed:', error);
     } finally {
       setSyncing(false);
     }

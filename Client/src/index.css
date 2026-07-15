@@ -754,7 +754,7 @@ textarea::placeholder {
 
 /* ── Hero clipped gradient headline (works across per-word reveal spans) ── */
 .hero-gradient-text{
-  background:linear-gradient(135deg,#2563EB 0%,#2563EB 35%,#10B981 75%,#34D399 100%);
+  background:linear-gradient(135deg,#2563EB 0%,#10B981 50%,#34D399 100%);
   background-size:200% 200%;
   -webkit-background-clip:text;background-clip:text;
   -webkit-text-fill-color:transparent;color:transparent;

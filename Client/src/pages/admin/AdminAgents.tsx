@@ -9,6 +9,7 @@ import { Pagination } from '../../components/Pagination';
 import { VOICE_OPTIONS } from '../../config/voices';
 import { agentService } from '../../services/api';
 import type { Agent } from '../../types';
+import { logger } from '../../utils/logger';
 
 interface PhoneNumber {
   id: string;
@@ -457,7 +458,7 @@ export function AdminAgents() {
       const res = await agentService.getPhoneNumbers();
       setPhoneNumbers(res.data.phoneNumbers || []);
     } catch (err) {
-      console.error('Failed to fetch phone numbers:', err);
+      logger.error('Failed to fetch phone numbers:', err);
     } finally {
       setPhoneLoading(false);
     }
@@ -494,7 +495,7 @@ export function AdminAgents() {
         sipGateway: '', sipUsername: '', sipPassword: '', sipTransport: 'udp',
       });
     } catch (err) {
-      console.error('Failed to import phone number:', err);
+      logger.error('Failed to import phone number:', err);
     } finally {
       setImporting(false);
     }
@@ -517,7 +518,7 @@ export function AdminAgents() {
     try {
       await dispatch(toggleAgent({ id, isActive })).unwrap();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 
@@ -530,7 +531,7 @@ export function AdminAgents() {
     try {
       await dispatch(deleteAgent(deleteTarget)).unwrap();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setDeleteTarget(null);
     }
@@ -575,7 +576,7 @@ export function AdminAgents() {
       setTwilioSid('');
       setTwilioToken('');
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 
@@ -584,7 +585,7 @@ export function AdminAgents() {
     try {
       await dispatch(unlinkPhone({ id: agent.id })).unwrap();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 
@@ -622,7 +623,7 @@ export function AdminAgents() {
       setEditPanelOpen(false);
       setSelectedAgent(null);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setSubmitting(false);
     }
@@ -1167,7 +1168,7 @@ export function AdminAgents() {
             await dispatch(assignPhone({ id: selectedAgent.id, phoneNumberId, phoneNumber, twilioAccountSid, twilioAuthToken })).unwrap();
             setSelectedAgent(prev => prev ? { ...prev, phoneNumberId, phoneNumber, twilioAccountSid, twilioAuthToken } : null);
           } catch (err) {
-            console.error(err);
+            logger.error(err);
           }
         }}
         onUnlinkPhone={async () => {
@@ -1176,7 +1177,7 @@ export function AdminAgents() {
             await dispatch(unlinkPhone({ id: selectedAgent.id })).unwrap();
             setSelectedAgent(prev => prev ? { ...prev, phoneNumberId: undefined, phoneNumber: undefined, twilioAccountSid: undefined, twilioAuthToken: undefined } : null);
           } catch (err) {
-            console.error(err);
+            logger.error(err);
           }
         }}
       />

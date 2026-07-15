@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ttsService } from '../services/api';
+import { logger } from '../utils/logger';
 
 const LANGUAGE_SAMPLES: Record<string, string> = {
   en: "Hello, this is your AI voice agent speaking. How can I help you today?",
@@ -83,7 +84,7 @@ export function VoicePreviewButton({ voiceId, language, prompt }: VoicePreviewBu
 
       await audio.play();
     } catch (err) {
-      console.error('[VoicePreview] Failed to play preview:', err);
+      logger.error('[VoicePreview] Failed to play preview:', err);
       setMode('idle');
     }
   }, [voiceId, language, prompt, mode, stopCall]);

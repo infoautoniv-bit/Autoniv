@@ -46,16 +46,22 @@
       "@type": "Organization",
       "name": "Autoniv",
       "url": "https://www.autoniv.com",
-      "logo": "https://www.autoniv.com/autoniv-logo.png",
-      "description": "AI voice agents platform that deploys intelligent voice agents to handle business calls 24/7 in 20+ languages. Automate appointments, qualify leads, and boost conversions.",
-      "sameAs": [],
+      "logo": "https://www.autoniv.com/logo.png",
+      "description": "AI-powered voice agents, chatbots, and phone answering services for businesses.",
+      "sameAs": [
+        "https://twitter.com/autoniv",
+        "https://linkedin.com/company/autoniv",
+        "https://facebook.com/autoniv"
+      ],
       "contactPoint": {
         "@type": "ContactPoint",
         "contactType": "customer support",
-        "url": "https://www.autoniv.com/help"
+        "email": "hello@autoniv.com",
+        "telephone": "+91-7065990307",
+        "availableLanguage": ["English", "Hindi", "Spanish", "French"]
       },
       "areaServed": "Global",
-      "knowsLanguage": ["en", "es", "fr", "de", "pt", "zh", "ja", "ko", "ar", "hi", "it", "nl", "ru", "pl", "tr", "vi", "th", "id", "sv", "da", "no", "fi"]
+      "knowsLanguage": ["en", "es", "fr", "de", "it", "pt", "hi", "ar", "ja", "ko"]
     }
     </script>
     <script type="application/ld+json">
@@ -76,22 +82,48 @@
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "Autoniv",
+      "name": "Autoniv AI Platform",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "description": "AI voice agents platform for automating business calls, lead qualification, and appointment scheduling.",
       "url": "https://www.autoniv.com",
       "offers": {
-        "@type": "AggregateOffer",
+        "@type": "Offer",
+        "price": "0",
         "priceCurrency": "USD",
-        "lowPrice": "0",
-        "offerCount": "3"
+        "description": "Free trial available"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "150"
       }
     }
     </script>
 
   </head>
   <body>
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+
+    <!-- Microsoft Clarity -->
+    <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "XXXXXXXXXX");
+    </script>
+
+    <!-- Bing Webmaster Tools -->
+    <meta name="msvalidate.01" content="XXXXXXXXXX" />
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -5,6 +5,7 @@ import { fetchMyAppointments, updateAppointment, notifyAppointmentWhatsApp } fro
 import { DataTable } from '../../components/DataTable';
 import type { Column } from '../../components/DataTable';
 import type { Appointment } from '../../types';
+import { logger } from '../../utils/logger';
 
 const statusConfig: Record<string, { label: string; dot: string; pill: string; text: string }> = {
   pending:   { label: 'Pending',   dot: 'bg-amber-400',   pill: 'bg-amber-500/10 border-amber-500/20',   text: 'text-amber-400'   },
@@ -67,11 +68,11 @@ export function MyAppointments() {
         try {
           await dispatch(notifyAppointmentWhatsApp(selected.id)).unwrap();
         } catch (notifyErr) {
-          console.error('WhatsApp notification failed:', notifyErr);
+          logger.error('WhatsApp notification failed:', notifyErr);
         }
       }
       setSelected(null);
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
     finally { setSaving(false); }
   };
 

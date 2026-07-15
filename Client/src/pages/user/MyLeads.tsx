@@ -5,6 +5,7 @@ import { fetchMyLeads, exportLeads, updateLead } from '../../store/slices/leadsS
 import { DataTable } from '../../components/DataTable';
 import type { Column } from '../../components/DataTable';
 import type { Lead } from '../../types';
+import { logger } from '../../utils/logger';
 
 const statusConfig: Record<string, { label: string; dot: string; pill: string; text: string }> = {
   new: { label: 'New', dot: 'bg-[var(--primary)]', pill: 'bg-[var(--primary)]/10 border-[var(--border)]', text: 'text-[var(--primary)]' },
@@ -61,7 +62,7 @@ export function MyLeads() {
       a.href = url;
       a.download = `leads-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
   };
 
   const openLead = (lead: Lead) => {
@@ -79,7 +80,7 @@ export function MyLeads() {
         data: { notes: editNotes, status: editStatus as Lead['status'] },
       })).unwrap();
       setSelectedLead((p) => p ? { ...p, notes: editNotes, status: editStatus as Lead['status'] } : null);
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
     finally { setSaving(false); }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import VapiModule from '@vapi-ai/web';
 import { publicDemoService } from '../services/api';
+import { logger } from '../utils/logger';
 
 const Vapi = (typeof VapiModule === 'function' ? VapiModule : (VapiModule as any).default) as new (key: string) => any;
 
@@ -157,7 +158,7 @@ export default function LandingCallWidget() {
       const onSpeechEnd = () => setSpeaking('idle');
       const onCallEnd = () => stopCall();
       const onError = (e: any) => {
-        console.error('[LandingCall] VAPI error:', e);
+        logger.error('[LandingCall] VAPI error:', e);
         setErrorMsg('Call failed. Please try again.');
         stopCall();
       };
@@ -186,7 +187,7 @@ export default function LandingCallWidget() {
       maxDurationRef.current = setTimeout(() => stopCall(), 120_000);
 
     } catch (err) {
-      console.error('[LandingCall] Failed to start:', err);
+      logger.error('[LandingCall] Failed to start:', err);
       setErrorMsg('Could not connect. Please try again.');
       setMode('error');
     }
@@ -509,7 +510,7 @@ export default function LandingCallWidget() {
                   </div>
 
                   <button
-                    onClick={() => window.location.href = '/register'}
+                    onClick={() => window.location.href = '/'}
                     style={{
                       width: '100%', padding: '13px 24px', borderRadius: 13, cursor: 'pointer',
                       border: '1px solid rgba(0,119,255,0.25)',

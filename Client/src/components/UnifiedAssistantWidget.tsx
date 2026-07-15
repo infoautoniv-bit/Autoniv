@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { publicLeadService } from '../services/api';
+import { logger } from '../utils/logger';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const T = {
@@ -582,7 +583,7 @@ export default function UnifiedAssistantWidget() {
         }
       };
     } catch (e) {
-      console.error('[Audio Playback Error]', e);
+      logger.error('[Audio Playback Error]', e);
     }
   }, []);
 
@@ -1217,7 +1218,7 @@ export default function UnifiedAssistantWidget() {
                           ))}
                         </div>
                         <button
-                          onClick={() => window.location.href = '/register'}
+                          onClick={() => window.location.href = '/'}
                           style={{
                             width: '100%', padding: '11px 16px', borderRadius: 12, cursor: 'pointer',
                             border: 'none', background: T.gradAccent,

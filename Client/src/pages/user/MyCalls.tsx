@@ -7,6 +7,7 @@ import { DataTable } from '../../components/DataTable';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import type { Column } from '../../components/DataTable';
 import type { Call } from '../../types';
+import { logger } from '../../utils/logger';
 
 // ─── Design presets ───────────────────────────────────────────────────
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
@@ -461,7 +462,7 @@ export function MyCalls() {
       await dispatch(syncMyCalls()).unwrap();
       await dispatch(fetchMyCalls({ page, limit: 20 })).unwrap();
     } catch (error) {
-      console.error('Sync failed:', error);
+      logger.error('Sync failed:', error);
     } finally {
       setSyncing(false);
     }

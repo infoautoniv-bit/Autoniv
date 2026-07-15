@@ -13,6 +13,7 @@ import { useToast } from '../../hooks/useToast';
 import { ToastContainer } from '../../components/ToastContainer';
 import { callService } from '../../services/api';
 import VapiModule from '@vapi-ai/web';
+import { logger } from '../../utils/logger';
 import type { Agent } from '../../types';
 import { getMaxChatbots, isVoicePlan } from '../../utils/plan';
 
@@ -629,7 +630,7 @@ export function MyAgents() {
       await dispatch(toggleAgent({ id, isActive })).unwrap();
       addToast(`Agent ${isActive ? 'activated' : 'muted'}`, 'success');
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       addToast('Failed to update agent status', 'error');
     }
   };
@@ -684,7 +685,7 @@ export function MyAgents() {
       const onSpeechStart = () => { setWebCallMode('active'); };
       const onCallEnd = () => stopWebCall();
       const onError = (e: any) => {
-        console.error('[MyAgents] Web Call VAPI error:', e);
+        logger.error('[MyAgents] Web Call VAPI error:', e);
         setWebCallMode('error');
         setWebCallErrorMsg(e?.message || 'Call failed.');
         addToast(e?.message || 'Web Call error.', 'error');
@@ -717,7 +718,7 @@ export function MyAgents() {
       webCallMaxDurationRef.current = setTimeout(() => stopWebCall(), 180_000); // 3 min duration
       addToast(`Connected with ${agent.name} via Web Call`, 'success');
     } catch (err: any) {
-      console.error('[MyAgents] Web call failed:', err);
+      logger.error('[MyAgents] Web call failed:', err);
       setWebCallMode('error');
       setWebCallErrorMsg(err?.message || 'Failed to start Web call');
       addToast(err?.message || 'Failed to start Web call', 'error');
@@ -751,7 +752,7 @@ export function MyAgents() {
       // Quietly fetch in background to sync state with backend
       dispatch(fetchMyAgents({ page, limit: 20 }));
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       addToast('Failed to delete agent', 'error');
       // Restore deleted agent to UI state if deletion failed on backend
       dispatch(fetchMyAgents({ page, limit: 20 }));
@@ -1252,7 +1253,7 @@ export function MyAgents() {
             await dispatch(assignPhone({ id: editingAgent.id, phoneNumberId, phoneNumber, twilioAccountSid, twilioAuthToken })).unwrap();
             setEditingAgent((prev: Agent | null) => prev ? { ...prev, phoneNumberId, phoneNumber, twilioAccountSid, twilioAuthToken } : null);
           } catch (err) {
-            console.error(err);
+            logger.error(err);
           }
         }}
         onUnlinkPhone={async () => {
@@ -1261,7 +1262,7 @@ export function MyAgents() {
             await dispatch(unlinkPhone({ id: editingAgent.id })).unwrap();
             setEditingAgent((prev: Agent | null) => prev ? { ...prev, phoneNumberId: undefined, phoneNumber: undefined, twilioAccountSid: undefined, twilioAuthToken: undefined } : null);
           } catch (err) {
-            console.error(err);
+            logger.error(err);
           }
         }}
       />

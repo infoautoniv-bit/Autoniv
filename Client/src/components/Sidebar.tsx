@@ -10,6 +10,7 @@ import { Modal } from './Modal';
 import { userService, authService } from '../services/api';
 import type { User } from '../types';
 import { isChatPlan, isVoicePlan } from '../utils/plan';
+import { logger } from '../utils/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface NavItem {
@@ -156,7 +157,7 @@ const useLocalStorage = <T,>(key: string, initialValue: T): [T, (value: T) => vo
       setStoredValue(value);
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error(`Error saving to localStorage key "${key}":`, error);
+      logger.error(`Error saving to localStorage key "${key}":`, error);
     }
   }, [key]);
 
@@ -328,7 +329,7 @@ const UserSection: React.FC<{
       dispatch(checkAuth());
       setShowProfile(false);
     } catch (err) {
-      console.error('Profile update error:', err);
+      logger.error('Profile update error:', err);
     } finally {
       setSaving(false);
     }

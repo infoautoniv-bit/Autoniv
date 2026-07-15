@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VoicePreviewButton } from './VoicePreviewButton';
 import { VOICE_OPTIONS } from '../config/voices';
-import { VOICE_TONE_SUFFIX, PROMPT_TEMPLATES } from '../config/agentPrompts';
+import { PROMPT_TEMPLATES } from '../config/agentPrompts';
 import { agentService } from '../services/api';
+import { logger } from '../utils/logger';
 import type { Agent } from '../types';
 
 interface PhoneNumber {
@@ -271,7 +272,7 @@ export function AgentPanel({
       const res = await agentService.getPhoneNumbers();
       setPhoneNumbers(res.data.phoneNumbers || []);
     } catch (err) {
-      console.error('Failed to fetch phone numbers:', err);
+      logger.error('Failed to fetch phone numbers:', err);
     } finally {
       setPhoneLoading(false);
     }

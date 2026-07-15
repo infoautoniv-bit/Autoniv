@@ -521,7 +521,7 @@ export function Pricing() {
                     >
                       <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
                         <Link
-                          to="/register"
+                          to="/"
                           className="px-8 py-3.5 rounded-full text-sm font-bold text-white no-underline text-center inline-block border-none"
                           style={{ background: BRAND, boxShadow: "0 8px 26px -4px rgba(16,185,129,0.34)" }}
                         >
@@ -1070,7 +1070,7 @@ export function Pricing() {
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
                   <Link
-                    to="/register"
+                    to="/"
                     className="px-8 py-4 rounded-full text-sm font-bold text-white border-none cursor-pointer transition-all hover:-translate-y-1 no-underline text-center"
                     style={{
                       background: 'linear-gradient(135deg,#2563EB,#10B981)',

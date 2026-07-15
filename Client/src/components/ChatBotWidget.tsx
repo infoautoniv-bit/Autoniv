@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { agentChatService, agentService } from '../services/api';
 import { Dropdown } from './Dropdown';
+import { logger } from '../utils/logger';
 
 interface ChatMessage {
   id: string;
@@ -128,7 +129,7 @@ export function ChatBotWidget() {
       setAgents(agentsList);
       return agentsList;
     } catch (error) {
-      console.error('Failed to load agents:', error);
+      logger.error('Failed to load agents:', error);
       return [];
     } finally {
       setLoadingAgents(false);

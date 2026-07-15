@@ -52,11 +52,13 @@ export async function sendOtpEmail({ to, otp, purpose }) {
       ? 'sign in'
       : 'reset your password';
 
-  console.log(`\n\x1b[36m╔══════════════════════════════════════════╗\x1b[0m`);
-  console.log(`\x1b[36m║\x1b[0m  \x1b[1mOTP Code\x1b[0m: \x1b[33m${otp}\x1b[0m`);
-  console.log(`\x1b[36m║\x1b[0m  \x1b[1mEmail\x1b[0m:   ${to}`);
-  console.log(`\x1b[36m║\x1b[0m  \x1b[1mPurpose\x1b[0m: ${purpose}`);
-  console.log(`\x1b[36m╚══════════════════════════════════════════╝\x1b[0m\n`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`\n\x1b[36m╔══════════════════════════════════════════╗\x1b[0m`);
+    console.log(`\x1b[36m║\x1b[0m  \x1b[1mOTP Code\x1b[0m: \x1b[33m${otp}\x1b[0m`);
+    console.log(`\x1b[36m║\x1b[0m  \x1b[1mEmail\x1b[0m:   ${to}`);
+    console.log(`\x1b[36m║\x1b[0m  \x1b[1mPurpose\x1b[0m: ${purpose}`);
+    console.log(`\x1b[36m╚══════════════════════════════════════════╝\x1b[0m\n`);
+  }
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #080d17; border-radius: 12px; border: 1px solid rgba(0,119,255,0.15); color: #ffffff;">
@@ -88,6 +90,8 @@ export async function sendOtpEmail({ to, otp, purpose }) {
     return data;
   } catch (error) {
     console.error('Failed to send OTP email via Resend:', error?.message || error);
-    console.log(`\n========================================\n[DEV ONLY] OTP verification code: ${otp} for email: ${to} (purpose: ${purpose})\n========================================\n`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`\n========================================\n[DEV ONLY] OTP verification code: ${otp} for email: ${to} (purpose: ${purpose})\n========================================\n`);
+    }
   }
 }

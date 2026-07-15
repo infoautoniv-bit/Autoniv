@@ -4,6 +4,27 @@ import { getCookie, setCookie, deleteCookie } from './cookies';
 const REQUEST_TIMEOUT_MS = 30000;
 const TOKEN_REFRESH_BUFFER_MS = 30_000;
 
+// ─── CSRF Token Management ──────────────────────────────────────────────────
+let csrfToken: string | null = null;
+let csrfTokenExpiry: number = 0;
+
+async function fetchCsrfToken(): Promise<string> {
+  if (csrfToken && Date.now() < csrfTokenExpiry) {
+    return csrfToken;
+  }
+  try {
+    const { data } = await axios.get(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/csrf-token`,
+      { withCredentials: true }
+    );
+    csrfToken = data.csrfToken;
+    csrfTokenExpiry = Date.now() + 55 * 60 * 1000; // 55 minutes
+    return csrfToken ?? '';
+  } catch {
+    return '';
+  }
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   headers: { 'Content-Type': 'application/json' },
@@ -74,10 +95,17 @@ export function cleanupApiListeners() {
   }
 }
 
-// ── Request interceptor — attach access token ──────────────────────────────
-api.interceptors.request.use((config) => {
+// ── Request interceptor — attach access token and CSRF token ────────────────
+api.interceptors.request.use(async (config) => {
   const accessToken = getCookie('accessToken');
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+
+  // Add CSRF token for unsafe methods
+  if (config.method && !['get', 'head', 'options'].includes(config.method)) {
+    const token = await fetchCsrfToken();
+    if (token) config.headers['X-CSRF-Token'] = token;
+  }
+
   return config;
 });
 

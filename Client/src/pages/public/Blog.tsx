@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { injectSchema, BLOG_POSTING_SCHEMA } from '../../utils/schema';
 
 const BLOG_POSTS = [
   {
@@ -50,6 +51,19 @@ const tagStyles: Record<string, { color: string; bg: string }> = {
 export function Blog() {
   const [subscribed, setSubscribed] = useState(false);
   const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    const cleanups = BLOG_POSTS.map((post, i) =>
+      injectSchema(`blog-post-${i}`, BLOG_POSTING_SCHEMA({
+        title: post.title,
+        description: post.excerpt,
+        image: 'https://www.autoniv.com/og-blog.png',
+        datePublished: '2026-06-01',
+        author: 'Autoniv Team',
+      }))
+    );
+    return () => cleanups.forEach((fn) => fn());
+  }, []);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
