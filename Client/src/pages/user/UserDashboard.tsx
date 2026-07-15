@@ -10,7 +10,7 @@ import {
   useEffect, useMemo, useState, useCallback, memo, useRef
 } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
@@ -1016,6 +1016,7 @@ export function UserDashboard() {
   const isVoice = user ? isVoicePlan(user) : false;
   
   const { toasts, add: addToast, remove: removeToast } = useToast();
+  const navigate = useNavigate();
   
   // Interactive layout states
   const [retrying, setRetrying] = useState(false);
@@ -1333,6 +1334,11 @@ export function UserDashboard() {
   useEffect(() => () => { clearWebCallTimers(); }, [clearWebCallTimers]);
 
   const handleWebCall = async (agent: any) => {
+    if (!agent.vapiId) {
+      navigate(`/dashboard/ai-phone-answering/${agent.id}`);
+      return;
+    }
+
     setWebCallTarget(agent);
     setWebCallMode('connecting');
     setWebCallSeconds(0);
@@ -1363,23 +1369,7 @@ export function UserDashboard() {
       vapi.on('call-end', onCallEnd);
       vapi.on('error', onError);
 
-      if (agent.vapiId) {
-        await vapi.start(agent.vapiId);
-      } else {
-        await vapi.start({
-          name: agent.name,
-          firstMessage: `Hi, this is ${agent.name}. How can I help you today?`,
-          model: {
-            provider: 'openai',
-            model: 'gpt-4',
-            messages: [{ role: 'system', content: agent.prompt || 'You are a helpful assistant.' }],
-          },
-          voice: {
-            provider: '11labs',
-            voiceId: agent.voiceId || '21m00Tcm4TlvDq8ikWAM',
-          },
-        });
-      }
+      await vapi.start(agent.vapiId);
 
       setWebCallMode('active');
       webCallTimerRef.current = setInterval(() => setWebCallSeconds(prev => prev + 1), 1000);
