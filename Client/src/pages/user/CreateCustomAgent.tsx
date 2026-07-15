@@ -9,7 +9,6 @@ import { createPortal } from 'react-dom';
 import { VOICE_OPTIONS } from '../../config/voices';
 import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
-import { logger } from '../../utils/logger';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const LANGUAGE_OPTIONS = [
