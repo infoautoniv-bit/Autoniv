@@ -80,3 +80,46 @@ export function safeString(value, max = 1000, fallback = '') {
 export function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+export function parsePhoneWordsToDigits(phone) {
+  if (typeof phone !== 'string') return phone;
+  
+  const WORD_TO_DIGIT = {
+    zero: '0',
+    one: '1',
+    two: '2',
+    three: '3',
+    four: '4',
+    five: '5',
+    six: '6',
+    seven: '7',
+    eight: '8',
+    nine: '9'
+  };
+
+  let str = phone.trim().toLowerCase();
+  
+  for (const [word, digit] of Object.entries(WORD_TO_DIGIT)) {
+    const regex = new RegExp(`\\b${word}\\b`, 'g');
+    str = str.replace(regex, digit);
+  }
+  
+  const hasWords = Object.keys(WORD_TO_DIGIT).some(w => str.includes(w));
+  if (hasWords) {
+    let temp = str;
+    for (const [word, digit] of Object.entries(WORD_TO_DIGIT)) {
+      temp = temp.replace(new RegExp(word, 'g'), digit);
+    }
+    temp = temp.replace(/\s+/g, '');
+    if (/^\+?\d+$/.test(temp)) {
+      return temp;
+    }
+  }
+  
+  const tempClean = str.replace(/\s+/g, '');
+  if (/^\+?\d+$/.test(tempClean)) {
+    return tempClean;
+  }
+  
+  return phone;
+}

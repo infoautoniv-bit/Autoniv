@@ -9,6 +9,7 @@ import Lead from '../db/models/Lead.js';
 import Appointment from '../db/models/Appointment.js';
 import User from '../db/models/User.js';
 import { log } from '../services/logger.js';
+import { parsePhoneWordsToDigits } from './validators.js';
 
 // Handle tool calls from voice agent (saveLead, saveAppointment)
 process.on('voiceAgentToolCall', async ({ callSid, toolName, args }) => {
@@ -20,12 +21,19 @@ process.on('voiceAgentToolCall', async ({ callSid, toolName, args }) => {
     }
 
     if (toolName === 'saveLead') {
+      const cleanPhone = parsePhoneWordsToDigits(args.phone);
+      const digits = cleanPhone ? cleanPhone.replace(/\D/g, '') : '';
+      if (digits.slice(-10).length !== 10) {
+        log.warn('orchestrator_save_lead_ignored_invalid_phone', { phone: args.phone, callSid });
+        return;
+      }
+
       const lead = await Lead.create({
         agentId: call.agentId,
         callId: call._id,
         userId: call.userId,
         name: args.name,
-        phone: args.phone,
+        phone: cleanPhone,
         email: args.email || null,
         purpose: (args.purpose && !['unknown', 'Unknown'].includes(args.purpose)) ? args.purpose : 'General inquiry',
       });
@@ -33,12 +41,19 @@ process.on('voiceAgentToolCall', async ({ callSid, toolName, args }) => {
     }
 
     if (toolName === 'saveAppointment') {
+      const cleanPhone = parsePhoneWordsToDigits(args.phone);
+      const digits = cleanPhone ? cleanPhone.replace(/\D/g, '') : '';
+      if (digits.slice(-10).length !== 10) {
+        log.warn('orchestrator_save_appointment_ignored_invalid_phone', { phone: args.phone, callSid });
+        return;
+      }
+
       const appointment = await Appointment.create({
         agentId: call.agentId,
         callId: call._id,
         userId: call.userId,
         customerName: args.name,
-        customerPhone: args.phone,
+        customerPhone: cleanPhone,
         service: args.service,
         preferredDate: args.preferredDate || null,
         preferredTime: args.preferredTime || null,

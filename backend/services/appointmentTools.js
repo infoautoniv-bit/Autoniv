@@ -4,7 +4,7 @@ import Lead from '../db/models/Lead.js';
 import Appointment from '../db/models/Appointment.js';
 import Call from '../db/models/Call.js';
 import { containsAbuse, sanitizeText } from './contentModeration.js';
-import { safeString } from './validators.js';
+import { safeString, parsePhoneWordsToDigits } from './validators.js';
 import { log } from './logger.js';
 
 // ---- Clinic / business hours config ----
@@ -333,7 +333,11 @@ export async function executeTool(name, args, ctx) {
         }
 
         const sanitizedPurpose = isUnknown(reason) ? 'General inquiry' : sanitizeText(safeString(reason, 500));
-        const safePhone = phone ? safeString(phone, 30) : null;
+        const safePhone = phone ? parsePhoneWordsToDigits(safeString(phone, 30)) : null;
+        const digits = safePhone ? safePhone.replace(/\D/g, '') : '';
+        if (digits.slice(-10).length !== 10) {
+          return { success: false, error: 'Phone number must contain exactly 10 digits. Please ask the caller for a valid 10-digit phone number.' };
+        }
 
         // Resolve mongoCallId to prevent BSON/Cast validation errors for Twilio callSids
         let mongoCallId = null;
@@ -422,7 +426,11 @@ export async function executeTool(name, args, ctx) {
           return { success: false, error: 'Content policy violation' };
         }
 
-        const safePhone = phone ? safeString(phone, 30) : null;
+        const safePhone = phone ? parsePhoneWordsToDigits(safeString(phone, 30)) : null;
+        const digits = safePhone ? safePhone.replace(/\D/g, '') : '';
+        if (digits.slice(-10).length !== 10) {
+          return { success: false, error: 'Phone number must contain exactly 10 digits. Please ask the caller for a valid 10-digit phone number to schedule the appointment.' };
+        }
         const sanitizedService = service ? sanitizeText(safeString(service, 200)) : null;
         const safeDate = date ? safeString(date, 50) : null;
 
