@@ -546,17 +546,19 @@ router.post('/:id/unlink-phone', async (req, res) => {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    if (!agent.phoneNumberId) {
+    if (!agent.phoneNumberId && !agent.phoneNumber) {
       return res.status(400).json({ message: 'Agent has no phone number linked' });
     }
 
     const phoneNumberId = agent.phoneNumberId;
 
     // Remove assistant assignment from phone number in Vapi
-    try {
-      await assignAgentToPhone(phoneNumberId, null);
-    } catch (vapiErr) {
-      log.warn('vapi_unlink_phone_failed', { error: vapiErr.message, userId: req.user?.userId });
+    if (phoneNumberId) {
+      try {
+        await assignAgentToPhone(phoneNumberId, null);
+      } catch (vapiErr) {
+        log.warn('vapi_unlink_phone_failed', { error: vapiErr.message, userId: req.user?.userId });
+      }
     }
 
     // Remove phoneNumberId, phoneNumber, and Twilio credentials from agent in database
