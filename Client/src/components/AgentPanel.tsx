@@ -221,7 +221,7 @@ export function AgentPanel({
   useEffect(() => {
     if (open && editing && onAssignPhone) {
       fetchPhoneNumbers();
-      if (editing.phoneNumber && !editing.phoneNumberId) {
+      if ((editing.phoneNumber && !editing.phoneNumberId) || editing.useCustomEngine || formData.useCustomEngine) {
         setIsDirectPhone(true);
         setDirectPhoneNum(editing.phoneNumber || '');
         setTwilioSid(editing.twilioAccountSid || '');
