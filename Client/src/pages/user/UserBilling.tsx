@@ -598,7 +598,7 @@ export function UserBilling() {
                 <p className="mt-1 text-xs font-semibold text-slate-500">Voice usage according to your current active subscription</p>
               </div>
               <Link
-                to="/dashboard/agents"
+                to="/dashboard/ai-voice-agent"
                 className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 transition-all shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99] border-none"
               >
                 Manage Agents
@@ -705,7 +705,7 @@ export function UserBilling() {
             ) : (
               <div className="rounded-xl bg-slate-50 border border-slate-200 p-5 text-center">
                 <p className="text-xs font-bold text-slate-400">No active agents</p>
-                <Link to="/dashboard/agents" className="text-xs font-bold text-emerald-600 hover:underline mt-1 inline-block">
+                <Link to="/dashboard/ai-voice-agent" className="text-xs font-bold text-emerald-600 hover:underline mt-1 inline-block">
                   Create your first agent →
                 </Link>
               </div>
@@ -822,7 +822,7 @@ export function UserBilling() {
                             Reach out to our admin team to configure your perfect combined plan. We'll set it up within 24 hours.
                           </p>
                           <div className="space-y-2.5">
-                            <a href="mailto:admin@autoniv.ai" className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all group no-underline">
+                            <a href="mailto:hello@autoniv.com" className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all group no-underline">
                               <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                                 <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -830,7 +830,7 @@ export function UserBilling() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-[10px] text-slate-500 font-semibold">Email us at</p>
-                                <p className="text-xs text-white font-bold truncate group-hover:text-blue-300 transition-colors">admin@autoniv.ai</p>
+                                <p className="text-xs text-white font-bold truncate group-hover:text-blue-300 transition-colors">hello@autoniv.com</p>
                               </div>
                               <svg className="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />

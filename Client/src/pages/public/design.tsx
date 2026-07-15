@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import logoBrand from '../../assets/autoniv-brand-logo.webp';
 
 /* ─── Design Tokens ─── */
-export const LOGO_SRC = '/autoniv.webp';
+export const LOGO_SRC = logoBrand;
 export const BRAND = 'linear-gradient(135deg,#2563EB,#10B981)';
 export const INK = '#0f172a';
 export const SLATE = '#64748b';

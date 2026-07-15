@@ -5,7 +5,7 @@ const CONTACT_PHONE_RAW = import.meta.env.VITE_CONTACT_PHONE_RAW || '91706599030
 
 export function Contact() {
   return (
-    <section id="contact" className="section-box white">
+    <section className="section-box white">
       <div className="section-pad relative overflow-hidden">
         <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "100%", height: "100%", background: "radial-gradient(circle at center, rgba(37,99,94,0.05), transparent 70%)", pointerEvents: "none" }} />
         <div className="relative" style={{ zIndex: 1 }}>

@@ -334,7 +334,7 @@ const AgentCard = memo(({ agent, index, onWebCall, onCallMe }: { agent: any; ind
               Test
             </motion.button>
           )}
-          <Link to={`/dashboard/agents`}
+          <Link to={`/dashboard/ai-voice-agent`}
             className="px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-500/5 transition-all"
           >
             Config
@@ -1538,7 +1538,7 @@ export function UserDashboard() {
             </Tip>
 
             {isVoice && (
-              <Link to="/dashboard/agents/new">
+              <Link to="/dashboard/ai-voice-agent/new">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all text-white shadow-sm cursor-pointer hover:shadow-md"
                   style={{ background: T.gradient }}
@@ -1562,7 +1562,7 @@ export function UserDashboard() {
             title="Configure Your Voice Platform"
             description="Complete the quick milestones to start making automated calls in minutes."
             steps={[
-              { icon: <AgentIcon />, label: 'Create an Agent', description: 'Set up an AI assistant to handle calls, check hours, or book slots.', to: '/dashboard/agents', cta: 'Build Agent' },
+              { icon: <AgentIcon />, label: 'Create an Agent', description: 'Set up an AI assistant to handle calls, check hours, or book slots.', to: '/dashboard/ai-voice-agent', cta: 'Build Agent' },
               { icon: <CallIcon />, label: 'Review Call Logs', description: 'Access records, download recordings, and inspect logs.', to: '/dashboard/calls', cta: 'Logs' },
               { icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, label: 'Billing Settings', description: 'Inquire upgrade packages or limits details.', to: '/dashboard/billing', cta: 'Upgrade' },
             ]}
@@ -1589,7 +1589,7 @@ export function UserDashboard() {
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">CHAT WIDGET</p>
                 <h2 className="text-sm font-extrabold text-slate-800 mt-0.5">Embed Chat on Your Website</h2>
               </div>
-              <Link to="/dashboard/chat" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
+              <Link to="/dashboard/ai-chatbot" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
                 Open Chat →
               </Link>
             </div>
@@ -1749,7 +1749,7 @@ export function UserDashboard() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
-                { to: '/dashboard/chat', title: 'Open Chat', desc: 'Start a conversation', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>, color: '#2563EB', bg: 'bg-blue-50/50' },
+                { to: '/dashboard/ai-chatbot', title: 'Open Chat', desc: 'Start a conversation', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>, color: '#2563EB', bg: 'bg-blue-50/50' },
                 { to: '/dashboard/billing', title: 'Upgrade Plan', desc: 'Get more conversations', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>, color: '#10B981', bg: 'bg-green-50/50' },
                 { to: '/dashboard/leads', title: 'View Leads', desc: 'Review captured data', icon: <UsersIcon />, color: '#14B8A6', bg: 'bg-teal-50/50' },
               ].map((action, i) => (
@@ -1895,7 +1895,7 @@ export function UserDashboard() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No call history matches range</p>
-                    <Link to="/dashboard/agents" className="text-xs text-[var(--primary-blue)] hover:underline font-bold mt-1 block">
+                    <Link to="/dashboard/ai-voice-agent" className="text-xs text-[var(--primary-blue)] hover:underline font-bold mt-1 block">
                       Create agent & dial test call →
                     </Link>
                   </div>
@@ -1984,7 +1984,7 @@ export function UserDashboard() {
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">AGENT FACTORY</p>
                   <h2 className="text-sm font-extrabold text-slate-800 mt-0.5">My Agents</h2>
                 </div>
-                <Link to="/dashboard/agents" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
+                <Link to="/dashboard/ai-voice-agent" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
                   Manage Agents →
                 </Link>
               </div>
@@ -2003,7 +2003,7 @@ export function UserDashboard() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No active agents</p>
-                <Link to="/dashboard/agents" className="text-xs font-bold text-[var(--primary-blue)] hover:underline mt-0.5 block">
+                <Link to="/dashboard/ai-voice-agent" className="text-xs font-bold text-[var(--primary-blue)] hover:underline mt-0.5 block">
                   Create your first voice receptionist →
                 </Link>
               </div>
@@ -2076,7 +2076,7 @@ export function UserDashboard() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No call activity recorded</p>
-                    <Link to="/dashboard/agents" className="text-xs font-bold text-[var(--primary-blue)] hover:underline mt-0.5 block">
+                    <Link to="/dashboard/ai-voice-agent" className="text-xs font-bold text-[var(--primary-blue)] hover:underline mt-0.5 block">
                       Launch test dialer simulator →
                     </Link>
                   </div>
@@ -2090,7 +2090,7 @@ export function UserDashboard() {
             <h2 className="text-sm font-bold text-slate-800 mb-3.5">Quick Actions Sandbox</h2>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { to: '/dashboard/agents',  title: 'Create Agent',   desc: 'Create new receptionist', icon: <AgentIcon />, color: 'var(--primary-blue)', bg: 'bg-blue-50/50' },
+                { to: '/dashboard/ai-voice-agent',  title: 'Create Agent',   desc: 'Create new receptionist', icon: <AgentIcon />, color: 'var(--primary-blue)', bg: 'bg-blue-50/50' },
                 { to: '/dashboard/calls',   title: 'Call History',   desc: 'Listen to recorded logs',  icon: <CallIcon />, color: '#10B981', bg: 'bg-green-50/50' },
                 { to: '/dashboard/leads',   title: 'Synced Leads',   desc: 'Review pipeline captures', icon: <UsersIcon />, color: '#14B8A6', bg: 'bg-teal-50/50' },
                 { to: '/dashboard/billing', title: 'Plan Limits',    desc: 'Top up calling minutes',  icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>, color: '#ef4444', bg: 'bg-rose-50/50' },

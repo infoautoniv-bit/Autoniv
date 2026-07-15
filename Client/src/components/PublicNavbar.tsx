@@ -5,7 +5,9 @@ const AuthDialog = lazy(() =>
   import('../pages/public/AuthDialog').then((m) => ({ default: m.AuthDialog }))
 );
 
-const LOGO_SRC = '/autoniv.webp';
+import logoBrand from '../assets/autoniv-brand-logo.webp';
+
+const LOGO_SRC = logoBrand;
 
 function MagBtn({
   children,
@@ -145,17 +147,7 @@ export function PublicNavbar() {
           window.scrollTo({ top: y, behavior: 'smooth' });
         }
       } else {
-        navigate('/');
-        const retry = (count: number) => {
-          const el = document.getElementById(targetId);
-          if (el) {
-            const y = el.getBoundingClientRect().top + window.scrollY - 72;
-            window.scrollTo({ top: y, behavior: 'smooth' });
-          } else if (count < 30) {
-            setTimeout(() => retry(count + 1), 100);
-          }
-        };
-        setTimeout(() => retry(0), 100);
+        navigate('/' + item.href);
       }
     }
   };
@@ -183,7 +175,9 @@ export function PublicNavbar() {
           >
             <img
               src={LOGO_SRC}
-              alt="Autoniv"
+              alt="Autoniv Brand Logo"
+              width={180}
+              height={120}
               fetchPriority="high"
               className="h-30 sm:h-30 w-auto object-contain transition-transform hover:scale-105"
             />
@@ -327,7 +321,7 @@ export function PublicNavbar() {
             }}
             aria-label="Autoniv home"
           >
-            <img src={LOGO_SRC} alt="Autoniv" className="-ml-6 h-40 sm:h-40 w-auto object-contain" />
+            <img src={LOGO_SRC} alt="Autoniv Brand Logo" width={240} height={160} className="-ml-6 h-40 sm:h-40 w-auto object-contain" />
           </Link>
           <button
             onClick={() => setMobileMenuOpen(false)}

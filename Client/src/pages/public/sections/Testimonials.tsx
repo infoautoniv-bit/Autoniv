@@ -110,7 +110,7 @@ function FeaturedTestimonialCard({ item }: { item: TestimonialItem }) {
         <div className="flex items-center gap-4">
           <div className="relative flex-shrink-0">
             <div className="absolute -inset-1 rounded-full opacity-60 blur-xs" style={{ background: `linear-gradient(135deg, ${item.avatar}, #34d399)` }} />
-            <img src={item.photo} alt={item.name} className="relative w-12 h-12 rounded-full object-cover" style={{ border: `2px solid ${item.avatar}` }} />
+            <img src={item.photo} alt={`${item.name} Portrait`} width={48} height={48} className="relative w-12 h-12 rounded-full object-cover" style={{ border: `2px solid ${item.avatar}` }} />
           </div>
           <div>
             <h3 className="text-sm sm:text-base font-bold text-white leading-tight">{item.name}</h3>
@@ -192,7 +192,9 @@ function TestimonialThumbnailCard({
         <div className="flex items-center gap-3 min-w-0">
           <img
             src={item.photo}
-            alt={item.name}
+            alt={`${item.name} Thumbnail`}
+            width={36}
+            height={36}
             className="w-9 h-9 rounded-full object-cover flex-shrink-0"
             style={{ border: `1.5px solid ${isActive ? item.avatar : "rgba(255,255,255,0.2)"}` }}
           />

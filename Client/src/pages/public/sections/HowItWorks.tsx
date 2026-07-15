@@ -7,7 +7,12 @@ import { EASE_OUT } from "./motionConstants";
 
 const STEP_COLORS = ["#2563EB", "#10B981", "#8B5CF6", "#F59E0B", "#EC4899"];
 
-const PARTICLE_COUNT = Array.from({ length: 14 });
+const PARTICLES = Array.from({ length: 14 });
+
+const STEP_1_PROMPT =
+  "Create a friendly Patient Care coordinator voice agent for HealthFirst Clinic. It should answer FAQs, ask patients for their name, and book slots in Google Calendar.";
+
+const STEP_1_BADGES = ["🏥 Healthcare Persona Created", "💬 Dialogues Calibrated", "📅 Google Calendar Linked"] as const;
 
 const STEP_4_METHODS = [
   { label: "Phone Number", icon: "📞", val: "+1 (800) 555-0199", action: "Assigned" },
@@ -58,7 +63,17 @@ const TimelineStep = memo(function TimelineStep({
       animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
       transition={{ duration: 0.75, delay: index * 0.1, ease: EASE_OUT }}
       className="relative flex-1 min-w-[200px] cursor-pointer"
+      role="button"
+      tabIndex={0}
+      aria-pressed={active}
+      aria-label={`Step ${step.n}: ${step.title}`}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
       <motion.div
         whileHover={reduced ? undefined : { y: -6, scale: 1.02 }}
@@ -127,40 +142,46 @@ const TimelineStep = memo(function TimelineStep({
 // ─── Previews for each step in Mock Console ───────────────────────────────
 
 const Step1Preview = memo(function Step1Preview() {
-  const [text, setText] = useState("");
-  const fullText = "Create a friendly Patient Care coordinator voice agent for HealthFirst Clinic. It should answer FAQs, ask patients for their name, and book slots in Google Calendar.";
+  const reduced = useReducedMotion() ?? false;
+  const [charCount, setCharCount] = useState(reduced ? STEP_1_PROMPT.length : 0);
 
   useEffect(() => {
-    let i = 0;
+    if (reduced) return;
     const interval = setInterval(() => {
-      if (i < fullText.length) {
-        setText((prev) => prev + fullText[i]);
-        i++;
-      } else {
-        clearInterval(interval);
-      }
+      setCharCount((prev) => {
+        if (prev >= STEP_1_PROMPT.length) {
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 1;
+      });
     }, 20);
     return () => clearInterval(interval);
-  }, []);
+  }, [reduced]);
+
+  const text = STEP_1_PROMPT.slice(0, charCount);
+  const done = charCount >= STEP_1_PROMPT.length;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <span className="text-[10px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded uppercase font-mono">AI Prompt Editor</span>
-        <span className="text-[10px] text-blue-400 font-bold animate-pulse">● Typing requirements...</span>
+        <span className="text-[10px] text-blue-400 font-bold animate-pulse">
+          {done ? "● Requirements captured" : "● Typing requirements..."}
+        </span>
       </div>
       <div className="bg-slate-900/60 rounded-xl p-4 border border-white/5 font-mono text-xs text-white leading-relaxed min-h-[90px]">
         {text}
         <span className="animate-pulse inline-block w-1.5 h-3.5 bg-blue-500 ml-0.5" />
       </div>
-      {text.length === fullText.length && (
+      {done && (
         <motion.div
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-wrap gap-2 pt-1"
         >
-          {["🏥 Healthcare Persona Created", "💬 Dialogues Calibrated", "📅 Google Calendar Linked"].map((badge, k) => (
-            <span key={k} className="text-[9px] font-bold bg-blue-600/10 text-blue-400 px-2.5 py-1 rounded-full border border-blue-500/20">
+          {STEP_1_BADGES.map((badge) => (
+            <span key={badge} className="text-[9px] font-bold bg-blue-600/10 text-blue-400 px-2.5 py-1 rounded-full border border-blue-500/20">
               {badge}
             </span>
           ))}
@@ -208,25 +229,23 @@ const Step2Preview = memo(function Step2Preview() {
 });
 
 const Step3Preview = memo(function Step3Preview() {
-  const [messages, setMessages] = useState<Array<{ r: string; t: string }>>([]);
+  const reduced = useReducedMotion() ?? false;
+  const [visibleCount, setVisibleCount] = useState(reduced ? STEP_3_DIALOG.length : 0);
 
   useEffect(() => {
-    let current = 0;
+    if (reduced) return;
     let t: ReturnType<typeof setTimeout>;
-    const addMessage = () => {
-      if (current < STEP_3_DIALOG.length) {
-        setMessages((prev) => [...prev, STEP_3_DIALOG[current]]);
-        current++;
-        t = setTimeout(addMessage, 2200);
+    const showNext = (count: number) => {
+      setVisibleCount(count);
+      if (count < STEP_3_DIALOG.length) {
+        t = setTimeout(() => showNext(count + 1), 2200);
       }
     };
+    t = setTimeout(() => showNext(1), 500);
+    return () => clearTimeout(t);
+  }, [reduced]);
 
-    t = setTimeout(addMessage, 500);
-    return () => {
-      clearTimeout(t);
-      setMessages([]);
-    };
-  }, []);
+  const messages = STEP_3_DIALOG.slice(0, visibleCount);
 
   return (
     <div className="space-y-4">
@@ -249,7 +268,7 @@ const Step3Preview = memo(function Step3Preview() {
             <div className={`rounded-xl px-3 py-1.5 text-xs max-w-[85%] ${
               m.r === "user" 
                 ? "bg-purple-600/90 text-white rounded-tr-none" 
-                : "bg-slate-950 border border-white/10 text-slate-350 rounded-tl-none"
+                : "bg-slate-950 border border-white/10 text-slate-300 rounded-tl-none"
             }`}>
               {m.t}
             </div>
@@ -265,7 +284,7 @@ const Step4Preview = memo(function Step4Preview() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded uppercase font-mono">Deployment Methods</span>
-        <span className="text-[9px] text-emerald-450 font-bold font-mono">Connected</span>
+        <span className="text-[9px] text-emerald-400 font-bold font-mono">Connected</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -289,7 +308,7 @@ const Step5Preview = memo(function Step5Preview() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded uppercase font-mono">Real-time Analytics Dashboard</span>
-        <span className="text-[9px] text-emerald-450 font-bold font-mono flex items-center gap-1">
+        <span className="text-[9px] text-emerald-400 font-bold font-mono flex items-center gap-1">
           <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
           Active
         </span>
@@ -307,15 +326,18 @@ const Step5Preview = memo(function Step5Preview() {
   );
 });
 
+const STEP_PREVIEWS = [Step1Preview, Step2Preview, Step3Preview, Step4Preview, Step5Preview] as const;
+
 const StepConsolePreview = memo(function StepConsolePreview({ index }: { index: number }) {
   const color = colorFor(index);
+  const Preview = STEP_PREVIEWS[index] ?? Step1Preview;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.4, ease: EASE_OUT }}
       className="relative rounded-3xl border border-white/10 overflow-hidden"
       style={{
         background: "linear-gradient(145deg, rgba(15,23,42,0.9), rgba(15,23,42,0.7))",
@@ -337,11 +359,7 @@ const StepConsolePreview = memo(function StepConsolePreview({ index }: { index: 
 
       {/* Console Body */}
       <div className="p-6 sm:p-8 min-h-[220px] flex flex-col justify-center">
-        {index === 0 && <Step1Preview />}
-        {index === 1 && <Step2Preview />}
-        {index === 2 && <Step3Preview />}
-        {index === 3 && <Step4Preview />}
-        {index === 4 && <Step5Preview />}
+        <Preview />
       </div>
     </motion.div>
   );
@@ -353,7 +371,7 @@ const AmbientParticles = memo(function AmbientParticles({ reduced }: { reduced: 
   if (reduced) return null;
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {PARTICLE_COUNT.map((_, i) => {
+      {PARTICLES.map((_, i) => {
         const size = 2 + (i % 3);
         const left = (i * 137.5) % 100;
         const color = colorFor(i);
@@ -391,7 +409,17 @@ export function HowItWorks({ openAuth }: { openAuth: (m: "login" | "register") =
   });
 
   const [activeIndex, setActiveIndex] = useState(0);
+  // After a manual step click, ignore scroll-driven updates briefly so the
+  // selection isn't immediately overridden by the next scroll tick.
+  const manualUntil = useRef(0);
+
+  const selectStep = (i: number) => {
+    manualUntil.current = performance.now() + 4000;
+    setActiveIndex(i);
+  };
+
   useMotionValueEvent(scrollYProgress, "change", (v) => {
+    if (performance.now() < manualUntil.current) return;
     const clamped = Math.min(Math.max(v, 0), 1);
     const idx = Math.min(STEPS.length - 1, Math.floor(clamped * STEPS.length));
     setActiveIndex(idx);
@@ -424,7 +452,7 @@ export function HowItWorks({ openAuth }: { openAuth: (m: "login" | "register") =
             initial={reduced ? { opacity: 0 } : { opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.7, ease: EASE_OUT }}
             className="text-center mb-16 space-y-4"
           >
             <motion.span
@@ -457,7 +485,7 @@ export function HowItWorks({ openAuth }: { openAuth: (m: "login" | "register") =
           {/* Horizontal step cards */}
           <div className="flex flex-col md:flex-row gap-5 max-w-6xl mx-auto mb-12">
             {STEPS.map((step, i) => (
-              <TimelineStep key={i} step={step} index={i} active={i === activeIndex} onClick={() => setActiveIndex(i)} />
+              <TimelineStep key={step.n} step={step} index={i} active={i === activeIndex} onClick={() => selectStep(i)} />
             ))}
           </div>
 

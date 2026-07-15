@@ -119,7 +119,7 @@ export function Nav({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: boo
       }}>
         <div className="max-w-7xl -ml-10 lg:ml-30 md:ml-5 px-6 sm:px-6 h-[68px] flex items-center justify-between">
           <Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <img src={LOGO_SRC} alt="Autoniv" className="h-40 sm:h-40 w-auto object-contain" />
+            <img src={LOGO_SRC} alt="Autoniv Brand Logo" width={240} height={160} className="h-40 sm:h-40 w-auto object-contain" />
           </Link>
           <div className="hidden md:flex items-center gap-6">
             {navItems.map(item => {
@@ -214,7 +214,7 @@ export function Nav({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: boo
           >
             <div className="flex items-center justify-between px-5 h-[64px]" style={{ borderBottom: '1px solid rgba(37,99,235,0.10)' }}>
               <Link to="/" onClick={() => { setMobileMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                <img src={LOGO_SRC} alt="Autoniv" className="-ml-8 h-40 w-auto" />
+                <img src={LOGO_SRC} alt="Autoniv Brand Logo" width={240} height={160} className="-ml-8 h-40 w-auto" />
               </Link>
               <button
                 onClick={() => setMobileMenuOpen(false)}

@@ -1,4 +1,17 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "autoniv.com"
+        }
+      ],
+      "destination": "https://www.autoniv.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/assets/(.*)", "destination": "/assets/$1" },
     { "source": "/((?!assets/).*)", "destination": "/index.html" }

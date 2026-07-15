@@ -250,7 +250,9 @@ function SocialProof() {
                 {!hasError ? (
                   <img
                     src={logo.url}
-                    alt={logo.name}
+                    alt={`${logo.name} logo`}
+                    width={24}
+                    height={24}
                     className="h-5 sm:h-6 w-auto object-contain opacity-60 group-hover:opacity-100 transition-all duration-300 filter grayscale group-hover:grayscale-0"
                     onError={() => setImageErrors(prev => ({ ...prev, [logo.name]: true }))}
                   />
@@ -291,7 +293,9 @@ function SocialProof() {
               >
                 <img
                   src={img}
-                  alt={`User ${i + 1}`}
+                  alt={`Customer Avatar ${i + 1}`}
+                  width={44}
+                  height={44}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;

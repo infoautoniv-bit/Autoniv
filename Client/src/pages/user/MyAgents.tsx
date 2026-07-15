@@ -8,6 +8,7 @@ import { AgentPanel, DeleteModal } from '../../components/AgentPanel';
 import { Pagination } from '../../components/Pagination';
 import { AGENT_TEMPLATES, DEFAULT_FORM_DATA } from '../../config/agentConfig';
 import { COUNTRY_CODES } from '../../config/constants';
+import { VOICE_OPTIONS } from '../../config/voices';
 import { useToast } from '../../hooks/useToast';
 import { ToastContainer } from '../../components/ToastContainer';
 import { callService } from '../../services/api';
@@ -503,12 +504,20 @@ export function MyAgents() {
   const { toasts, add: addToast, remove: removeToast } = useToast();
 
   const [panelOpen, setPanelOpen] = useState(false);
-  const [editingAgent, _setEditingAgent] = useState<Agent | null>(null);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [_error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
+  const [formData, setFormData] = useState<{
+    name: string;
+    type: string;
+    prompt: string;
+    language: string;
+    voiceId: string;
+    useCustomEngine?: boolean;
+    customEngineModel?: string;
+  }>(DEFAULT_FORM_DATA);
   const [callTarget, setCallTarget] = useState<Agent | null>(null);
   const [calling, setCalling] = useState(false);
 
@@ -551,7 +560,7 @@ export function MyAgents() {
       );
       return;
     }
-    navigate('/dashboard/agents/new');
+    navigate('/dashboard/ai-voice-agent/new');
   };
 
   const handleApplyTemplate = (tpl: typeof AGENT_TEMPLATES[0]) => {
@@ -563,20 +572,22 @@ export function MyAgents() {
       );
       return;
     }
-    navigate('/dashboard/agents/new', { state: { template: tpl } });
+    navigate('/dashboard/ai-voice-agent/new', { state: { template: tpl } });
   };
 
-  // const handleEdit = (agent: Agent) => {
-  //   setEditingAgent(agent);
-  //   setFormData({
-  //     name: agent.name || '',
-  //     type: agent.type || 'receptionist',
-  //     prompt: agent.prompt || '',
-  //     language: agent.language || 'en',
-  //     voiceId: agent.voiceId || VOICE_OPTIONS[0].value,
-  //   });
-  //   setPanelOpen(true);
-  // };
+  const handleEdit = (agent: Agent) => {
+    setEditingAgent(agent);
+    setFormData({
+      name: agent.name || '',
+      type: agent.type || 'receptionist',
+      prompt: agent.prompt || '',
+      language: agent.language || 'en',
+      voiceId: agent.voiceId || VOICE_OPTIONS[0]?.value || '21m00Tcm4TlvDq8ikWAM',
+      useCustomEngine: agent.useCustomEngine || false,
+      customEngineModel: agent.customEngineModel || 'openai:gpt-4o-mini',
+    });
+    setPanelOpen(true);
+  };
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -593,6 +604,8 @@ export function MyAgents() {
             language: formData.language || editingAgent.language,
             voiceId: formData.voiceId || editingAgent.voiceId,
             isActive: editingAgent.isActive,
+            useCustomEngine: formData.useCustomEngine ?? editingAgent.useCustomEngine,
+            customEngineModel: formData.customEngineModel ?? editingAgent.customEngineModel,
           },
         })).unwrap();
         addToast('Agent updated successfully', 'success');
@@ -648,7 +661,7 @@ export function MyAgents() {
 
   const handleWebCall = async (agent: Agent) => {
     if (!agent.vapiId) {
-      navigate(`/dashboard/agents/custom-call/${agent.id}`);
+      navigate(`/dashboard/ai-phone-answering/${agent.id}`);
       return;
     }
     setWebCallTarget(agent);
@@ -838,7 +851,7 @@ export function MyAgents() {
               {!atLimit && hasVoicePlan && (
                 <button
                   type="button"
-                  onClick={() => navigate('/dashboard/agents/new-custom')}
+                  onClick={() => navigate('/dashboard/ai-voice-agent/new-custom')}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 btn-secondary-outline"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
@@ -1140,7 +1153,7 @@ export function MyAgents() {
           {!atLimit && hasVoicePlan && (
             <button
               type="button"
-              onClick={() => navigate('/dashboard/agents/new-custom')}
+              onClick={() => navigate('/dashboard/ai-voice-agent/new-custom')}
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[12.5px] font-semibold text-slate-700 bg-white border border-slate-200 transition-all hover:bg-slate-50 cursor-pointer"
             >
               <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
@@ -1208,6 +1221,7 @@ export function MyAgents() {
         onCallMe={(a) => setCallTarget(a)}
         onWebCall={(a) => handleWebCall(a)}
         onViewPrompt={(a) => { setPromptTarget(a); setPromptText(a.prompt || ''); }}
+        onEdit={handleEdit}
       />
             </motion.div>
           ))}
@@ -1236,7 +1250,7 @@ export function MyAgents() {
           if (!editingAgent) return;
           try {
             await dispatch(assignPhone({ id: editingAgent.id, phoneNumberId, phoneNumber, twilioAccountSid, twilioAuthToken })).unwrap();
-            _setEditingAgent((prev: Agent | null) => prev ? { ...prev, phoneNumberId, phoneNumber, twilioAccountSid, twilioAuthToken } : null);
+            setEditingAgent((prev: Agent | null) => prev ? { ...prev, phoneNumberId, phoneNumber, twilioAccountSid, twilioAuthToken } : null);
             await dispatch(fetchMyAgents({ page, limit: 20 }));
           } catch (err) {
             console.error(err);
@@ -1246,7 +1260,7 @@ export function MyAgents() {
           if (!editingAgent) return;
           try {
             await dispatch(unlinkPhone({ id: editingAgent.id })).unwrap();
-            _setEditingAgent((prev: Agent | null) => prev ? { ...prev, phoneNumberId: undefined, phoneNumber: undefined, twilioAccountSid: undefined, twilioAuthToken: undefined } : null);
+            setEditingAgent((prev: Agent | null) => prev ? { ...prev, phoneNumberId: undefined, phoneNumber: undefined, twilioAccountSid: undefined, twilioAuthToken: undefined } : null);
             await dispatch(fetchMyAgents({ page, limit: 20 }));
           } catch (err) {
             console.error(err);

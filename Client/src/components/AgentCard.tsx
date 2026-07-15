@@ -10,6 +10,7 @@ interface AgentCardProps {
   onCallMe?: (agent: Agent) => void;
   onWebCall?: (agent: Agent) => void;
   onViewPrompt?: (agent: Agent) => void;
+  onEdit?: (agent: Agent) => void;
   showOwner?: boolean;
 }
 
@@ -82,7 +83,7 @@ const typeConfig: Record<string, {
   },
 };
 
-export function AgentCard({ agent, onDelete, onToggle, onAssignPhone, onCallMe, onWebCall, onViewPrompt, showOwner }: AgentCardProps) {
+export function AgentCard({ agent, onDelete, onToggle, onAssignPhone, onCallMe, onWebCall, onViewPrompt, onEdit, showOwner }: AgentCardProps) {
   const config = typeConfig[agent.type] || typeConfig.receptionist;
   const voiceOpt = VOICE_OPTIONS.find(v => v.value === agent.voiceId);
   let voiceName = 'Default';
@@ -294,6 +295,20 @@ export function AgentCard({ agent, onDelete, onToggle, onAssignPhone, onCallMe, 
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
                   Link
+                </motion.button>
+              )}
+
+              {onEdit && (
+                <motion.button
+                  whileHover={{ scale: 1.05, backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onEdit(agent)}
+                  title="Edit Agent"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 text-blue-500 border border-slate-200 bg-white"
+                >
+                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
                 </motion.button>
               )}
 

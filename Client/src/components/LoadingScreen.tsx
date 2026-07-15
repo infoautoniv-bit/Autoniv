@@ -1,3 +1,5 @@
+import logoBrand from '../assets/autoniv-brand-logo.webp';
+
 // Each bar has its own peak height, animation speed and delay so the
 // equalizer reads as a live audio meter rather than a synchronized wave.
 const BARS = [
@@ -56,8 +58,10 @@ export default function AutonivLoadingScreen() {
         }}
       >
         <img
-          src="/logo-autoniv.png"
-          alt="Autoniv"
+          src={logoBrand}
+          alt="Autoniv Brand Logo"
+          width={270}
+          height={180}
           style={{
             height: 180,
             width: 'auto',

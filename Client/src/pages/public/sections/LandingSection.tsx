@@ -1,4 +1,5 @@
-import { useState, lazy, Suspense, useCallback } from "react";
+import { useState, lazy, Suspense, useCallback, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { PublicNavbar } from "../../../components/PublicNavbar";
 import Footer from "../Footer";
 import { USPSlider } from "./USPSlider";
@@ -6,17 +7,9 @@ import { Features } from "./Features";
 import { Services } from "./ServicesSection";
 import { VoiceAgentService, ChatAgentService } from "./services";
 import { DeferRender } from "../../../components/DeferRender";
+import { Hero } from "./Hero/Hero";
 
-const Hero = lazy(() => import("./Hero/Hero").then(m => ({ default: m.Hero })));
 const Demo = lazy(() => import("./Demo/Demo").then(m => ({ default: m.Demo })));
-
-function HeroSkeleton() {
-  return (
-    <div style={{ minHeight: "700px", background: "linear-gradient(rgba(37,99,235,0.02) 1px,transparent 1px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: "32px", height: "32px", borderRadius: "50%", border: "2px solid rgba(37,99,235,0.2)", borderTopColor: "#2563EB", animation: "socialBounce 1s linear infinite" }} />
-    </div>
-  );
-}
 
 const AuthDialog = lazy(() =>
   import("../AuthDialog").then((m) => ({ default: m.AuthDialog }))
@@ -37,6 +30,23 @@ type AuthMode = 'login' | 'register' | 'forgot_password' | 'reset_password';
 export function LandingSection() {
   const [authDialog, setAuthDialog] = useState<AuthMode | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const location = useLocation();
+  const forceRender = !!location.hash;
+
+  useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.replace('#', '');
+      const scroll = () => {
+        const el = document.getElementById(targetId);
+        if (el) {
+          const y = el.getBoundingClientRect().top + window.scrollY - 72;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      };
+      const timer = setTimeout(scroll, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [location.hash]);
 
   const openAuth = useCallback((mode: 'login' | 'register') => {
     setAuthMode(mode);
@@ -51,10 +61,8 @@ export function LandingSection() {
       <div className="page-bg" style={{ paddingTop: 120, paddingBottom: 8 }}>
         <div className="box-wrap">
           <USPSlider />
-          <Suspense fallback={<HeroSkeleton />}>
-            <Hero openAuth={openAuth} />
-          </Suspense>
-          <DeferRender height={600}>
+          <Hero openAuth={openAuth} />
+          <DeferRender height={600} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 600 }} />}>
               <Demo />
             </Suspense>
@@ -65,55 +73,57 @@ export function LandingSection() {
             <Services openAuth={openAuth} />
             <VoiceAgentService />
             <ChatAgentService />
-          <DeferRender height={500}>
+          <DeferRender height={500} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 500 }} />}>
               <Comparison />
             </Suspense>
           </DeferRender>
-          <DeferRender height={600}>
-            <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-              <div id="how-it-works">
+          <div id="how-it-works">
+            <DeferRender height={600} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 600 }} />}>
                 <HowItWorks openAuth={openAuth} />
-              </div>
-            </Suspense>
-          </DeferRender>
-          <DeferRender height={600}>
+              </Suspense>
+            </DeferRender>
+          </div>
+          <DeferRender height={600} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 600 }} />}>
               <Industry />
             </Suspense>
           </DeferRender>
-          <DeferRender height={500}>
+          <DeferRender height={500} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 500 }} />}>
               <CaseStudiesSection />
             </Suspense>
           </DeferRender>
-          <DeferRender height={500}>
+          <DeferRender height={500} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 500 }} />}>
               <Blog />
             </Suspense>
           </DeferRender>
-          <DeferRender height={600}>
+          <DeferRender height={600} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 600 }} />}>
               <Pricing />
             </Suspense>
           </DeferRender>
-          <DeferRender height={500}>
-            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-              <Contact />
-            </Suspense>
-          </DeferRender>
+          <div id="contact">
+            <DeferRender height={500} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+                <Contact />
+              </Suspense>
+            </DeferRender>
+          </div>
 
-          <DeferRender height={500}>
+          <DeferRender height={500} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 500 }} />}>
               <Testimonials />
             </Suspense>
           </DeferRender>
-          <DeferRender height={400}>
+          <DeferRender height={400} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 400 }} />}>
               <FAQ />
             </Suspense>
           </DeferRender>
-          <DeferRender height={300}>
+          <DeferRender height={300} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 300 }} />}>
               <CTABanner openAuth={openAuth} />
             </Suspense>

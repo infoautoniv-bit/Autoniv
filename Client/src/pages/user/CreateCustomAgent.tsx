@@ -358,7 +358,7 @@ export function CreateCustomAgent() {
     try {
       await dispatch(createAgent(formData)).unwrap();
       await dispatch(fetchMyAgents({ page: 1, limit: 20 }));
-      navigate('/dashboard/agents');
+      navigate('/dashboard/ai-voice-agent');
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'Something went wrong.');
     } finally {
@@ -406,7 +406,7 @@ export function CreateCustomAgent() {
         {/* Back */}
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <button
-            onClick={() => navigate('/dashboard/agents')}
+            onClick={() => navigate('/dashboard/ai-voice-agent')}
             className="inline-flex items-center gap-2 text-[12.5px] font-medium transition-colors cursor-pointer bg-transparent border-none"
             style={{ color: 'var(--text-muted)' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text)'; }}
@@ -763,7 +763,7 @@ export function CreateCustomAgent() {
             >
               <button
                 type="button"
-                onClick={() => navigate('/dashboard/agents')}
+                onClick={() => navigate('/dashboard/ai-voice-agent')}
                 disabled={submitting}
                 className="px-5 py-2.5 rounded-xl text-[12.5px] font-bold cursor-pointer transition-colors duration-150 disabled:opacity-40 w-full sm:w-auto"
                 style={{ background: 'var(--s1)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}

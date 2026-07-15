@@ -448,12 +448,34 @@ router.post('/:id/assign-phone', async (req, res) => {
     if (req.user.role !== 'admin' && agent.userId.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'Forbidden' });
     }
-
     const isDirectNumber = phoneNumberId.startsWith('+') || /^\d+$/.test(phoneNumberId);
 
     if (isDirectNumber) {
       // Direct Twilio phone number assignment (bypass Vapi)
       const numberValue = phoneNumberId;
+
+      if (twilioAccountSid && twilioAuthToken) {
+        try {
+          let webhookUrl;
+          if (process.env.WEBHOOK_URL) {
+            webhookUrl = process.env.WEBHOOK_URL.replace(/\/vapi$/, '/incoming-call');
+          } else {
+            const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+            const xfProto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+            const isSecure = xfProto === 'https' || req.secure || IS_PROD;
+            const protocol = isSecure ? 'https' : 'http';
+            webhookUrl = `${protocol}://${host}/api/webhooks/incoming-call`;
+          }
+
+          log.info('twilio_auto_configure_webhook_start', { phoneNumber: numberValue, webhookUrl });
+          await configureTwilioIncomingWebhook(twilioAccountSid, twilioAuthToken, numberValue, webhookUrl);
+          log.info('twilio_auto_configure_webhook_success', { phoneNumber: numberValue });
+        } catch (twilioErr) {
+          log.error('twilio_auto_configure_webhook_failed', { error: twilioErr.message, phoneNumber: numberValue });
+          return res.status(400).json({ message: `Failed to configure Twilio webhook automatically: ${twilioErr.message}` });
+        }
+      }
+
       const updated = await Agent.findByIdAndUpdate(
         id,
         { 
@@ -549,5 +571,69 @@ router.post('/:id/unlink-phone', async (req, res) => {
     res.status(500).json({ message: 'Failed to unlink phone number' });
   }
 });
+
+async function configureTwilioIncomingWebhook(twilioAccountSid, twilioAuthToken, phoneNumber, webhookUrl) {
+  const auth = Buffer.from(`${twilioAccountSid}:${twilioAuthToken}`).toString('base64');
+  
+  // 1. List incoming numbers in Twilio (up to 100)
+  const searchUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/IncomingPhoneNumbers.json?PageSize=100`;
+  
+  const searchRes = await fetch(searchUrl, {
+    headers: { 'Authorization': `Basic ${auth}` }
+  });
+  
+  if (!searchRes.ok) {
+    const errorBody = await searchRes.text().catch(() => '');
+    throw new Error(`Failed to list Twilio phone numbers: ${searchRes.statusText}. Details: ${errorBody}`);
+  }
+  
+  const searchData = await searchRes.json();
+  const phoneNumbers = searchData.incoming_phone_numbers || [];
+  
+  // 2. Perform lenient matching on the phone number digits
+  const cleanSearchNum = phoneNumber.replace(/\D/g, '');
+  if (!cleanSearchNum) {
+    throw new Error('Invalid phone number format provided.');
+  }
+
+  const match = phoneNumbers.find(p => {
+    const cleanTwilioNum = (p.phone_number || '').replace(/\D/g, '');
+    return cleanTwilioNum === cleanSearchNum ||
+           cleanTwilioNum.endsWith(cleanSearchNum) ||
+           cleanSearchNum.endsWith(cleanTwilioNum);
+  });
+  
+  if (!match) {
+    const available = phoneNumbers.map(p => p.phone_number).join(', ');
+    throw new Error(`Phone number "${phoneNumber}" not found in your Twilio account. Available numbers in your account: ${available || 'none'}`);
+  }
+  
+  const phoneSid = match.sid;
+  
+  // 2. Update the VoiceUrl, VoiceFallbackUrl, and StatusCallback webhooks on that phone number SID
+  const updateUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/IncomingPhoneNumbers/${phoneSid}.json`;
+  
+  const params = new URLSearchParams();
+  params.append('VoiceUrl', webhookUrl);
+  params.append('VoiceMethod', 'POST');
+  params.append('VoiceFallbackUrl', webhookUrl);
+  params.append('VoiceFallbackMethod', 'POST');
+  params.append('StatusCallback', 'https://api.vapi.ai/twilio/status');
+  params.append('StatusCallbackMethod', 'POST');
+  
+  const updateRes = await fetch(updateUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: params.toString()
+  });
+  
+  if (!updateRes.ok) {
+    const errorBody = await updateRes.text().catch(() => '');
+    throw new Error(`Failed to configure Twilio webhook: ${updateRes.statusText}. Details: ${errorBody}`);
+  }
+}
 
 export default router;

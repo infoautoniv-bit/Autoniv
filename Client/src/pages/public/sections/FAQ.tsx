@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FAQItem } from "./FAQItem";
 import { MotionReveal } from "./anim";
 
@@ -65,6 +65,35 @@ const faqs = [
 
 export function FAQ() {
   const [activeCategory, setActiveCategory] = useState("all");
+
+  useEffect(() => {
+    const faqSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": faqs.map((faq) => ({
+        "@type": "Question",
+        "name": faq.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.a
+        }
+      }))
+    };
+
+    let script = document.getElementById("faq-jsonld") as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement("script");
+      script.id = "faq-jsonld";
+      script.type = "application/ld+json";
+      document.head.appendChild(script);
+    }
+    script.text = JSON.stringify(faqSchema);
+
+    return () => {
+      const el = document.getElementById("faq-jsonld");
+      if (el) el.remove();
+    };
+  }, []);
 
   const filteredFaqs =
     activeCategory === "all"

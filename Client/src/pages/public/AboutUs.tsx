@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import rajneshSirPhoto from '../../assets/rajnesh-yadav-founder-ceo.webp';
 import Footer from './Footer';
 import ScrollToTop from '../../components/ScrollToTop';
 import { PublicNavbar } from '../../components/PublicNavbar';
@@ -507,8 +508,10 @@ export function AboutUS() {
                   />
                   
                   <img 
-                    src="/Rajneshyadav.png" 
+                    src={rajneshSirPhoto} 
                     alt="Rajnesh Yadav - Founder & CEO of Autoniv" 
+                    width={500}
+                    height={500}
                     style={{ 
                       width: '100%', 
                       height: '100%', 

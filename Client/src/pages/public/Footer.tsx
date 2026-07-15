@@ -2,7 +2,9 @@
 import { Link } from 'react-router-dom';
 import { Stagger, StaggerItem } from './sections/anim';
 
-const LOGO_SRC = '/logo-autoniv.png';
+import logoAutonivFull from '../../assets/autoniv-full-logo.webp';
+
+const LOGO_SRC = logoAutonivFull;
 
 const SOCIAL_LINKS = [
   {
@@ -111,7 +113,7 @@ export default function Footer() {
           {/* Brand column — FULL WIDTH on mobile (col-span-1), spans 2 on tablet, spans 2 on lg */}
           <StaggerItem variant="fadeUp" className="col-span-1 sm:col-span-2 lg:col-span-2">
             <Link to="/" className="inline-block -mb-8 -mx-6 sm:-mx-4 -mt-10 sm:mt-0">
-              <img src={LOGO_SRC} alt="Autoniv" style={{ height: 120 }} />
+              <img src={LOGO_SRC} alt="Autoniv Full Logo" width={180} height={120} style={{ height: 120 }} />
             </Link>
             <p
               style={{
