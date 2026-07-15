@@ -612,8 +612,8 @@ export function MyAgents() {
       } else {
         await dispatch(createAgent(formData)).unwrap();
         addToast('Agent created successfully', 'success');
+        await dispatch(fetchMyAgents({ page, limit: 20 }));
       }
-      await dispatch(fetchMyAgents({ page, limit: 20 }));
       setPanelOpen(false);
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || err?.message || 'Something went wrong.';
@@ -1251,7 +1251,6 @@ export function MyAgents() {
           try {
             await dispatch(assignPhone({ id: editingAgent.id, phoneNumberId, phoneNumber, twilioAccountSid, twilioAuthToken })).unwrap();
             setEditingAgent((prev: Agent | null) => prev ? { ...prev, phoneNumberId, phoneNumber, twilioAccountSid, twilioAuthToken } : null);
-            await dispatch(fetchMyAgents({ page, limit: 20 }));
           } catch (err) {
             console.error(err);
           }
@@ -1261,7 +1260,6 @@ export function MyAgents() {
           try {
             await dispatch(unlinkPhone({ id: editingAgent.id })).unwrap();
             setEditingAgent((prev: Agent | null) => prev ? { ...prev, phoneNumberId: undefined, phoneNumber: undefined, twilioAccountSid: undefined, twilioAuthToken: undefined } : null);
-            await dispatch(fetchMyAgents({ page, limit: 20 }));
           } catch (err) {
             console.error(err);
           }

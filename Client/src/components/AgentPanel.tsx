@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VoicePreviewButton } from './VoicePreviewButton';
 import { VOICE_OPTIONS } from '../config/voices';
+import { VOICE_TONE_SUFFIX, PROMPT_TEMPLATES } from '../config/agentPrompts';
 import { agentService } from '../services/api';
 import type { Agent } from '../types';
 
@@ -48,56 +49,29 @@ const AGENT_TYPES = [
   )},
 ];
 
-const VOICE_TONE_SUFFIX = `
+// ————————————————————————————————————————————————————————————
+// Shared primitives
+// ————————————————————————————————————————————————————————————
 
-### Voice & Tone
-- Helpful advisor, not salesy telecaller
-- Speak like a real person on a phone call
-- Warm but professional
-
-### NEVER Say
-- "Thank you for asking" / "That's a great question"
-- "Certainly" / "Indeed" / "Kindly" / "I acknowledge"
-- "Perfect!" / "Excellent!" / "Wonderful!" after every response
-
-### Natural Conversation
-- Use fillers sparingly: "Actually...", "Look...", "So basically..."
-- Acknowledge before answering: "Okay..." / "Right..." / "Got it..."
-- Keep responses short and conversational
-- Mirror user's energy — if brief, be brief
-
-### TTS Formatting
-- ₹5000 → "five thousand rupees"
-- 15% → "fifteen percent"
-- Jan 25 → "twenty-five January"
-- 9876543210 → "nine eight seven six..." (with pauses)
-
-### Security
-NEVER ask: OTP, CVV, PIN, Aadhaar, PAN, passwords, full card numbers`;
-
-const PROMPT_TEMPLATES = [
-  { id: 'dentist',     label: '🦷 Dental Clinic', prompt: `You are a friendly scheduling assistant for Smile Dental. Greet patients warmly, check for preferred times (mornings/afternoons), collect full name, phone number, and brief reason for the visit (cleaning, checkup, pain). State that a receptionist will text confirmation.${VOICE_TONE_SUFFIX}` },
-  { id: 'realestate',  label: '🏢 Real Estate',   prompt: `You are an intake assistant for Elite Realtors. Greet callers, ask if they want to buy, sell, or rent. Collect their budget range, neighborhood preference, name, and email.${VOICE_TONE_SUFFIX}` },
-  { id: 'receptionist',label: '💼 Receptionist',  prompt: `You are a professional office receptionist. Greet caller, ask for their name and business details, collect contact number, and inform them that we will route their message.${VOICE_TONE_SUFFIX}` },
-  { id: 'support',     label: '💬 Helpdesk',       prompt: `You are a technical support helper. Greet callers, ask for their name and account email, gather a description of their issue, and let them know a support specialist will email them a solution shortly.${VOICE_TONE_SUFFIX}` },
-  { id: 'healthcare',  label: '🏥 Healthcare',    prompt: `You are a patient intake assistant for a healthcare clinic. Greet patients warmly, ask about their reason for visit (consultation, follow-up, specific symptoms), collect full name, phone number, and preferred appointment time. Reassure them the doctor's office will confirm.${VOICE_TONE_SUFFIX}` },
-  { id: 'restaurant',  label: '🍽️ Restaurant',    prompt: `You are a reservation assistant for a restaurant. Greet callers, ask for party size, preferred date and time, and any special requests (outdoor seating, high chair, dietary needs). Collect name and phone number. Confirm the reservation details back.${VOICE_TONE_SUFFIX}` },
-];
-
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
   return (
-    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-2">{children}</p>
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">{children}</p>
+      {hint && <p className="text-[10px] text-[var(--text-muted)]/60">{hint}</p>}
+    </div>
   );
 }
 
-function TextInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+function TextInput({ value, onChange, placeholder, mono = false }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; mono?: boolean;
+}) {
   return (
     <input
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full px-4 py-2.5 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)]/60 focus:outline-none focus:border-[var(--primary-blue)]/50 focus:ring-1 focus:ring-[var(--primary-blue)]/10 transition-all"
+      className={`w-full px-4 py-2.5 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)]/60 outline-none transition-all duration-150 focus:border-[var(--primary-blue)] focus:ring-4 focus:ring-[var(--primary-blue)]/10 ${mono ? 'font-mono tracking-tight' : ''}`}
     />
   );
 }
@@ -124,34 +98,44 @@ function SelectInput({ value, onChange, options }: {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full px-4 py-2.5 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] flex items-center justify-between gap-2 focus:outline-none focus:border-[var(--primary-blue)]/50 focus:ring-1 focus:ring-[var(--primary-blue)]/10 transition-all cursor-pointer"
+        className={`w-full px-4 py-2.5 text-sm bg-[var(--s1)] border rounded-xl text-[var(--text)] flex items-center justify-between gap-2 outline-none transition-all duration-150 cursor-pointer ${
+          open ? 'border-[var(--primary-blue)] ring-4 ring-[var(--primary-blue)]/10' : 'border-[var(--border)]'
+        }`}
       >
         <span className="truncate">{selected?.label}</span>
-        <svg className={`w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute z-50 mt-1.5 w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl shadow-slate-200/50 overflow-hidden">
-          <div className="max-h-48 overflow-y-auto py-1 custom-scrollbar">
-            {options.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => { onChange(opt.value); setOpen(false); }}
-                className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer ${
-                  opt.value === value
-                    ? 'bg-[var(--primary-blue-soft)] text-[var(--primary-blue)] font-semibold'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--s1)] hover:text-[var(--text)]'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-50 mt-1.5 w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl shadow-black/20 overflow-hidden origin-top"
+          >
+            <div className="max-h-48 overflow-y-auto py-1 custom-scrollbar">
+              {options.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { onChange(opt.value); setOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer ${
+                    opt.value === value
+                      ? 'bg-[var(--primary-blue-soft)] text-[var(--primary-blue)] font-semibold'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--s1)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -165,8 +149,76 @@ function TextareaInput({ value, onChange, placeholder, rows = 5 }: {
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
-      className="w-full px-4 py-3 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)]/60 focus:outline-none focus:border-[var(--primary-blue)]/50 focus:ring-1 focus:ring-[var(--primary-blue)]/10 transition-all resize-none"
+      className="w-full px-4 py-3 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)]/60 outline-none transition-all duration-150 focus:border-[var(--primary-blue)] focus:ring-4 focus:ring-[var(--primary-blue)]/10 resize-none leading-relaxed"
     />
+  );
+}
+
+/** A real toggle switch, replacing the native checkbox for the custom-engine setting. */
+function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative w-10 h-[22px] rounded-full flex-shrink-0 transition-colors duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-blue)]/40 focus-visible:ring-offset-1 ${
+        checked ? 'bg-[var(--primary-blue)]' : 'bg-[var(--border)]'
+      }`}
+    >
+      <motion.span
+        layout
+        transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+        className="absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow-sm"
+        style={{ x: checked ? 18 : 0 }}
+      />
+    </button>
+  );
+}
+
+/** Ambient equalizer bars — a small signature motif tying the Voice tab back to the product's subject (a phone call). Idle, not tied to real audio. */
+function Equalizer({ active }: { active: boolean }) {
+  const bars = [0.4, 0.9, 0.6, 1, 0.5, 0.75];
+  return (
+    <div className="flex items-end gap-[3px] h-4">
+      {bars.map((h, i) => (
+        <motion.span
+          key={i}
+          className="w-[3px] rounded-full bg-[var(--primary-blue)]"
+          animate={active ? { height: [`${h * 30}%`, '100%', `${h * 50}%`, '100%', `${h * 40}%`] } : { height: `${h * 45}%` }}
+          transition={active ? { duration: 1.1 + i * 0.08, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.3 }}
+          style={{ height: `${h * 45}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Tab bar button with an animated sliding indicator (shared layout). */
+function TabButton({ active, onClick, icon, label, dot }: {
+  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; dot?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+        active ? 'text-[var(--primary-blue)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+      }`}
+    >
+      <span className="relative">
+        {icon}
+        {dot && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+      </span>
+      {label}
+      {active && (
+        <motion.span
+          layoutId="agent-panel-tab-indicator"
+          className="absolute left-2 right-2 -bottom-[1px] h-[2px] rounded-full bg-[var(--primary-blue)]"
+          transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+        />
+      )}
+    </button>
   );
 }
 
@@ -190,11 +242,18 @@ export interface AgentPanelProps {
   onUnlinkPhone?: () => Promise<void>;
 }
 
+type TabId = 'identity' | 'voice' | 'prompt' | 'engine' | 'connect';
+
 export function AgentPanel({
   open, onClose, editing, formData, setFormData, onSubmit, submitting,
   onAssignPhone, onUnlinkPhone,
 }: AgentPanelProps) {
   const filteredVoices = VOICE_OPTIONS;
+  const agentTypeMeta = AGENT_TYPES.find((t) => t.value === formData.type) || AGENT_TYPES[0];
+  const showConnectTab = !!(editing && onAssignPhone);
+
+  const [tab, setTab] = useState<TabId>('identity');
+  const [voiceHover, setVoiceHover] = useState(false);
 
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [selectedPhoneId, setSelectedPhoneId] = useState('');
@@ -217,6 +276,10 @@ export function AgentPanel({
       setPhoneLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (open) setTab('identity');
+  }, [open]);
 
   useEffect(() => {
     if (open && editing && onAssignPhone) {
@@ -279,6 +342,48 @@ export function AgentPanel({
     }
   };
 
+  const hasPhoneLinked = !!(editing?.phoneNumberId || editing?.phoneNumber);
+  const phoneDirty = (!isDirectPhone && selectedPhoneId && selectedPhoneId !== (editing?.phoneNumberId || '')) ||
+    (isDirectPhone && directPhoneNum.trim() && (directPhoneNum.trim() !== (editing?.phoneNumber || '') || twilioSid.trim() !== (editing?.twilioAccountSid || '') || twilioToken.trim() !== (editing?.twilioAuthToken || '')));
+
+  const completion: Record<TabId, boolean> = {
+    identity: !!formData.name.trim(),
+    voice: !!formData.voiceId,
+    prompt: formData.prompt.trim().length > 20,
+    engine: !!formData.useCustomEngine,
+    connect: hasPhoneLinked,
+  };
+  const readyCount = (['identity', 'voice', 'prompt'] as TabId[]).filter((k) => completion[k]).length;
+
+  const tabs = useMemo(() => {
+    const list: { id: TabId; label: string; icon: React.ReactNode }[] = [
+      { id: 'identity', label: 'Identity', icon: (
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      )},
+      { id: 'voice', label: 'Voice', icon: (
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0M12 18v3m-4 0h8M9 3a3 3 0 00-3 3v5a3 3 0 006 0V6a3 3 0 00-3-3z"/></svg>
+      )},
+      { id: 'prompt', label: 'Prompt', icon: (
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      )},
+      { id: 'engine', label: 'Engine', icon: (
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" strokeWidth={2}/></svg>
+      )},
+    ];
+    if (showConnectTab) {
+      list.push({ id: 'connect', label: 'Connect', icon: (
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+      )});
+    }
+    return list;
+  }, [showConnectTab]);
+
+  const slide = {
+    initial: { opacity: 0, x: 12 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -12 },
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -288,31 +393,47 @@ export function AgentPanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
           />
-          {/* Panel */}
+          {/* Dialog */}
           <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-[var(--surface)] border-l border-[var(--border)] flex flex-col shadow-2xl shadow-slate-200/50"
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
           >
+            <div
+              className="w-full max-w-lg max-h-[90vh] bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl shadow-black/40 flex flex-col pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Panel header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border)] flex-shrink-0">
-              <div>
+            <div className="relative flex items-center gap-3.5 px-6 pt-5 pb-4 border-b border-[var(--border)] flex-shrink-0 overflow-hidden">
+              <div
+                className="absolute inset-x-0 -top-16 h-32 opacity-[0.15] pointer-events-none"
+                style={{ background: 'radial-gradient(ellipse at top, var(--primary-blue), transparent 70%)' }}
+              />
+              <div className="relative w-10 h-10 rounded-xl bg-[var(--primary-blue-soft)] border border-[var(--primary-blue)]/20 flex items-center justify-center text-[var(--primary-blue)] flex-shrink-0">
+                {agentTypeMeta.icon}
+              </div>
+              <div className="relative min-w-0 flex-1">
                 <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[var(--text-muted)] mb-0.5">
-                  {editing ? 'Edit' : 'New'}
+                  {editing ? 'Edit agent' : 'New agent'}
                 </p>
-                <h2 className="text-base font-semibold text-[var(--text)]">
-                  {editing ? editing.name : 'Create agent'}
+                <h2 className="text-base font-semibold text-[var(--text)] truncate">
+                  {editing ? editing.name : (formData.name || 'Untitled agent')}
                 </h2>
               </div>
+              {!editing && (
+                <span className="relative hidden sm:flex items-center gap-1 text-[10px] font-semibold text-[var(--text-muted)] flex-shrink-0">
+                  {readyCount}/3 ready
+                </span>
+              )}
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--s1)] transition-colors"
+                className="relative p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--s1)] transition-colors flex-shrink-0"
                 aria-label="Close"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,355 +442,385 @@ export function AgentPanel({
               </button>
             </div>
 
-            {/* Panel body */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-
-              {/* Hint */}
-              <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-[var(--primary-blue-soft)] border border-[var(--border)]">
-                <svg className="w-3.5 h-3.5 text-[var(--primary-blue)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <p className="text-xs text-[var(--primary-blue)]/80 leading-relaxed">
-                  Configure your agent's identity, voice, and behavior. You can update these settings at any time.
-                </p>
-              </div>
-
-              {/* Agent name */}
-              <div>
-                <FieldLabel>Agent name</FieldLabel>
-                <TextInput
-                  value={formData.name}
-                  onChange={(v) => setFormData({ ...formData, name: v })}
-                  placeholder="e.g. Front Desk Assistant"
+            {/* Tab bar */}
+            <div className="flex items-center gap-1 px-4 border-b border-[var(--border)] flex-shrink-0 overflow-x-auto custom-scrollbar">
+              {tabs.map((t) => (
+                <TabButton
+                  key={t.id}
+                  active={tab === t.id}
+                  onClick={() => setTab(t.id)}
+                  icon={t.icon}
+                  label={t.label}
+                  dot={t.id !== 'identity' ? completion[t.id] : false}
                 />
-              </div>
+              ))}
+            </div>
 
-              {/* Agent type */}
-              <div>
-                <FieldLabel>Type</FieldLabel>
-                <div className="grid grid-cols-3 gap-2">
-                  {AGENT_TYPES.map((t) => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, type: t.value })}
-                      className={`flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
-                        formData.type === t.value
-                          ? 'bg-[var(--primary-blue-soft)] border-[var(--primary-blue)] text-[var(--primary-blue)] font-semibold'
-                          : 'bg-[var(--s1)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
-                      }`}
-                    >
-                      <span className={formData.type === t.value ? 'text-[var(--primary-blue)]' : 'text-[var(--text-muted)]'}>{t.icon}</span>
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {/* Panel body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+              <AnimatePresence mode="wait">
 
-              {/* Language + Voice */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel>Language</FieldLabel>
-                  <SelectInput
-                    value={formData.language}
-                    onChange={(v) => setFormData({ ...formData, language: v })}
-                    options={LANGUAGE_OPTIONS}
-                  />
-                </div>
-                <div>
-                  <FieldLabel>Voice</FieldLabel>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <SelectInput
-                        value={formData.voiceId}
-                        onChange={(v) => setFormData({ ...formData, voiceId: v })}
-                        options={filteredVoices}
+                {tab === 'identity' && (
+                  <motion.div key="identity" {...slide} transition={{ duration: 0.16 }} className="space-y-5">
+                    <div>
+                      <FieldLabel>Agent name</FieldLabel>
+                      <TextInput
+                        value={formData.name}
+                        onChange={(v) => setFormData({ ...formData, name: v })}
+                        placeholder="e.g. Front Desk Assistant"
                       />
                     </div>
-                    <VoicePreviewButton
-                      voiceId={formData.voiceId}
-                      language={formData.language}
-                      prompt={formData.prompt || undefined}
-                    />
-                  </div>
-                </div>
-              </div>
 
-              {/* Prompt */}
-              <div>
-                <FieldLabel>System prompt</FieldLabel>
-                {/* Template chips */}
-                <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                  <span className="text-[10px] font-medium mr-1" style={{ color: 'var(--text-muted)' }}>Quick-fill:</span>
-                  {PROMPT_TEMPLATES.map(tpl => (
-                    <button
-                      key={tpl.id}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, prompt: tpl.prompt })}
-                      className="px-2.5 py-1 text-[10.5px] font-medium rounded-lg cursor-pointer transition-colors duration-150 bg-[var(--s1)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)] hover:bg-[var(--primary-blue-soft)]"
-                    >
-                      {tpl.label}
-                    </button>
-                  ))}
-                </div>
-                <TextareaInput
-                  value={formData.prompt}
-                  onChange={(v) => setFormData({ ...formData, prompt: v })}
-                  placeholder="You are a professional receptionist. Greet callers warmly and collect their information…"
-                  rows={6}
-                />
-                <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
-                  Describe how your agent should behave, its tone, and what information to collect.
-                </p>
-              </div>
-
-              {/* Phone Number Assignment (admin only, edit mode) */}
-              {editing && onAssignPhone && (
-                <div className="pt-4 border-t border-[var(--border)] space-y-3">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                    </svg>
-                    <FieldLabel>Phone Number</FieldLabel>
-                  </div>
-
-                  {phoneLoading ? (
-                    <div className="flex items-center gap-2 py-3">
-                      <svg className="animate-spin w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                      </svg>
-                      <span className="text-xs text-[var(--text-muted)]">Loading phone numbers…</span>
+                    <div>
+                      <FieldLabel>Type</FieldLabel>
+                      <div className="grid grid-cols-3 gap-2">
+                        {AGENT_TYPES.map((t) => (
+                          <motion.button
+                            key={t.value}
+                            type="button"
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => setFormData({ ...formData, type: t.value })}
+                            className={`flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border text-xs font-medium transition-colors duration-150 cursor-pointer ${
+                              formData.type === t.value
+                                ? 'bg-[var(--primary-blue-soft)] border-[var(--primary-blue)] text-[var(--primary-blue)] font-semibold'
+                                : 'bg-[var(--s1)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)] hover:border-[var(--text-muted)]/40'
+                            }`}
+                          >
+                            <span className={formData.type === t.value ? 'text-[var(--primary-blue)]' : 'text-[var(--text-muted)]'}>{t.icon}</span>
+                            {t.label}
+                          </motion.button>
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    <>
-                      {/* Current linked status */}
-                      {(editing.phoneNumberId || editing.phoneNumber) && (
-                        <div className="flex flex-col gap-3">
-                          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[var(--primary-blue-soft)] border border-[var(--border)]">
-                            <div className="w-7 h-7 rounded-lg bg-[var(--primary-blue)]/10 flex items-center justify-center flex-shrink-0">
-                              <svg className="w-3.5 h-3.5 text-[var(--primary-blue)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L17 7"/></svg>
+                  </motion.div>
+                )}
+
+                {tab === 'voice' && (
+                  <motion.div key="voice" {...slide} transition={{ duration: 0.16 }} className="space-y-5">
+                    <div
+                      className="flex items-center justify-between px-4 py-3 rounded-xl bg-[var(--s1)] border border-[var(--border)]"
+                      onMouseEnter={() => setVoiceHover(true)}
+                      onMouseLeave={() => setVoiceHover(false)}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-[var(--text)] truncate">
+                          {filteredVoices.find(v => v.value === formData.voiceId)?.label || 'Select a voice'}
+                        </p>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Speaks {LANGUAGE_OPTIONS.find(l => l.value === formData.language)?.label}</p>
+                      </div>
+                      <Equalizer active={voiceHover} />
+                    </div>
+
+                    <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+                      <div>
+                        <FieldLabel>Language</FieldLabel>
+                        <SelectInput
+                          value={formData.language}
+                          onChange={(v) => setFormData({ ...formData, language: v })}
+                          options={LANGUAGE_OPTIONS}
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>&nbsp;</FieldLabel>
+                        <div className="flex items-center gap-2">
+                          <VoicePreviewButton
+                            voiceId={formData.voiceId}
+                            language={formData.language}
+                            prompt={formData.prompt || undefined}
+                          />
+                          <span className="text-[10px] text-[var(--text-muted)]">Preview</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {([
+                        { key: 'elevenlabs', title: 'ElevenLabs', desc: 'Premium natural voices', filter: (v: any) => v.value.startsWith('hpp4') || v.value.startsWith('cgSg') || v.value.startsWith('pFZP') || v.value.startsWith('onwK') || v.value.startsWith('cjVi') || v.value.startsWith('iP95') || v.value.startsWith('nPcz') || v.value.startsWith('pNIn') || v.value.startsWith('pqHf') },
+                        { key: 'deepgram', title: 'Deepgram Aura', desc: 'Ultra low latency', filter: (v: any) => v.value.startsWith('deepgram:') },
+                        { key: 'azure', title: 'Azure Neural', desc: 'Multilingual & Indian voices', filter: (v: any) => v.value.startsWith('azure:') },
+                        { key: 'openai', title: 'OpenAI TTS', desc: 'Simple & natural', filter: (v: any) => v.value.startsWith('openai:') },
+                        { key: 'groq', title: 'Groq TTS', desc: 'Fast inference', filter: (v: any) => v.value.startsWith('groq:') },
+                        { key: 'sarvam', title: 'Sarvam AI', desc: 'Indian-native voices', filter: (v: any) => v.value.startsWith('sarvam:') },
+                      ] as const).map(section => {
+                        const voices = filteredVoices.filter(section.filter);
+                        if (voices.length === 0) return null;
+                        return (
+                          <div key={section.key}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--text)]">{section.title}</h4>
+                              <span className="text-[9px] font-semibold text-[var(--text-muted)] bg-[var(--s1)] px-1.5 py-0.5 rounded-md">{voices.length}</span>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--primary-blue)]/60">Currently linked</p>
-                              <p className="text-xs font-semibold text-[var(--primary-blue)] truncate">{editing.phoneNumber || editing.phoneNumberId}</p>
+                            <p className="text-[10px] text-[var(--text-muted)] mb-2">{section.desc}</p>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {voices.map(v => {
+                                const selected = formData.voiceId === v.value;
+                                const name = v.label.split(' (')[0];
+                                const meta = v.label.split(' - ')[1] || '';
+                                return (
+                                  <button
+                                    key={v.value}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, voiceId: v.value })}
+                                    className={`text-left px-3 py-2 rounded-lg border text-[11px] transition-all cursor-pointer ${
+                                      selected
+                                        ? 'bg-[var(--primary-blue-soft)] border-[var(--primary-blue)] text-[var(--primary-blue)] ring-2 ring-[var(--primary-blue)]/10'
+                                        : 'bg-[var(--s1)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary-blue)]/40 hover:text-[var(--text)]'
+                                    }`}
+                                  >
+                                    <span className="font-semibold block truncate">{name}</span>
+                                    {meta && <span className="text-[9px] text-[var(--text-muted)] block truncate mt-0.5">{meta}</span>}
+                                  </button>
+                                );
+                              })}
                             </div>
-                            {onUnlinkPhone && (
-                              <button
-                                type="button"
-                                onClick={handleUnlinkPhone}
-                                disabled={phoneSaving}
-                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 transition-all cursor-pointer disabled:opacity-40 flex items-center gap-1 flex-shrink-0"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
-                                Unlink
-                              </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+
+                {tab === 'prompt' && (
+                  <motion.div key="prompt" {...slide} transition={{ duration: 0.16 }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-medium text-[var(--text-muted)]">Quick-fill:</span>
+                      <span className="text-[10px] font-mono text-[var(--text-muted)]/70">{formData.prompt.length} chars</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                      {PROMPT_TEMPLATES.map(tpl => (
+                        <button
+                          key={tpl.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, prompt: tpl.prompt })}
+                          className="px-2.5 py-1 text-[10.5px] font-medium rounded-lg cursor-pointer transition-colors duration-150 bg-[var(--s1)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)] hover:bg-[var(--primary-blue-soft)]"
+                        >
+                          {tpl.label}
+                        </button>
+                      ))}
+                    </div>
+                    <TextareaInput
+                      value={formData.prompt}
+                      onChange={(v) => setFormData({ ...formData, prompt: v })}
+                      placeholder="You are a professional receptionist. Greet callers warmly and collect their information…"
+                      rows={12}
+                    />
+                    <p className="mt-1.5 text-[11px] text-[var(--text-muted)] leading-relaxed">
+                      Describe how your agent should behave, its tone, and what information to collect.
+                    </p>
+                  </motion.div>
+                )}
+
+                {tab === 'engine' && (
+                  <motion.div key="engine" {...slide} transition={{ duration: 0.16 }}>
+                    <div className="flex items-start justify-between gap-4 p-4 rounded-xl bg-[var(--s1)] border border-[var(--border)]">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[var(--text)]">Custom telephony engine</p>
+                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)] leading-relaxed">
+                          Run this agent on your own local server / LLM API key instead of Vapi.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.useCustomEngine || false}
+                        onChange={(v) => setFormData({ ...formData, useCustomEngine: v })}
+                      />
+                    </div>
+
+                    <AnimatePresence>
+                      {formData.useCustomEngine && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                          animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
+                          exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <FieldLabel>LLM engine</FieldLabel>
+                          <SelectInput
+                            value={formData.customEngineModel || 'groq:llama-3.3-70b'}
+                            onChange={(v) => setFormData({ ...formData, customEngineModel: v })}
+                            options={ENGINE_OPTIONS}
+                          />
+                          <p className="mt-3 text-[11px] text-[var(--text-muted)] leading-relaxed">
+                            Requires a Custom Twilio number — switch to the Connect tab to set it up.
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+
+                {tab === 'connect' && showConnectTab && (
+                  <motion.div key="connect" {...slide} transition={{ duration: 0.16 }}>
+                    {phoneLoading ? (
+                      <div className="flex items-center gap-2 py-3">
+                        <svg className="animate-spin w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                        <span className="text-xs text-[var(--text-muted)]">Loading phone numbers…</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {hasPhoneLinked && (
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[var(--primary-blue-soft)] border border-[var(--primary-blue)]/20">
+                              <div className="w-7 h-7 rounded-lg bg-[var(--primary-blue)]/15 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-3.5 h-3.5 text-[var(--primary-blue)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L17 7"/></svg>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--primary-blue)]/70">Currently linked</p>
+                                <p className="text-xs font-semibold text-[var(--primary-blue)] truncate font-mono">{editing?.phoneNumber || editing?.phoneNumberId}</p>
+                              </div>
+                              {onUnlinkPhone && (
+                                <button
+                                  type="button"
+                                  onClick={handleUnlinkPhone}
+                                  disabled={phoneSaving}
+                                  className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/25 hover:bg-amber-500/20 transition-all cursor-pointer disabled:opacity-40 flex items-center gap-1 flex-shrink-0"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                                  Unlink
+                                </button>
+                              )}
+                            </div>
+
+                            {formData.useCustomEngine && editing?.phoneNumberId && (
+                              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs leading-relaxed flex gap-2.5">
+                                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+                                <div><strong className="font-semibold">Vapi number conflict.</strong> Custom engine agents can't use a Vapi number. Unlink it above, then assign a custom Twilio number.</div>
+                              </div>
+                            )}
+
+                            {!formData.useCustomEngine && editing?.phoneNumber && !editing?.phoneNumberId && (
+                              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs leading-relaxed flex gap-2.5">
+                                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+                                <div><strong className="font-semibold">Twilio number conflict.</strong> This agent runs on Vapi, which needs a Vapi number. Unlink below, then link a Vapi number.</div>
+                              </div>
                             )}
                           </div>
+                        )}
 
-                          {/* Compatibility Warning for Custom Engine + Vapi Number */}
-                          {formData.useCustomEngine && editing.phoneNumberId && (
-                            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs leading-relaxed flex gap-2">
-                              <span className="text-base flex-shrink-0">⚠️</span>
-                              <div>
-                                <strong>Compatibility Warning:</strong> This custom agent is currently linked to a Vapi Phone Number. Vapi numbers only work when custom engine is disabled. Please unlink it above and assign a Custom Twilio Number.
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Compatibility Warning for Vapi Agent + Custom Twilio Number */}
-                          {!formData.useCustomEngine && editing.phoneNumber && !editing.phoneNumberId && (
-                            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs leading-relaxed flex gap-2">
-                              <span className="text-base flex-shrink-0">⚠️</span>
-                              <div>
-                                <strong>Compatibility Warning:</strong> This agent is configured to run on Vapi, but is linked to a Custom Twilio Number. Vapi agents require a Vapi Number. Please unlink it below and link a Vapi Number.
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Selection mode toggle */}
-                      {!formData.useCustomEngine ? (
-                        <div className="flex items-center gap-4 py-1">
-                          <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] cursor-pointer">
-                            <input
-                              type="radio"
-                              name="phoneMode"
-                              checked={!isDirectPhone}
-                              onChange={() => setIsDirectPhone(false)}
-                              className="text-[var(--primary-blue)] focus:ring-0 focus:ring-offset-0"
-                            />
-                            Vapi Number
-                          </label>
-                          <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] cursor-pointer">
-                            <input
-                              type="radio"
-                              name="phoneMode"
-                              checked={isDirectPhone}
-                              onChange={() => setIsDirectPhone(true)}
-                              className="text-[var(--primary-blue)] focus:ring-0 focus:ring-offset-0"
-                            />
-                            Custom Twilio Number
-                          </label>
-                        </div>
-                      ) : (
-                        <div className="py-1">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                            ⚡ Forced Custom Twilio Mode (Custom LLM Engine)
+                        {!formData.useCustomEngine ? (
+                          <div className="inline-flex p-0.5 rounded-lg bg-[var(--s1)] border border-[var(--border)]">
+                            <button
+                              type="button"
+                              onClick={() => setIsDirectPhone(false)}
+                              className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${!isDirectPhone ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                            >
+                              Vapi Number
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsDirectPhone(true)}
+                              className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${isDirectPhone ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                            >
+                              Custom Twilio
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>
+                            Forced custom Twilio (custom LLM engine active)
                           </span>
-                        </div>
-                      )}
+                        )}
 
-                      {!isDirectPhone ? (
-                        <>
-                          {/* Phone selector */}
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">
-                              {editing.phoneNumberId ? 'Change to' : 'Select number'}
-                            </p>
-                            <div className="relative">
-                              <select
-                                value={selectedPhoneId}
-                                onChange={(e) => setSelectedPhoneId(e.target.value)}
-                                className="w-full px-4 py-2.5 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] appearance-none cursor-pointer focus:outline-none focus:border-[var(--primary-blue)]/50 focus:ring-1 focus:ring-[var(--primary-blue)]/10 transition-all"
-                              >
-                                <option value="">— No phone number —</option>
-                                {phoneNumbers.map((pn) => (
-                                  <option key={pn.id} value={pn.id} disabled={!!pn.assistantId && pn.assistantId !== editing.vapiId}>
-                                    {pn.number} ({pn.provider}){pn.assistantId ? ' — In Use' : ''}
-                                  </option>
-                                ))}
-                              </select>
-                              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                              </svg>
+                        {!isDirectPhone ? (
+                          <>
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">
+                                {editing?.phoneNumberId ? 'Change to' : 'Select number'}
+                              </p>
+                              <div className="relative">
+                                <select
+                                  value={selectedPhoneId}
+                                  onChange={(e) => setSelectedPhoneId(e.target.value)}
+                                  className="w-full px-4 py-2.5 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] appearance-none cursor-pointer outline-none focus:border-[var(--primary-blue)] focus:ring-4 focus:ring-[var(--primary-blue)]/10 transition-all"
+                                >
+                                  <option value="">— No phone number —</option>
+                                  {phoneNumbers.map((pn) => (
+                                    <option key={pn.id} value={pn.id} disabled={!!pn.assistantId && pn.assistantId !== editing?.vapiId}>
+                                      {pn.number} ({pn.provider}){pn.assistantId ? ' — In Use' : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                                </svg>
+                              </div>
+                            </div>
+
+                            {phoneNumbers.length === 0 && (
+                              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                                No phone numbers found in Vapi. Import one from the admin phone management.
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <div className="space-y-3 p-4 rounded-xl bg-[var(--s1)] border border-[var(--border)]">
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]/70">Twilio phone number</span>
+                                <a
+                                  href="https://console.twilio.com/us1/develop/phone-numbers/manage/search"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 bg-[var(--primary-blue)]/10 border border-[var(--primary-blue)]/25 text-[var(--primary-blue)] hover:bg-[var(--primary-blue)]/20 no-underline"
+                                >
+                                  Buy number ↗
+                                </a>
+                              </div>
+                              <TextInput value={directPhoneNum} onChange={setDirectPhoneNum} placeholder="e.g. +1845541210" mono />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">Twilio account SID</p>
+                              <TextInput value={twilioSid} onChange={setTwilioSid} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" mono />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">Twilio auth token</p>
+                              <input
+                                type="password"
+                                value={twilioToken}
+                                onChange={(e) => setTwilioToken(e.target.value)}
+                                placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                className="w-full px-4 py-2.5 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)]/50 outline-none focus:border-[var(--primary-blue)] focus:ring-4 focus:ring-[var(--primary-blue)]/10 transition-all font-mono"
+                              />
                             </div>
                           </div>
+                        )}
 
-                          {phoneNumbers.length === 0 && (
-                            <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                              No phone numbers found in Vapi. Import one from the admin phone management.
-                            </p>
+                        <AnimatePresence>
+                          {phoneDirty && (
+                            <motion.button
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              type="button"
+                              onClick={handleAssignPhone}
+                              disabled={phoneSaving || (isDirectPhone && !directPhoneNum.trim())}
+                              className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[var(--primary-blue)] text-white hover:opacity-90 transition-all cursor-pointer border-none disabled:opacity-40 flex items-center justify-center gap-1.5"
+                            >
+                              {phoneSaving ? (
+                                <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                </svg>
+                              ) : (
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                              )}
+                              {isDirectPhone ? 'Save phone & credentials' : 'Assign phone number'}
+                            </motion.button>
                           )}
-                        </>
-                      ) : (
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]/70">Twilio Phone Number</span>
-                              <a
-                                href="https://console.twilio.com/us1/develop/phone-numbers/manage/search"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150"
-                                style={{
-                                  background: 'rgba(37,99,235,0.08)',
-                                  border: '1px solid rgba(37,99,235,0.2)',
-                                  color: 'var(--primary-blue)',
-                                  textDecoration: 'none',
-                                }}
-                                onMouseEnter={e => {
-                                  e.currentTarget.style.background = 'rgba(37,99,235,0.14)';
-                                  e.currentTarget.style.borderColor = 'var(--primary-blue)';
-                                  e.currentTarget.style.transform = 'translateY(-1px)';
-                                }}
-                                onMouseLeave={e => {
-                                  e.currentTarget.style.background = 'rgba(37,99,235,0.08)';
-                                  e.currentTarget.style.borderColor = 'rgba(37,99,235,0.2)';
-                                  e.currentTarget.style.transform = 'none';
-                                }}
-                              >
-                                Buy Number ↗
-                              </a>
-                            </div>
-                            <input
-                              type="text"
-                              value={directPhoneNum}
-                              onChange={(e) => setDirectPhoneNum(e.target.value)}
-                              placeholder="e.g. +1845541210"
-                              className="w-full px-4 py-2 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--primary-blue)]/50 focus:ring-1 focus:ring-[var(--primary-blue)]/10 transition-all font-semibold"
-                            />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">Twilio Account SID</p>
-                            <input
-                              type="text"
-                              value={twilioSid}
-                              onChange={(e) => setTwilioSid(e.target.value)}
-                              placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                              className="w-full px-4 py-2 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--primary-blue)]/50 focus:ring-1 focus:ring-[var(--primary-blue)]/10 transition-all font-mono font-medium"
-                            />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">Twilio Auth Token</p>
-                            <input
-                              type="password"
-                              value={twilioToken}
-                              onChange={(e) => setTwilioToken(e.target.value)}
-                              placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                              className="w-full px-4 py-2 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--primary-blue)]/50 focus:ring-1 focus:ring-[var(--primary-blue)]/10 transition-all font-mono"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Assign button */}
-                      {((!isDirectPhone && selectedPhoneId && selectedPhoneId !== (editing.phoneNumberId || '')) ||
-                        (isDirectPhone && directPhoneNum.trim() && (directPhoneNum.trim() !== (editing.phoneNumber || '') || twilioSid.trim() !== (editing.twilioAccountSid || '') || twilioToken.trim() !== (editing.twilioAuthToken || '')))) && (
-                        <button
-                          type="button"
-                          onClick={handleAssignPhone}
-                          disabled={phoneSaving || (isDirectPhone && !directPhoneNum.trim())}
-                          className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[var(--primary-blue)] text-white hover:opacity-90 transition-all cursor-pointer border-none disabled:opacity-40 flex items-center justify-center gap-1.5"
-                        >
-                          {phoneSaving ? (
-                            <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                            </svg>
-                          ) : (
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
-                          )}
-                          {isDirectPhone ? 'Save Phone & Credentials' : 'Assign Phone Number'}
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Custom Engine Toggle */}
-              <div className="pt-4 border-t border-[var(--border)] space-y-4">
-                <label className="flex items-center gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={formData.useCustomEngine || false}
-                    onChange={(e) => setFormData({ ...formData, useCustomEngine: e.target.checked })}
-                    className="w-4 h-4 rounded border-[var(--border)] bg-[var(--s1)] text-[var(--primary-blue)] focus:ring-[var(--primary-blue)]/20 focus:ring-offset-0 focus:outline-none"
-                  />
-                  <span className="text-sm font-medium text-[var(--text)]">Use Custom Telephony Engine</span>
-                </label>
-                <p className="mt-1 text-[11px] text-[var(--text-muted)] ml-7 leading-relaxed">
-                  Run this agent on your own local server / LLM API key rather than Vapi.
-                </p>
-
-                {/* Engine Selection */}
-                {formData.useCustomEngine && (
-                  <div className="ml-7 space-y-2">
-                    <FieldLabel>LLM Engine</FieldLabel>
-                    <SelectInput
-                      value={formData.customEngineModel || 'groq:llama-3.3-70b'}
-                      onChange={(v) => setFormData({ ...formData, customEngineModel: v })}
-                      options={ENGINE_OPTIONS}
-                    />
-                  </div>
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
             </div>
 
             {/* Panel footer */}
-            <div className="flex-shrink-0 px-6 py-4 border-t border-[var(--border)] flex items-center gap-3">
+            <div className="flex-shrink-0 px-6 py-4 border-t border-[var(--border)] flex items-center gap-3 bg-[var(--surface)]">
               <button
                 type="button"
                 onClick={onSubmit}
@@ -684,7 +835,12 @@ export function AgentPanel({
                     </svg>
                     {editing ? 'Saving…' : 'Creating…'}
                   </>
-                ) : (editing ? 'Save changes' : 'Create agent')}
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                    {editing ? 'Save changes' : 'Create agent'}
+                  </>
+                )}
               </button>
               <button
                 type="button"
@@ -694,6 +850,7 @@ export function AgentPanel({
               >
                 Cancel
               </button>
+            </div>
             </div>
           </motion.div>
         </>
@@ -720,7 +877,7 @@ export function DeleteModal({ open, onClose, onConfirm }: { open: boolean; onClo
             exit={{ scale: 0.97, opacity: 0, y: 8 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl shadow-slate-200/50"
+            className="w-full max-w-sm bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl shadow-black/40"
           >
             <div className="px-6 py-6 space-y-4">
               <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">

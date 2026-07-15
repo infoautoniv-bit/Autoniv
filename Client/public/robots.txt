@@ -1,3 +1,66 @@
-# Disallow indexing by all search engines and AI bots
+# Allow all search engines and AI web crawlers to discover the site
 User-agent: *
-Disallow: /
+Allow: /
+Allow: /sitemap.xml
+Allow: /llms.txt
+Disallow: /dashboard/
+Disallow: /dashboard*
+Disallow: /admin/
+Disallow: /admin*
+Disallow: /onboarding
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+
+# Explicit rules for AI bots for GEO/AEO optimization
+User-agent: GPTBot
+Allow: /
+Disallow: /dashboard/
+Disallow: /dashboard*
+Disallow: /admin/
+Disallow: /admin*
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /dashboard/
+Disallow: /dashboard*
+Disallow: /admin/
+Disallow: /admin*
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /dashboard/
+Disallow: /dashboard*
+Disallow: /admin/
+Disallow: /admin*
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /dashboard/
+Disallow: /dashboard*
+Disallow: /admin/
+Disallow: /admin*
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /dashboard/
+Disallow: /dashboard*
+Disallow: /admin/
+Disallow: /admin*
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /dashboard/
+Disallow: /dashboard*
+Disallow: /admin/
+Disallow: /admin*
+
+User-agent: Applebot
+Allow: /
+Disallow: /dashboard/
+Disallow: /dashboard*
+Disallow: /admin/
+Disallow: /admin*
+
+# Sitemap location
+Sitemap: https://www.autoniv.com/sitemap.xml
