@@ -803,7 +803,7 @@ export function CaseStudies() {
                   className="flex flex-col sm:flex-row justify-center gap-3"
                 >
                   <motion.div whileHover={{ y: -2, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                    <Link to="/login"
+                    <Link to="/register"
                       className="px-8 py-4 rounded-full text-sm font-bold text-white no-underline inline-block text-center"
                       style={{ background: BRAND, boxShadow: '0 8px 26px -4px rgba(16,185,129,0.34)' }}>
                       Book a Demo →

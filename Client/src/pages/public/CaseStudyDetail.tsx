@@ -455,7 +455,7 @@ export default function CaseStudyDetail() {
                     </svg>
                   </Link>
                   <Link
-                    to="/login"
+                    to="/register"
                     className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-semibold no-underline transition-all text-xs border text-slate-600 border-blue-200 hover:border-blue-400 hover:text-blue-600 bg-white/60"
                   >
                     See a Live Demo →

@@ -267,7 +267,7 @@ function Hero() {
               >
                 <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
                   <Link
-                    to="/login"
+                    to="/register"
                     className="px-8 py-3.5 rounded-full text-sm font-bold text-white no-underline text-center inline-block"
                     style={{ background: BRAND, boxShadow: "0 8px 26px -4px rgba(16,185,129,0.34)" }}
                   >
@@ -821,7 +821,7 @@ function CTASection() {
           >
             <motion.div whileHover={{ y: -2, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Link
-                to="/login"
+                to="/register"
                 className="px-8 py-4 rounded-full text-sm font-bold text-white no-underline inline-block text-center"
                 style={{ background: BRAND, boxShadow: "0 8px 26px -4px rgba(16,185,129,0.34)" }}
               >

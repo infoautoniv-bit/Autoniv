@@ -1,6 +1,7 @@
 import { Fragment, useRef, useState, memo, useCallback } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { motion, useInView } from "framer-motion";
+import { Link } from "react-router-dom";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -585,24 +586,17 @@ const ServiceDetailDialog = memo(function ServiceDetailDialog({
                   className="flex justify-end gap-3 p-6 relative z-10"
                   style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
                 >
-                  <motion.button
-                    onClick={() => {
-                      onClose();
-                      openAuth?.('login');
-                    }}
-                    whileHover={{ y: -2, scale: 1.02 }}
-                    whileTap={{ scale: 0.97 }}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.5 }}
-                    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer border-none"
+                  <Link
+                    to="/login"
+                    onClick={onClose}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer border-none no-underline text-center transition-all hover:scale-[1.02]"
                     style={{
                       background: `linear-gradient(135deg, ${s.accent}, ${s.accent}dd)`,
                       boxShadow: `0 8px 24px -6px ${s.glow}`,
                     }}
                   >
                     Get Started
-                  </motion.button>
+                  </Link>
                 </div>
               </Dialog.Panel>
             </Transition.Child>
