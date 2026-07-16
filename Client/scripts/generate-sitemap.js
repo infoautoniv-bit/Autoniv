@@ -1,11 +1,11 @@
-﻿import fs from 'fs';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DOMAIN = 'https://www.autoniv.com';
+const DOMAIN = 'https://autoniv.com';
 const lastmod = new Date().toISOString().split('T')[0];
 
 const routes = [

@@ -23,8 +23,8 @@ export const ORGANIZATION_SCHEMA: SchemaBase = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Autoniv',
-  url: 'https://www.autoniv.com',
-  logo: 'https://www.autoniv.com/logo.png',
+  url: 'https://autoniv.com',
+  logo: 'https://autoniv.com/logo.png',
   description: 'AI-powered voice agents, chatbots, and phone answering services for businesses.',
   sameAs: [
     'https://twitter.com/autoniv',
@@ -48,10 +48,10 @@ export const WEBSITE_SCHEMA: SchemaBase = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Autoniv',
-  url: 'https://www.autoniv.com',
+  url: 'https://autoniv.com',
   potentialAction: {
     '@type': 'SearchAction',
-    target: 'https://www.autoniv.com/search?q={search_term_string}',
+    target: 'https://autoniv.com/search?q={search_term_string}',
     'query-input': 'required name=search_term_string',
   },
 };
@@ -63,7 +63,7 @@ export const SOFTWARE_APPLICATION_SCHEMA: SchemaBase = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   description: 'Build AI voice agents, chatbots, and automated phone answering systems for your business.',
-  url: 'https://www.autoniv.com',
+  url: 'https://autoniv.com',
   offers: {
     '@type': 'Offer',
     price: '0',
@@ -81,8 +81,8 @@ export const LOCAL_BUSINESS_SCHEMA: SchemaBase = {
   '@context': 'https://schema.org',
   '@type': 'LocalBusiness',
   name: 'Autoniv',
-  image: 'https://www.autoniv.com/logo.png',
-  url: 'https://www.autoniv.com',
+  image: 'https://autoniv.com/logo.png',
+  url: 'https://autoniv.com',
   telephone: '+91-98765-43210',
   email: 'support@autoniv.com',
   address: {
@@ -195,7 +195,7 @@ export const ARTICLE_SCHEMA = (article: {
     name: 'Autoniv',
     logo: {
       '@type': 'ImageObject',
-      url: 'https://www.autoniv.com/logo.png',
+      url: 'https://autoniv.com/logo.png',
     },
   },
 });
@@ -224,7 +224,7 @@ export const BLOG_POSTING_SCHEMA = (post: {
     name: 'Autoniv',
     logo: {
       '@type': 'ImageObject',
-      url: 'https://www.autoniv.com/logo.png',
+      url: 'https://autoniv.com/logo.png',
     },
   },
 });

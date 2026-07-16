@@ -57,7 +57,7 @@ export function Blog() {
       injectSchema(`blog-post-${i}`, BLOG_POSTING_SCHEMA({
         title: post.title,
         description: post.excerpt,
-        image: 'https://www.autoniv.com/og-blog.png',
+        image: 'https://autoniv.com/og-blog.png',
         datePublished: '2026-06-01',
         author: 'Autoniv Team',
       }))

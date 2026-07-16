@@ -5,10 +5,10 @@
       "has": [
         {
           "type": "host",
-          "value": "autoniv.com"
+          "value": "www.autoniv.com"
         }
       ],
-      "destination": "https://www.autoniv.com/:path*",
+      "destination": "https://autoniv.com/:path*",
       "permanent": true
     }
   ],

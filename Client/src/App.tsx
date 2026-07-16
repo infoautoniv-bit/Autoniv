@@ -341,7 +341,7 @@ function AppRoutes() {
   useEffect(() => {
     const path = location.pathname;
     const { title, description } = resolveMeta(path);
-    const url = 'https://www.autoniv.com' + path;
+    const url = 'https://autoniv.com' + path;
 
     document.title = title;
 
@@ -375,11 +375,11 @@ function AppRoutes() {
     const existingScript = document.getElementById('breadcrumb-jsonld');
     if (pathParts.length > 0) {
       let currentPath = '';
-      const itemListElement = [{ '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.autoniv.com/' }];
+      const itemListElement = [{ '@type': 'ListItem', position: 1, name: 'Home', item: 'https://autoniv.com/' }];
       pathParts.forEach((part, index) => {
         currentPath += '/' + part;
         const name = BREADCRUMB_LABELS[part] ?? part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
-        itemListElement.push({ '@type': 'ListItem', position: index + 2, name, item: 'https://www.autoniv.com' + currentPath });
+        itemListElement.push({ '@type': 'ListItem', position: index + 2, name, item: 'https://autoniv.com' + currentPath });
       });
 
       const script = (existingScript as HTMLScriptElement) ?? document.createElement('script');

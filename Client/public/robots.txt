@@ -63,4 +63,4 @@ Disallow: /admin/
 Disallow: /admin*
 
 # Sitemap location
-Sitemap: https://www.autoniv.com/sitemap.xml
+Sitemap: https://autoniv.com/sitemap.xml
