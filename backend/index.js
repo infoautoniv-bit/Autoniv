@@ -137,7 +137,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/agents/public/demo', publicDemoRoutes);
 app.use('/api/agents', agentRoutes);
-// app.use('/api/chatbots', chatbotRoutes);
 app.use('/api/calls', callRoutes);
 app.use('/api/leads/public', publicLeadRoutes);
 app.use('/api/leads', leadRoutes);

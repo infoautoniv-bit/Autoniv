@@ -278,7 +278,7 @@ router.get('/widget.js', (req, res) => {
             'Content-Type': 'application/json',
             'x-api-key': API_KEY,
           },
-          body: JSON.stringify({ message: text, history, agentId: AGENT_ID }),
+          body: JSON.stringify({ message: text, history, agentId: AGENT_ID, agentId: AGENT_ID }),
         });
 
         const data = await res.json();
@@ -360,12 +360,8 @@ router.post('/chat', authenticateApiKey, async (req, res) => {
 
     const recordsContext = `\n[Recent Records]\nLeads: ${JSON.stringify(recentLeads.map(l => ({ name: l.name, phone: l.phone, email: l.email, purpose: l.purpose })))}\nAppointments: ${JSON.stringify(recentAppts.map(a => ({ name: a.name, service: a.service, date: a.preferredDate, time: a.preferredTime })))}`;
 
-    const companyName = user.company || user.name || 'this business';
-    const chatbotName = 'AI assistant';
-    const chatbotInstructions = `You help visitors with their questions, capture leads, and book appointments.`;
-
-    const SYSTEM_PROMPT = `You are a friendly AI assistant named ${chatbotName} for ${companyName}.
-${chatbotInstructions}
+    const SYSTEM_PROMPT = `You are a friendly AI assistant for ${user.company || user.name || 'this business'}.
+You help visitors with their questions, capture leads, and book appointments.
 
 ## Response Format
 You MUST respond in valid JSON only:
