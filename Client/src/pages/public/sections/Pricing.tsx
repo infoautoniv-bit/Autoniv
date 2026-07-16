@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Reveal } from "./utils";
 import { motion } from "framer-motion";
 import { Stagger, StaggerItem } from "./anim";
@@ -24,7 +24,7 @@ const plansByMode: Record<Mode, {
       { text: "No CRM integration", included: false },
       { text: "Branding visible", included: false },
     ],
-    cta: "Contact Sales", highlight: false,
+    cta: "Get Started", highlight: false,
   },
   voice: {
     name: "Trial", icon: "🎙️", monthlyPrice: "$59", yearlyPrice: "$59", period: "/month",
@@ -38,7 +38,7 @@ const plansByMode: Record<Mode, {
       { text: "WhatsApp delivery", included: true },
       { text: "30-day upgrade path", included: true },
     ],
-    cta: "Contact Sales", highlight: true,
+    cta: "Get Started", highlight: true,
   },
   combo: {
     name: "Enterprise", icon: "🏢", monthlyPrice: "Custom", yearlyPrice: "Custom", period: "",
@@ -70,7 +70,8 @@ const getPlanColor = (mode: Mode) => {
   }
 };
 
-export function Pricing() {
+export function Pricing({ openAuth }: { openAuth?: (mode: 'login' | 'register') => void }) {
+  const navigate = useNavigate();
   const [pricingYearly, setPricingYearly] = useState(false);
   const [currency, setCurrency] = useState<'usd' | 'inr'>('usd');
   const modeOrder: Mode[] = ["chat", "voice", "combo"];
@@ -340,10 +341,18 @@ export function Pricing() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => {
-                        const el = document.getElementById('contact');
-                        if (el) {
-                          const y = el.getBoundingClientRect().top + window.scrollY - 72;
-                          window.scrollTo({ top: y, behavior: 'smooth' });
+                        if (plan.cta === "Contact Sales") {
+                          const el = document.getElementById('contact');
+                          if (el) {
+                            const y = el.getBoundingClientRect().top + window.scrollY - 72;
+                            window.scrollTo({ top: y, behavior: 'smooth' });
+                          }
+                        } else {
+                          if (openAuth) {
+                            openAuth('login');
+                          } else {
+                            navigate('/login');
+                          }
                         }
                       }}
                       className={`w-full font-bold text-xs py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${

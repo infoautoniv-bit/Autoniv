@@ -7,22 +7,33 @@ const TOKEN_REFRESH_BUFFER_MS = 30_000;
 // ─── CSRF Token Management ──────────────────────────────────────────────────
 let csrfToken: string | null = null;
 let csrfTokenExpiry: number = 0;
+let pendingCsrfPromise: Promise<string> | null = null;
 
 async function fetchCsrfToken(): Promise<string> {
   if (csrfToken && Date.now() < csrfTokenExpiry) {
     return csrfToken;
   }
-  try {
-    const { data } = await axios.get(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/csrf-token`,
-      { withCredentials: true }
-    );
-    csrfToken = data.csrfToken;
-    csrfTokenExpiry = Date.now() + 55 * 60 * 1000; // 55 minutes
-    return csrfToken ?? '';
-  } catch {
-    return '';
+  if (pendingCsrfPromise) {
+    return pendingCsrfPromise;
   }
+
+  pendingCsrfPromise = (async () => {
+    try {
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/csrf-token`,
+        { withCredentials: true }
+      );
+      csrfToken = data.csrfToken;
+      csrfTokenExpiry = Date.now() + 55 * 60 * 1000; // 55 minutes
+      return csrfToken ?? '';
+    } catch {
+      return '';
+    } finally {
+      pendingCsrfPromise = null;
+    }
+  })();
+
+  return pendingCsrfPromise;
 }
 
 const api = axios.create({
@@ -101,9 +112,18 @@ api.interceptors.request.use(async (config) => {
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
 
   // Add CSRF token for unsafe methods
-  if (config.method && !['get', 'head', 'options'].includes(config.method)) {
+  if (config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
     const token = await fetchCsrfToken();
-    if (token) config.headers['X-CSRF-Token'] = token;
+    if (token && config.headers) {
+      delete config.headers['X-CSRF-Token'];
+      delete config.headers['x-csrf-token'];
+      delete config.headers['X-Csrf-Token'];
+      if (typeof config.headers.set === 'function') {
+        config.headers.set('X-CSRF-Token', token);
+      } else {
+        config.headers['X-CSRF-Token'] = token;
+      }
+    }
   }
 
   return config;
@@ -128,6 +148,32 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Handle CSRF token invalidation / refresh retry
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.message === 'Invalid or missing CSRF token' &&
+      !originalRequest._csrfRetry
+    ) {
+      originalRequest._csrfRetry = true;
+      try {
+        csrfToken = null; // force fetch of a new token
+        const newToken = await fetchCsrfToken();
+        if (newToken && originalRequest.headers) {
+          delete originalRequest.headers['X-CSRF-Token'];
+          delete originalRequest.headers['x-csrf-token'];
+          delete originalRequest.headers['X-Csrf-Token'];
+          if (typeof originalRequest.headers.set === 'function') {
+            originalRequest.headers.set('X-CSRF-Token', newToken);
+          } else {
+            originalRequest.headers['X-CSRF-Token'] = newToken;
+          }
+          return api(originalRequest);
+        }
+      } catch (csrfErr) {
+        return Promise.reject(error);
+      }
+    }
 
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
@@ -352,6 +398,36 @@ export const agentService = {
   unlinkPhone: (id: string) =>
     api.post(`/agents/${id}/unlink-phone`),
 };
+
+// ── Chatbots ───────────────────────────────────────────────────────────────
+// export const chatbotService = {
+//   getMy: (pp?: PaginationParams) =>
+//     api.get('/chatbots/my', { params: pp }),
+
+//   create: (data: {
+//     name: string;
+//     type: string;
+//     prompt?: string;
+//     language?: string;
+//     useCustomEngine?: boolean;
+//     customEngineModel?: string;
+//   }) => api.post('/chatbots', data),
+
+//   update: (id: string, data: {
+//     name?: string;
+//     type?: string;
+//     prompt?: string;
+//     isActive?: boolean;
+//     language?: string;
+//     useCustomEngine?: boolean;
+//     customEngineModel?: string;
+//   }) => api.put(`/chatbots/${id}`, data),
+
+//   toggleActive: (id: string, isActive: boolean) =>
+//     api.put(`/chatbots/${id}`, { isActive }),
+
+//   delete: (id: string) => api.delete(`/chatbots/${id}`),
+// };
 
 // ── Calls ──────────────────────────────────────────────────────────────────
 export const callService = {
