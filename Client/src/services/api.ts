@@ -19,9 +19,18 @@ async function fetchCsrfToken(): Promise<string> {
 
   pendingCsrfPromise = (async () => {
     try {
+      const headers: Record<string, string> = {};
+      const accessToken = getCookie('accessToken');
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+
       const { data } = await axios.get(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/csrf-token`,
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers
+        }
       );
       csrfToken = data.csrfToken;
       csrfTokenExpiry = Date.now() + 55 * 60 * 1000; // 55 minutes
