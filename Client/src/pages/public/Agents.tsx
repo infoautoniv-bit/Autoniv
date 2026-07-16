@@ -267,7 +267,7 @@ function Hero() {
               >
                 <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
                   <Link
-                    to="/"
+                    to="/login"
                     className="px-8 py-3.5 rounded-full text-sm font-bold text-white no-underline text-center inline-block"
                     style={{ background: BRAND, boxShadow: "0 8px 26px -4px rgba(16,185,129,0.34)" }}
                   >
@@ -462,7 +462,7 @@ function ServiceCard({ service, index }: { service: typeof SERVICES[0]; index: n
 
       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
         <Link
-          to="/"
+          to="/register"
           className="text-sm font-semibold flex items-center justify-center gap-2 py-3 px-6 rounded-xl no-underline cursor-pointer relative overflow-hidden group/cta"
           style={{ background: "linear-gradient(135deg, #f8faff, #f0f5ff)", border: "1.5px solid #e2e8f0", color: "#2563EB", boxShadow: "0 2px 8px rgba(37,99,235,0.08)" }}
         >
@@ -821,21 +821,22 @@ function CTASection() {
           >
             <motion.div whileHover={{ y: -2, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Link
-                to="/"
+                to="/login"
                 className="px-8 py-4 rounded-full text-sm font-bold text-white no-underline inline-block text-center"
                 style={{ background: BRAND, boxShadow: "0 8px 26px -4px rgba(16,185,129,0.34)" }}
               >
                 Book a Demo →
               </Link>
             </motion.div>
-            <motion.button
-              whileHover={{ y: -2, borderColor: "rgba(37,99,235,0.32)", color: "#2563EB" }}
-              whileTap={{ scale: 0.97 }}
-              className="px-8 py-4 rounded-full text-sm font-bold"
-              style={{ background: SURFACE, border: "1.5px solid rgba(15,23,42,0.10)", color: "#475569", cursor: "pointer" }}
-            >
-              🎧 Talk to Expert
-            </motion.button>
+             <motion.div whileHover={{ y: -2, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Link
+                to="/dashboard/support"
+                className="px-8 py-4 rounded-full text-sm font-bold no-underline inline-block text-center"
+                style={{ background: SURFACE, border: "1.5px solid rgba(15,23,42,0.10)", color: "#475569" }}
+              >
+                🎧 Talk to Expert
+              </Link>
+            </motion.div>
           </motion.div>
         </div>
       </div>

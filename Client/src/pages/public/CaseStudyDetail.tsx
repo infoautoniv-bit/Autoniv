@@ -442,7 +442,7 @@ export default function CaseStudyDetail() {
 
                 <div className="flex flex-col gap-3">
                   <Link
-                    to="/"
+                    to="/register"
                     className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-bold text-white no-underline transition-all hover:-translate-y-0.5 text-xs"
                     style={{
                       background: 'linear-gradient(135deg,#2563EB,#10B981)',
@@ -455,7 +455,7 @@ export default function CaseStudyDetail() {
                     </svg>
                   </Link>
                   <Link
-                    to="/demo"
+                    to="/login"
                     className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-semibold no-underline transition-all text-xs border text-slate-600 border-blue-200 hover:border-blue-400 hover:text-blue-600 bg-white/60"
                   >
                     See a Live Demo →

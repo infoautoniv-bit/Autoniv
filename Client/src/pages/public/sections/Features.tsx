@@ -4,12 +4,11 @@ import { features } from "./data";
 import { CountUp, GradientText } from "./anim";
 import { Reveal } from "./utils";
 
-const LANGUAGES = ["English", "हिन्दी", "Español", "Deutsch", "العربية", "தமிழ்", "বাংলা"] as const;
 const ANALYTICS_VALUES = [25, 45, 30, 60, 85, 55, 95] as const;
 
 function renderVisualizer(index: number, color: string) {
   switch (index) {
-    case 0: // AI Voice Agents: Bouncing wave (CSS optimized)
+    case 0: // AI Voice Agents: Bouncing wave
       return (
         <div className="flex items-end justify-center gap-1 h-12 w-full px-2">
           {Array.from({ length: 13 }).map((_, bar) => (
@@ -26,36 +25,37 @@ function renderVisualizer(index: number, color: string) {
           ))}
         </div>
       );
-    case 1: // Global Language Support: Floating language badges
+    case 1: // AI Chatbots: Bouncing typing indicators
       return (
-        <div className="flex flex-wrap gap-1.5 justify-center items-center h-12 w-full px-2 overflow-hidden">
-          {LANGUAGES.map((lang, idx) => (
-            <span
-              key={idx}
-              className="text-[10px] font-extrabold px-2 py-0.5 rounded-full border transition-all duration-300 group-hover:scale-105"
-              style={{
-                borderColor: `${color}25`,
-                backgroundColor: `${color}08`,
-                color: color,
-              }}
-            >
-              {lang}
-            </span>
-          ))}
+        <div className="flex items-center justify-center gap-1.5 h-12 w-full">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border bg-white shadow-sm" style={{ borderColor: `${color}20` }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: color, animationDelay: "0s" }} />
+            <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: color, animationDelay: "0.15s" }} />
+            <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: color, animationDelay: "0.3s" }} />
+            <span className="text-[9px] text-slate-500 font-bold ml-1">AI Chatbot Typing...</span>
+          </div>
         </div>
       );
-    case 2: // Premium Voice Selection: Pulsing sound ripples
+    case 2: // Omnichannel Support: WhatsApp, Web, Socials
+      return (
+        <div className="flex items-center justify-center gap-3 h-12 w-full px-2">
+          <span className="text-[10px] font-black bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg text-emerald-500">WhatsApp</span>
+          <span className="text-[10px] font-black bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg text-blue-500">Web Widget</span>
+          <span className="text-[10px] font-black bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-lg text-purple-500">Social DMs</span>
+        </div>
+      );
+    case 3: // Ultra-Realistic Voices: sound ripples
       return (
         <div className="relative flex items-center justify-center h-12 w-full">
           <div className="absolute w-12 h-12 rounded-full border animate-ping" style={{ borderColor: `${color}20`, animationDuration: '3s' }} />
           <div className="absolute w-8 h-8 rounded-full border animate-pulse" style={{ borderColor: `${color}40`, animationDuration: '2s' }} />
           <div className="relative flex items-center gap-1.5 px-3 py-1 rounded-full border bg-white shadow-sm text-xs font-bold" style={{ borderColor: `${color}20` }}>
             <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: color }} />
-            <span className="text-[10px] text-slate-700">Realistic Voice Engine</span>
+            <span className="text-[10px] text-slate-700">11Labs Engine</span>
           </div>
         </div>
       );
-    case 3: // Smart Analytics: Neon bar chart
+    case 4: // Unified Analytics: neon bar chart
       return (
         <div className="flex items-end justify-between gap-1.5 h-12 w-full px-4">
           {ANALYTICS_VALUES.map((val, idx) => (
@@ -72,7 +72,7 @@ function renderVisualizer(index: number, color: string) {
           ))}
         </div>
       );
-    case 4: // CRM Integration: Pulse traveling between system icons (CSS optimized)
+    case 5: // CRM & Tech Integrations: traveling pulse
       return (
         <div className="flex items-center justify-center gap-4 h-12 w-full px-4">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm border bg-white" style={{ borderColor: `${color}15`, color }}>🤖</div>
@@ -83,18 +83,6 @@ function renderVisualizer(index: number, color: string) {
             />
           </div>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm border bg-white" style={{ borderColor: `${color}15`, color }}>💼</div>
-        </div>
-      );
-    case 5: // Enterprise Security: Scanning security badge (CSS optimized)
-      return (
-        <div className="relative flex items-center justify-center h-12 w-full overflow-hidden border rounded-xl bg-slate-50" style={{ borderColor: `${color}15` }}>
-          <div
-            className="absolute left-0 right-0 h-[1.5px] opacity-70 scan-vertical-anim"
-            style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
-          />
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-700">
-            <span style={{ color }}>🛡️</span> Encrypted & Audited
-          </div>
         </div>
       );
     default:

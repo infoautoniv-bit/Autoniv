@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState, memo } from "react";
+import { Fragment, useRef, useState, memo, useCallback } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { motion, useInView } from "framer-motion";
 
@@ -617,182 +617,599 @@ const ServiceDetailDialog = memo(function ServiceDetailDialog({
 
 const ServiceCard = memo(function ServiceCard({
   s,
+  isPrimary = false,
   onLearnMore,
 }: {
   s: (typeof services)[0];
-  index: number;
+  isPrimary?: boolean;
   onLearnMore: (service: (typeof services)[0]) => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
 
+  if (isPrimary) {
+    return (
+      <motion.div
+        ref={ref}
+        variants={cardVariants}
+        initial="hidden"
+        animate={inView ? "show" : "hidden"}
+        whileHover={{ y: -10, transition: { duration: 0.25, ease: easeOut } }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className="group relative flex flex-col rounded-3xl cursor-default overflow-hidden p-8"
+        style={{
+          willChange: "transform",
+          background: hovered
+            ? "linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)"
+            : "linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)",
+          border: `1.5px solid ${hovered ? s.accent : s.accentBorder}`,
+          boxShadow: hovered
+            ? `0 24px 60px -12px ${s.glow}, inset 0 0 16px 1px rgba(255,255,255,0.03)`
+            : `0 8px 30px -10px ${s.glow}, inset 0 0 12px 1px rgba(255,255,255,0.02)`,
+          transition: "border 0.35s ease, box-shadow 0.35s ease",
+        }}
+      >
+        {/* Glow indicator */}
+        <div
+          className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none"
+          style={{
+            background: `radial-gradient(circle at 50% 0%, ${s.accent}, transparent 60%)`,
+          }}
+        />
+
+        {/* Top ambient glow strip */}
+        <motion.div
+          className="absolute inset-x-0 top-0 h-[3px]"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)`,
+          }}
+        />
+
+        {/* Subtle moving sheen on hover */}
+        <motion.div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `linear-gradient(115deg, transparent 30%, ${s.glow} 50%, transparent 70%)`,
+          }}
+          initial={{ x: "-120%" }}
+          animate={hovered ? { x: "120%" } : { x: "-120%" }}
+          transition={{ duration: 0.9, ease: easeOut }}
+        />
+
+        {/* Header row */}
+        <div className="flex items-start justify-between pb-6">
+          {/* Icon pill */}
+          <motion.div
+            className="flex items-center gap-2.5 px-4 py-2 rounded-xl"
+            style={{
+              background: s.accentDim,
+              border: `1px solid ${s.accentBorder}`,
+            }}
+            animate={hovered ? { scale: 1.05 } : { scale: 1 }}
+            transition={{ duration: 0.25, ease: easeOut }}
+          >
+            <motion.span
+              className="text-xl leading-none"
+              animate={hovered ? { rotate: [0, -12, 12, -6, 0], scale: [1, 1.2, 1.2, 1.1, 1] } : { rotate: 0, scale: 1 }}
+              transition={{ duration: 0.6, ease: easeOut }}
+            >
+              {s.icon}
+            </motion.span>
+            <span
+              className="text-xs font-black tracking-widest"
+              style={{ color: s.accent }}
+            >
+              {s.tag}
+            </span>
+          </motion.div>
+
+          {/* Stat badge */}
+          <div className="text-right">
+            <motion.p
+              initial={{ opacity: 0, y: -6 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, delay: 0.2, ease: easeOut }}
+              className="text-2xl font-extrabold leading-none tracking-tight"
+              style={{ color: s.accent, fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              {s.stat.value}
+            </motion.p>
+            <p className="text-[10px] text-slate-400 mt-1 font-semibold tracking-wider uppercase">{s.stat.label}</p>
+          </div>
+        </div>
+
+        {/* Sparkline strip */}
+        <div className="h-14 mb-6">
+          <Sparkline accent={s.accent} />
+        </div>
+
+        {/* Text */}
+        <div className="flex-1 flex flex-col">
+          <h3 className="text-white font-black text-2xl mb-3 leading-snug tracking-tight">{s.title}</h3>
+          <p className="text-slate-300 text-sm leading-relaxed mb-6">{s.subtitle}</p>
+
+          {/* Feature list */}
+          <motion.ul
+            variants={featureListVariants}
+            initial="hidden"
+            animate={inView ? "show" : "hidden"}
+            className="space-y-3.5 mb-8 flex-1"
+          >
+            {s.features.map((f, j) => (
+              <motion.li
+                key={j}
+                variants={featureItemVariants}
+                className="flex items-center gap-3 text-sm text-slate-200 font-medium"
+              >
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: s.accentDim, border: `1px solid ${s.accentBorder}` }}
+                >
+                  <motion.svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    initial={{ pathLength: 0 }}
+                    animate={inView ? { pathLength: 1 } : {}}
+                    transition={{ duration: 0.4, delay: 0.3 + j * 0.06 }}
+                  >
+                    <motion.path
+                      d="M2 6l3 3 5-5"
+                      stroke={s.accent}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </motion.svg>
+                </span>
+                {f}
+              </motion.li>
+            ))}
+          </motion.ul>
+
+          {/* CTA */}
+          <motion.button
+            onClick={() => onLearnMore(s)}
+            whileTap={{ scale: 0.97 }}
+            className="w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 mb-2 border-none cursor-pointer transition-all duration-350"
+            style={{
+              background: `linear-gradient(135deg, ${s.accent}, ${s.accent}dd)`,
+              color: "#ffffff",
+              boxShadow: `0 10px 30px -8px ${s.glow}`,
+            }}
+          >
+            Learn More & Get Started
+            <motion.svg
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+              animate={hovered ? { x: 4 } : { x: 0 }}
+              transition={{ duration: 0.25, ease: easeOut }}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+              />
+            </motion.svg>
+          </motion.button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Secondary Card Layout (Cleaner, smaller, and without the highlighting)
   return (
     <motion.div
       ref={ref}
       variants={cardVariants}
       initial="hidden"
       animate={inView ? "show" : "hidden"}
-      whileHover={{ y: -8, transition: { duration: 0.25, ease: easeOut } }}
+      whileHover={{ y: -4, transition: { duration: 0.2, ease: easeOut } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="group relative flex flex-col rounded-3xl cursor-default overflow-hidden"
+      className="group relative flex flex-col rounded-2xl cursor-default overflow-hidden p-5"
       style={{
         willChange: "transform",
         background: hovered
-          ? "linear-gradient(145deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.02) 100%)"
-          : "linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
-        border: `1px solid ${hovered ? s.accent : "rgba(255,255,255,0.06)"}`,
-        boxShadow: hovered
-          ? `0 20px 50px -12px ${s.glow}, inset 0 0 12px 1px rgba(255,255,255,0.02)`
-          : "inset 0 0 12px 1px rgba(255,255,255,0.01)",
-        transition: "border 0.35s ease, box-shadow 0.35s ease",
+          ? "rgba(255,255,255,0.035)"
+          : "rgba(255,255,255,0.015)",
+        border: `1px solid ${hovered ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.04)"}`,
+        boxShadow: hovered ? "0 12px 28px rgba(0,0,0,0.4)" : "none",
+        transition: "border 0.25s ease, background 0.25s ease, box-shadow 0.25s ease",
       }}
     >
-      {/* Top ambient glow strip */}
-      <motion.div
-        className="absolute inset-x-0 top-0 h-[2px]"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)`,
-        }}
-        animate={{ opacity: hovered ? 1 : 0 }}
-        transition={{ duration: 0.3 }}
-      />
-
-      {/* Subtle moving sheen on hover */}
-      <motion.div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `linear-gradient(115deg, transparent 30%, ${s.glow} 50%, transparent 70%)`,
-        }}
-        initial={{ x: "-120%" }}
-        animate={hovered ? { x: "120%" } : { x: "-120%" }}
-        transition={{ duration: 0.9, ease: easeOut }}
-      />
-
       {/* Header row */}
-      <div className="flex items-start justify-between px-6 pt-6 pb-4">
-        {/* Icon pill */}
-        <motion.div
-          className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl"
+      <div className="flex items-start justify-between pb-3">
+        {/* Icon only */}
+        <div
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-lg"
           style={{
-            background: s.accentDim,
-            border: `1px solid ${s.accentBorder}`,
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.06)",
           }}
-          animate={hovered ? { scale: 1.04 } : { scale: 1 }}
-          transition={{ duration: 0.25, ease: easeOut }}
         >
-          <motion.span
-            className="text-base leading-none"
-            animate={hovered ? { rotate: [0, -12, 12, -6, 0], scale: [1, 1.2, 1.2, 1.1, 1] } : { rotate: 0, scale: 1 }}
-            transition={{ duration: 0.6, ease: easeOut }}
-          >
-            {s.icon}
-          </motion.span>
-          <span
-            className="text-[10px] font-bold tracking-widest"
-            style={{ color: s.accent }}
-          >
-            {s.tag}
-          </span>
-        </motion.div>
+          {s.icon}
+        </div>
 
-        {/* Stat badge */}
+        {/* Small Stat display */}
         <div className="text-right">
-          <motion.p
-            initial={{ opacity: 0, y: -6 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.2, ease: easeOut }}
-            className="text-xl font-extrabold leading-none tracking-tight"
-            style={{ color: s.accent, fontFamily: "'JetBrains Mono', monospace" }}
+          <p
+            className="text-sm font-extrabold leading-none text-slate-350"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
           >
             {s.stat.value}
-          </motion.p>
-          <p className="text-[10px] text-slate-500 mt-0.5 font-medium">{s.stat.label}</p>
+          </p>
+          <p className="text-[9px] text-slate-500 mt-0.5 font-medium">{s.stat.label}</p>
         </div>
       </div>
 
-      {/* Sparkline strip */}
-      <div className="px-6 h-12 mb-4">
-        <Sparkline accent={s.accent} />
-      </div>
-
       {/* Text */}
-      <div className="px-6 flex-1 flex flex-col">
-        <h3 className="text-white font-bold text-lg mb-2 leading-snug group-hover:text-white transition-colors">{s.title}</h3>
-        <p className="text-slate-400 text-sm leading-relaxed mb-5">{s.subtitle}</p>
+      <div className="flex-1 flex flex-col">
+        <h4 className="text-white font-bold text-sm mb-1.5 group-hover:text-white transition-colors">{s.title}</h4>
+        <p className="text-slate-400 text-xs leading-relaxed mb-4 flex-1">{s.subtitle}</p>
 
-        {/* Feature list */}
-        <motion.ul
-          variants={featureListVariants}
-          initial="hidden"
-          animate={inView ? "show" : "hidden"}
-          className="space-y-2.5 mb-6 flex-1"
-        >
-          {s.features.map((f, j) => (
-            <motion.li
-              key={j}
-              variants={featureItemVariants}
-              className="flex items-center gap-2.5 text-sm text-slate-350"
-            >
-              <span
-                className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: s.accentDim, border: `1px solid ${s.accentBorder}` }}
-              >
-                <motion.svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  initial={{ pathLength: 0 }}
-                  animate={inView ? { pathLength: 1 } : {}}
-                  transition={{ duration: 0.4, delay: 0.3 + j * 0.06 }}
-                >
-                  <motion.path
-                    d="M2 6l3 3 5-5"
-                    stroke={s.accent}
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </motion.svg>
-              </span>
-              {f}
-            </motion.li>
-          ))}
-        </motion.ul>
-
-        {/* CTA */}
-        <motion.button
+        {/* Muted Text Link CTA */}
+        <button
           onClick={() => onLearnMore(s)}
-          whileTap={{ scale: 0.97 }}
-          className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-6 border-none cursor-pointer transition-all duration-350"
+          className="text-left text-xs font-bold flex items-center gap-1.5 border-none bg-transparent cursor-pointer transition-colors"
           style={{
-            background: hovered ? `linear-gradient(135deg, ${s.accent}, ${s.accent}dd)` : "rgba(255,255,255,0.04)",
-            color: hovered ? "#ffffff" : "rgba(255,255,255,0.65)",
-            boxShadow: hovered ? `0 8px 24px -6px ${s.glow}` : "none",
+            color: hovered ? s.accent : "rgba(255,255,255,0.45)",
           }}
         >
-          Learn More
-          <motion.svg
-            width="13"
-            height="13"
+          Details
+          <svg
+            width="10"
+            height="10"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.5"
             viewBox="0 0 24 24"
-            animate={hovered ? { x: 4 } : { x: 0 }}
-            transition={{ duration: 0.25, ease: easeOut }}
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
             />
-          </motion.svg>
-        </motion.button>
+          </svg>
+        </button>
       </div>
     </motion.div>
+  );
+});
+
+const VoiceAgentShowcase = memo(function VoiceAgentShowcase() {
+  const handleContact = useCallback(() => {
+    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  return (
+    <div className="py-16 sm:py-20 relative overflow-hidden rounded-3xl border border-white/[0.05] bg-white/[0.01] my-8">
+      {/* Decorative backdrop grid */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(16,185,129,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,0.02) 1px,transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage: "radial-gradient(ellipse 60% 60% at 50% 50%,black,transparent)",
+          WebkitMaskImage: "radial-gradient(ellipse 60% 60% at 50% 50%,black,transparent)",
+        }}
+      />
+
+      <div className="max-w-6xl mx-auto px-6 sm:px-10 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          
+          {/* ── Left Column: Content ── */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: easeOut }}
+            className="space-y-6 text-left"
+          >
+            <span
+              className="inline-block px-4 py-1.5 rounded-full text-xs font-black tracking-wider uppercase border"
+              style={{
+                borderColor: "rgba(16,185,129,0.25)",
+                color: "#10B981",
+                background: "rgba(16,185,129,0.05)"
+              }}
+            >
+              Voice AI Agent
+            </span>
+
+            <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+              Cut Costs, <span className="gradient-text">Stay Compliant.</span>
+            </h3>
+
+            <p className="text-slate-350 text-base sm:text-lg leading-relaxed max-w-xl">
+              Deploy AI voice agents that automate calls, answer questions, schedule
+              appointments, and manage conversations end-to-end.
+            </p>
+            
+            <p className="text-slate-400 text-sm leading-relaxed max-w-xl">
+              Fully compliant with enterprise standards and deployable on-premise or in the
+              cloud. We support any integration, so your agents fit seamlessly into your
+              existing tech stack.
+            </p>
+
+            <div className="pt-2">
+              <motion.button
+                onClick={handleContact}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-8 py-3.5 rounded-full font-bold text-white text-sm border-none cursor-pointer shadow-lg shadow-emerald-500/20"
+                style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
+              >
+                Contact Us
+              </motion.button>
+            </div>
+          </motion.div>
+
+          {/* ── Right Column: Visual Showcase ── */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: easeOut }}
+            className="relative w-full h-[360px] sm:h-[420px] bg-white/[0.02] rounded-3xl border border-white/[0.06] shadow-sm flex items-center justify-center overflow-hidden"
+          >
+            {/* Blurry nodes pattern in background */}
+            <div className="absolute inset-0 opacity-40 pointer-events-none filter blur-[1px]">
+              {/* Voice Agents node */}
+              <div className="absolute top-[20%] left-[8%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Voice Agents
+              </div>
+              {/* Consultant node */}
+              <div className="absolute top-[15%] right-[10%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Consultant
+              </div>
+              {/* Phone icon node */}
+              <div className="absolute top-[35%] left-[25%] bg-white/[0.04] border border-white/[0.08] w-10 h-10 rounded-full flex items-center justify-center shadow-sm text-slate-200">
+                📞
+              </div>
+              {/* Heart icon node */}
+              <div className="absolute top-[40%] left-[10%] bg-white/[0.04] border border-white/[0.08] w-8 h-8 rounded-full flex items-center justify-center shadow-sm text-slate-200">
+                ❤️
+              </div>
+              {/* Information node */}
+              <div className="absolute top-[42%] right-[15%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Information
+              </div>
+              {/* Conversations node */}
+              <div className="absolute bottom-[40%] left-[5%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Conversations
+              </div>
+              {/* Client icon node */}
+              <div className="absolute bottom-[38%] right-[8%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Client
+              </div>
+              {/* Consultant node 2 */}
+              <div className="absolute bottom-[22%] left-[45%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Consultant
+              </div>
+              {/* Calls node */}
+              <div className="absolute bottom-[12%] left-[20%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Calls
+              </div>
+              {/* Mail icon node */}
+              <div className="absolute bottom-[10%] right-[32%] bg-white/[0.04] border border-white/[0.08] w-10 h-10 rounded-full flex items-center justify-center shadow-sm text-slate-200">
+                ✉️
+              </div>
+              {/* Sales node */}
+              <div className="absolute bottom-[12%] right-[12%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Sales
+              </div>
+            </div>
+
+            {/* Glowing Center Call Square */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="relative w-28 h-28 rounded-3xl shadow-xl flex items-center justify-center z-10 cursor-pointer"
+              style={{
+                background: "linear-gradient(135deg, #2563EB, #10B981)",
+                boxShadow: "0 20px 40px -10px rgba(16,185,129,0.4)"
+              }}
+            >
+              {/* Outer pulsing ring */}
+              <div className="absolute inset-0 rounded-3xl border-2 border-emerald-400/30 animate-pulse pointer-events-none" />
+
+              {/* Animating audio wave pulses */}
+              <motion.div
+                animate={{ scale: [1, 1.25, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                className="absolute w-full h-full rounded-3xl border-2 border-emerald-300 pointer-events-none"
+              />
+
+              {/* Phone Icon */}
+              <svg
+                className="w-12 h-12 text-white"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                <path d="M14.05 2a9 9 0 0 1 7.95 7.95" strokeDasharray="2 2" />
+                <path d="M14.05 6A5 5 0 0 1 18 10" />
+              </svg>
+            </motion.div>
+          </motion.div>
+
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const ChatAgentShowcase = memo(function ChatAgentShowcase() {
+  const handleContact = useCallback(() => {
+    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  return (
+    <div className="py-16 sm:py-20 relative overflow-hidden rounded-3xl border border-white/[0.05] bg-white/[0.01] my-8">
+      {/* Decorative backdrop grid */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(37,99,235,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,0.02) 1px,transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage: "radial-gradient(ellipse 60% 60% at 50% 50%,black,transparent)",
+          WebkitMaskImage: "radial-gradient(ellipse 60% 60% at 50% 50%,black,transparent)",
+        }}
+      />
+
+      <div className="max-w-6xl mx-auto px-6 sm:px-10 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          
+          {/* ── Left Column: Visual Showcase (Alternating!) ── */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: easeOut }}
+            className="relative w-full h-[360px] sm:h-[420px] bg-white/[0.02] rounded-3xl border border-white/[0.06] shadow-sm flex items-center justify-center overflow-hidden lg:order-1 order-2"
+          >
+            {/* Blurry nodes pattern in background */}
+            <div className="absolute inset-0 opacity-40 pointer-events-none filter blur-[1px]">
+              {/* WhatsApp node */}
+              <div className="absolute top-[20%] left-[8%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                WhatsApp API
+              </div>
+              {/* Widget node */}
+              <div className="absolute top-[15%] right-[10%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Web Widget
+              </div>
+              {/* Chat bubble icon node */}
+              <div className="absolute top-[35%] left-[25%] bg-white/[0.04] border border-white/[0.08] w-10 h-10 rounded-full flex items-center justify-center shadow-sm text-slate-200">
+                💬
+              </div>
+              {/* Checkmark icon node */}
+              <div className="absolute top-[40%] left-[10%] bg-white/[0.04] border border-white/[0.08] w-8 h-8 rounded-full flex items-center justify-center shadow-sm text-slate-200">
+                ✓
+              </div>
+              {/* FAQ node */}
+              <div className="absolute top-[42%] right-[15%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Knowledge Base
+              </div>
+              {/* Lead captured node */}
+              <div className="absolute bottom-[40%] left-[5%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Lead Captured
+              </div>
+              {/* Support node */}
+              <div className="absolute bottom-[38%] right-[8%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                24/7 Support
+              </div>
+              {/* Inbox node */}
+              <div className="absolute bottom-[22%] left-[45%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Shared Inbox
+              </div>
+              {/* Facebook node */}
+              <div className="absolute bottom-[12%] left-[20%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Messenger
+              </div>
+              {/* Instagram node */}
+              <div className="absolute bottom-[12%] right-[12%] bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-200">
+                Instagram DMs
+              </div>
+            </div>
+
+            {/* Glowing Center Chat Square */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="relative w-28 h-28 rounded-3xl shadow-xl flex items-center justify-center z-10 cursor-pointer"
+              style={{
+                background: "linear-gradient(135deg, #10B981, #2563EB)",
+                boxShadow: "0 20px 40px -10px rgba(37,99,235,0.4)"
+              }}
+            >
+              {/* Outer pulsing ring */}
+              <div className="absolute inset-0 rounded-3xl border-2 border-blue-400/30 animate-pulse pointer-events-none" />
+
+              {/* Animating audio wave pulses */}
+              <motion.div
+                animate={{ scale: [1, 1.25, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                className="absolute w-full h-full rounded-3xl border-2 border-blue-300 pointer-events-none"
+              />
+
+              {/* Chat Icon */}
+              <svg
+                className="w-12 h-12 text-white"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </motion.div>
+          </motion.div>
+
+          {/* ── Right Column: Content ── */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: easeOut }}
+            className="space-y-6 text-left lg:order-2 order-1"
+          >
+            <span
+              className="inline-block px-4 py-1.5 rounded-full text-xs font-black tracking-wider uppercase border"
+              style={{
+                borderColor: "rgba(37,99,235,0.25)",
+                color: "#2563EB",
+                background: "rgba(37,99,235,0.05)"
+              }}
+            >
+              Chat AI Agent
+            </span>
+
+            <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+              Engage 24/7, <span className="gradient-text">Capture Leads.</span>
+            </h3>
+
+            <p className="text-slate-350 text-base sm:text-lg leading-relaxed max-w-xl">
+              Deploy smart chat agents across your website, WhatsApp, and social media
+              channels. Automate customer support and resolve FAQs in milliseconds.
+            </p>
+            
+            <p className="text-slate-400 text-sm leading-relaxed max-w-xl">
+              Qualify prospects with interactive questionnaires, collect documents, and route
+              complex support queries to live agents seamlessly using our shared inbox.
+            </p>
+
+            <div className="pt-2">
+              <motion.button
+                onClick={handleContact}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-8 py-3.5 rounded-full font-bold text-white text-sm border-none cursor-pointer shadow-lg shadow-blue-500/20"
+                style={{ background: "linear-gradient(135deg, #2563EB, #1d4ed8)" }}
+              >
+                Contact Us
+              </motion.button>
+            </div>
+          </motion.div>
+
+        </div>
+      </div>
+    </div>
   );
 });
 
@@ -804,6 +1221,9 @@ export function Services({ openAuth }: { openAuth?: (mode: 'login' | 'register')
   const [selectedService, setSelectedService] = useState<(typeof services)[0] | null>(null);
   const gridRef = useRef(null);
   const gridInView = useInView(gridRef, { once: true, margin: "-100px" });
+
+  const primaryServices = services.filter((s) => s.id === "voice" || s.id === "chat");
+  const secondaryServices = services.filter((s) => s.id !== "voice" && s.id !== "chat");
 
   return (
     <section
@@ -900,8 +1320,8 @@ export function Services({ openAuth }: { openAuth?: (mode: 'login' | 'register')
             transition={{ duration: 0.6, delay: 0.35 }}
             className="text-slate-400 text-base max-w-lg mx-auto leading-relaxed"
           >
-            Six AI-powered modules that work independently or as a unified stack — deploy
-            the ones you need, scale when you're ready.
+            Two core AI communication agents supported by native integration modules — deploy
+            what you need, scale when you're ready.
           </motion.p>
 
           {/* Module count strip */}
@@ -938,16 +1358,49 @@ export function Services({ openAuth }: { openAuth?: (mode: 'login' | 'register')
           </motion.div>
         </motion.div>
 
-        {/* ── Cards Grid ── */}
+        {/* ── Primary Services Grid ── */}
         <motion.div
           ref={gridRef}
           variants={cardContainerVariants}
           initial="hidden"
           animate={gridInView ? "show" : "hidden"}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16"
         >
-          {services.map((s, i) => (
-            <ServiceCard key={s.id} s={s} index={i} onLearnMore={setSelectedService} />
+          {primaryServices.map((s) => (
+            <ServiceCard key={s.id} s={s} isPrimary={true} onLearnMore={setSelectedService} />
+          ))}
+        </motion.div>
+
+        {/* ── Voice & Chat Detailed Showcases ── */}
+        <VoiceAgentShowcase />
+        <ChatAgentShowcase />
+
+        {/* ── Secondary Title ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, ease: easeOut }}
+          className="text-center mt-20 mb-10"
+        >
+          <h3 className="text-xl sm:text-2xl font-bold text-slate-350 tracking-tight">
+            Supporting Capabilities & Integrations
+          </h3>
+          <p className="text-slate-500 text-xs sm:text-sm mt-2 max-w-md mx-auto">
+            Complementary features built natively into our AI platform to automate your bookings, analytics, and CRM.
+          </p>
+        </motion.div>
+
+        {/* ── Secondary Services Grid ── */}
+        <motion.div
+          variants={cardContainerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-16"
+        >
+          {secondaryServices.map((s) => (
+            <ServiceCard key={s.id} s={s} isPrimary={false} onLearnMore={setSelectedService} />
           ))}
         </motion.div>
 

@@ -5,7 +5,6 @@ import Footer from "../Footer";
 import { USPSlider } from "./USPSlider";
 import { Features } from "./Features";
 import { Services } from "./ServicesSection";
-import { VoiceAgentService, ChatAgentService } from "./services";
 import { DeferRender } from "../../../components/DeferRender";
 import { Hero } from "./Hero/Hero";
 
@@ -71,8 +70,6 @@ export function LandingSection() {
               <Features />
             </div>
             <Services openAuth={openAuth} />
-            <VoiceAgentService />
-            <ChatAgentService />
           <DeferRender height={500} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 500 }} />}>
               <Comparison />

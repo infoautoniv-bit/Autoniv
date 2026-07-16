@@ -803,20 +803,19 @@ export function CaseStudies() {
                   className="flex flex-col sm:flex-row justify-center gap-3"
                 >
                   <motion.div whileHover={{ y: -2, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                    <Link to="/"
+                    <Link to="/login"
                       className="px-8 py-4 rounded-full text-sm font-bold text-white no-underline inline-block text-center"
                       style={{ background: BRAND, boxShadow: '0 8px 26px -4px rgba(16,185,129,0.34)' }}>
                       Book a Demo →
                     </Link>
                   </motion.div>
-                  <motion.button
-                    whileHover={{ y: -2, borderColor: 'rgba(37,99,235,0.32)', color: '#2563EB' }}
-                    whileTap={{ scale: 0.97 }}
-                    className="px-8 py-4 rounded-full text-sm font-bold"
-                    style={{ background: SURFACE, border: '1.5px solid rgba(15,23,42,0.10)', color: '#475569', cursor: 'pointer' }}
-                  >
-                    Talk to Expert
-                  </motion.button>
+                   <motion.div whileHover={{ y: -2, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                    <Link to="/dashboard/support"
+                      className="px-8 py-4 rounded-full text-sm font-bold no-underline inline-block text-center"
+                      style={{ background: SURFACE, border: '1.5px solid rgba(15,23,42,0.10)', color: '#475569' }}>
+                      Talk to Expert
+                    </Link>
+                  </motion.div>
                 </motion.div>
               </div>
             </div>

@@ -359,7 +359,7 @@ export function AboutUS() {
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-3">
                 <Link
-                  to="/"
+                  to="/register"
                   className="px-8 py-3.5 rounded-full text-sm font-bold text-white no-underline inline-block text-center transition-all duration-200"
                   style={{
                     background: BRAND,
@@ -371,7 +371,7 @@ export function AboutUS() {
                   Start Automating Calls →
                 </Link>
                 <Link
-                  to="/demo"
+                  to="/services"
                   className="px-8 py-3.5 rounded-full text-sm font-bold no-underline inline-block text-center transition-all duration-200"
                   style={{ background: SURFACE, border: '1.5px solid rgba(15,23,42,0.10)', color: '#475569' }}
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(37,99,235,0.32)'; e.currentTarget.style.color = '#2563EB'; }}
@@ -757,7 +757,7 @@ export function AboutUS() {
                     No long implementations. No complex tech. Just a working AI voice agent in under 48 hours.
                   </p>
                   <Link
-                    to="/"
+                    to="/register"
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white no-underline transition-all duration-200"
                     style={{ background: BRAND, boxShadow: '0 6px 18px -4px rgba(16,185,129,0.28)' }}
                     onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
@@ -865,7 +865,7 @@ export function AboutUS() {
                   </p>
                   <div className="flex flex-col sm:flex-row justify-center gap-3">
                     <Link
-                      to="/"
+                      to="/login"
                       className="px-8 py-4 rounded-full text-sm font-bold text-white no-underline inline-block text-center transition-all duration-200"
                       style={{ background: BRAND, boxShadow: '0 8px 26px -4px rgba(16,185,129,0.34)' }}
                       onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px -4px rgba(16,185,129,0.44)'; }}
@@ -874,7 +874,7 @@ export function AboutUS() {
                       Book My Free Strategy Call →
                     </Link>
                     <Link
-                      to="/demo"
+                      to="/login"
                       className="px-8 py-4 rounded-full text-sm font-bold no-underline inline-block text-center transition-all duration-200"
                       style={{ background: SURFACE, border: '1.5px solid rgba(15,23,42,0.10)', color: '#475569' }}
                       onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(37,99,235,0.32)'; e.currentTarget.style.color = '#2563EB'; }}

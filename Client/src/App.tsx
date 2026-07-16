@@ -12,6 +12,8 @@ import { isChatPlan, isVoicePlan } from './utils/plan';
 import UnifiedAssistantWidget from './components/UnifiedAssistantWidget';
 
 const Landing = lazy(() => import('./pages/public').then(m => ({ default: m.Landing })));
+const Login = lazy(() => import('./pages/public').then(m => ({ default: m.Login })));
+const Register = lazy(() => import('./pages/public').then(m => ({ default: m.Register })));
 const UserDashboard = lazy(() => import('./pages/user/UserDashboard').then(m => ({ default: m.UserDashboard })));
 const ForgotPassword = lazy(() => import('./pages/public/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const PrivacyPolicy = lazy(() => import('./pages/public/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
@@ -411,8 +413,8 @@ function AppRoutes() {
       } />
       <Routes>
         <Route path="/" element={home} />
-        <Route path="/login" element={home} />
-        <Route path="/register" element={home} />
+        <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace /> : <Login />} />
+        <Route path="/register" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace /> : <Register />} />
         <Route path="/onboarding" element={<ProtectedRoute hideSidebar><WelcomeOnboarding onComplete={() => {}} /></ProtectedRoute>} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
