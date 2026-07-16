@@ -360,25 +360,9 @@ router.post('/chat', authenticateApiKey, async (req, res) => {
 
     const recordsContext = `\n[Recent Records]\nLeads: ${JSON.stringify(recentLeads.map(l => ({ name: l.name, phone: l.phone, email: l.email, purpose: l.purpose })))}\nAppointments: ${JSON.stringify(recentAppts.map(a => ({ name: a.name, service: a.service, date: a.preferredDate, time: a.preferredTime })))}`;
 
-    // Fetch specific chatbot if agentId is provided
-    let chatbot = null;
-    if (agentId && mongoose.Types.ObjectId.isValid(agentId)) {
-      try {
-        chatbot = await Agent.findOne({ _id: agentId, userId: user._id, isChatbot: true }).lean();
-      } catch (err) {
-        log.warn('widget_fetch_chatbot_failed', { error: err.message, agentId });
-      }
-    }
-
     const companyName = user.company || user.name || 'this business';
-    let chatbotName = chatbot ? chatbot.name : 'AI assistant';
-    let chatbotInstructions = '';
-
-    if (chatbot && chatbot.prompt) {
-      chatbotInstructions = `Custom instructions for your role:\n${chatbot.prompt}`;
-    } else {
-      chatbotInstructions = `You help visitors with their questions, capture leads, and book appointments.`;
-    }
+    const chatbotName = 'AI assistant';
+    const chatbotInstructions = `You help visitors with their questions, capture leads, and book appointments.`;
 
     const SYSTEM_PROMPT = `You are a friendly AI assistant named ${chatbotName} for ${companyName}.
 ${chatbotInstructions}
