@@ -57,7 +57,6 @@ router.get('/widget.js', (req, res) => {
   const script = document.currentScript;
   const API_KEY = script?.getAttribute('data-api-key') || '';
   const POSITION = script?.getAttribute('data-position') || 'bottom-right';
-  const AGENT_ID = script?.getAttribute('data-agent-id') || '';
   const API_BASE = '${req.protocol}://${req.get('host')}/api/widget';
 
   if (!API_KEY) {
@@ -278,7 +277,7 @@ router.get('/widget.js', (req, res) => {
             'Content-Type': 'application/json',
             'x-api-key': API_KEY,
           },
-          body: JSON.stringify({ message: text, history, agentId: AGENT_ID, agentId: AGENT_ID }),
+          body: JSON.stringify({ message: text, history }),
         });
 
         const data = await res.json();
@@ -315,7 +314,7 @@ router.get('/widget.js', (req, res) => {
 // ─── Public chat endpoint (authenticated via API key) ───────────────────────
 router.post('/chat', authenticateApiKey, async (req, res) => {
   try {
-    const { message, history, agentId } = req.body;
+    const { message, history } = req.body;
     const user = req.widgetUser;
 
     if (!message || typeof message !== 'string' || !message.trim()) {
