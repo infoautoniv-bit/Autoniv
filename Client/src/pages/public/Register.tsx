@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../../App';
 import { authService } from '../../services/api';
 import logoAutonivFull from '../../assets/autoniv-full-logo.webp';
+import logoAutonivBrand from '../../assets/autoniv-brand-logo.webp';
 
 /** Ambient waveform — signals "this is a voice agent," not a chat bot. */
 function LiveWaveform({ active }: { active: boolean }) {
@@ -246,9 +247,7 @@ export function Register() {
   }, [showOtp, timer]);
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-white text-slate-900 overflow-hidden">
-      {/* Left pane - visual showcase (hidden on small screens) */}
-      <div className="hidden lg:flex lg:col-span-5 relative flex-col justify-between p-12 border-r border-white/[0.05] bg-[#030710] text-white">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-white text-slate-900 lg:overflow-hidden">      <div className="hidden lg:flex lg:col-span-5 relative flex-col justify-between p-12 border-r border-white/[0.05] bg-[#030710] text-white">
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -260,8 +259,8 @@ export function Register() {
         <div className="absolute top-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-[var(--indigo)]/10 blur-[100px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[350px] h-[350px] rounded-full bg-[var(--secondary)]/[0.06] blur-[100px] pointer-events-none" />
 
-        <Link to="/" className="z-10 relative inline-block">
-          <img src={logoAutonivFull} alt="Autoniv" className="h-30 object-contain -mb-20" />
+        <Link to="/" className="z-10 -ml-5 relative inline-block">
+          <img src={logoAutonivFull} alt="Autoniv" className="h-32 w-auto object-contain -mb-20" />
         </Link>
 
         <div className="my-auto space-y-8 z-10 relative">
@@ -322,14 +321,13 @@ export function Register() {
 
       {/* Right pane - forms */}
       <div className="col-span-1 lg:col-span-7 flex items-center justify-center px-6 py-12 sm:px-16 bg-white relative">
-        {/* Mobile logo (hidden on desktop) */}
-        <div className="lg:hidden absolute top-6 left-6">
-          <Link to="/">
-            <img src={logoAutonivFull} alt="Autoniv Logo" className="h-14 object-contain" />
-          </Link>
-        </div>
-
         <div className="w-full max-w-[400px] space-y-8">
+          {/* Mobile logo (hidden on desktop) */}
+          <div className="lg:hidden flex justify-center -mb-5">
+            <Link to="/">
+              <img src={logoAutonivBrand} alt="Autoniv Logo" className="h-40 w-auto object-contain " />
+            </Link>
+          </div>
           <div className="text-center lg:text-left">
             <h1 className="text-3xl font-extrabold tracking-tight mb-2">
               {showOtp ? 'Verify your email' : 'Create your account'}
@@ -343,7 +341,7 @@ export function Register() {
             <form onSubmit={handleVerifyOtp} className="space-y-6">
               {error && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-3">
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   {error}
                 </div>
               )}
@@ -391,7 +389,7 @@ export function Register() {
               >
                 {loading ? (
                   <>
-                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                     Verifying...
                   </>
                 ) : 'Verify Code'}
@@ -401,7 +399,7 @@ export function Register() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-3">
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   {error}
                 </div>
               )}
@@ -517,7 +515,7 @@ export function Register() {
               >
                 {loading ? (
                   <>
-                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                     Creating account...
                   </>
                 ) : 'Create account'}

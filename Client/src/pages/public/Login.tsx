@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../../App';
 import { authService } from '../../services/api';
 import logoAutonivFull from '../../assets/autoniv-full-logo.webp';
+import logoAutonivBrand from '../../assets/autoniv-brand-logo.webp';
 
 /*
 interface GoogleCredentialResponse {
@@ -271,8 +272,8 @@ export function Login() {
         <div className="absolute top-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-[var(--indigo)]/10 blur-[100px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[350px] h-[350px] rounded-full bg-[var(--secondary)]/[0.06] blur-[100px] pointer-events-none" />
 
-        <Link to="/" className="z-10 relative inline-block">
-          <img src={logoAutonivFull} alt="Autoniv" className="h-30 object-contain -mb-20" />
+        <Link to="/" className="z-10 -ml-5 relative inline-block">
+          <img src={logoAutonivFull} alt="Autoniv" className="h-32 w-auto object-contain -mb-20" />
         </Link>
 
         <div className="my-auto space-y-8 z-10 relative">
@@ -332,13 +333,13 @@ export function Login() {
 
       {/* Right pane — forms */}
       <div className="col-span-1 lg:col-span-7 flex items-center justify-center px-6 py-12 sm:px-16 bg-white relative">
-        <div className="lg:hidden absolute top-6 left-6">
-          <Link to="/">
-            <img src={logoAutonivFull} alt="Autoniv" className="h-14 object-contain" />
-          </Link>
-        </div>
-
         <div className="w-full max-w-[400px] space-y-8">
+          {/* Mobile logo (hidden on desktop) */}
+          <div className="lg:hidden flex justify-center -mb-10">
+            <Link to="/">
+              <img src={logoAutonivBrand} alt="Autoniv" className=" h-40 w-auto object-contain" />
+            </Link>
+          </div>
           <AnimatePresence mode="wait">
             <motion.div key={showOtp ? 'otp-head' : 'login-head'} {...fade} transition={{ duration: 0.2 }}>
               <div className="text-center lg:text-left">
