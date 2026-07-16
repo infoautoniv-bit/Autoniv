@@ -57,6 +57,7 @@ router.get('/widget.js', (req, res) => {
   const script = document.currentScript;
   const API_KEY = script?.getAttribute('data-api-key') || '';
   const POSITION = script?.getAttribute('data-position') || 'bottom-right';
+  const AGENT_ID = script?.getAttribute('data-agent-id') || '';
   const API_BASE = '${req.protocol}://${req.get('host')}/api/widget';
 
   if (!API_KEY) {
@@ -277,7 +278,7 @@ router.get('/widget.js', (req, res) => {
             'Content-Type': 'application/json',
             'x-api-key': API_KEY,
           },
-          body: JSON.stringify({ message: text, history }),
+          body: JSON.stringify({ message: text, history, agentId: AGENT_ID }),
         });
 
         const data = await res.json();
@@ -314,7 +315,7 @@ router.get('/widget.js', (req, res) => {
 // ─── Public chat endpoint (authenticated via API key) ───────────────────────
 router.post('/chat', authenticateApiKey, async (req, res) => {
   try {
-    const { message, history } = req.body;
+    const { message, history, agentId } = req.body;
     const user = req.widgetUser;
 
     if (!message || typeof message !== 'string' || !message.trim()) {
@@ -359,8 +360,28 @@ router.post('/chat', authenticateApiKey, async (req, res) => {
 
     const recordsContext = `\n[Recent Records]\nLeads: ${JSON.stringify(recentLeads.map(l => ({ name: l.name, phone: l.phone, email: l.email, purpose: l.purpose })))}\nAppointments: ${JSON.stringify(recentAppts.map(a => ({ name: a.name, service: a.service, date: a.preferredDate, time: a.preferredTime })))}`;
 
-    const SYSTEM_PROMPT = `You are a friendly AI assistant for ${user.company || user.name || 'this business'}.
-You help visitors with their questions, capture leads, and book appointments.
+    // Fetch specific chatbot if agentId is provided
+    let chatbot = null;
+    if (agentId && mongoose.Types.ObjectId.isValid(agentId)) {
+      try {
+        chatbot = await Agent.findOne({ _id: agentId, userId: user._id, isChatbot: true }).lean();
+      } catch (err) {
+        log.warn('widget_fetch_chatbot_failed', { error: err.message, agentId });
+      }
+    }
+
+    const companyName = user.company || user.name || 'this business';
+    let chatbotName = chatbot ? chatbot.name : 'AI assistant';
+    let chatbotInstructions = '';
+
+    if (chatbot && chatbot.prompt) {
+      chatbotInstructions = `Custom instructions for your role:\n${chatbot.prompt}`;
+    } else {
+      chatbotInstructions = `You help visitors with their questions, capture leads, and book appointments.`;
+    }
+
+    const SYSTEM_PROMPT = `You are a friendly AI assistant named ${chatbotName} for ${companyName}.
+${chatbotInstructions}
 
 ## Response Format
 You MUST respond in valid JSON only:

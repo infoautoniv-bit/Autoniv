@@ -46,7 +46,7 @@ const chatPlans: Plan[] = [
     monthlyPriceINR: '₹3,499', yearlyPriceINR: '₹2,799',
     desc: 'Freelancers & small businesses getting serious.',
     features: ['3 chatbots','1,000 conversations / month','Website + email channel','Remove branding','Email & chat support','No CRM integration'],
-    cta: 'Start 14-day trial', popular: false, checkColor: '#2563EB',
+    cta: 'Get started', popular: false, checkColor: '#2563EB',
     border: `1px solid ${HAIRLINE}`, bg: SURFACE,
     shadow: '0 4px 20px rgba(0,0,0,0.04)', hoverShadow: '0 8px 40px rgba(0,0,0,0.08)',
   },
@@ -56,7 +56,7 @@ const chatPlans: Plan[] = [
     monthlyPriceINR: '₹9,999', yearlyPriceINR: '₹7,999',
     desc: 'SMBs and mid-market teams scaling fast.',
     features: ['10 chatbots','5,000 conversations / month','All channels + multi-language','CRM & helpdesk integrations','Full analytics dashboard','Priority support'],
-    cta: 'Start 14-day trial', popular: true, checkColor: '#10B981',
+    cta: 'Get started', popular: true, checkColor: '#10B981',
     border: '2px solid #10B981', bg: SURFACE,
     shadow: '0 8px 30px rgba(16,185,129,0.15)', hoverShadow: '0 12px 48px rgba(16,185,129,0.25)',
   },
@@ -844,7 +844,13 @@ export function Pricing() {
                   </div>
 
                   <button
-                    onClick={() => navigate('/')}
+                    onClick={() => {
+                      if (plan.cta.toLowerCase().includes('contact')) {
+                        navigate('/#contact');
+                      } else {
+                        navigate('/login');
+                      }
+                    }}
                     className="w-full py-3.5 rounded-xl font-bold transition-all duration-200 cursor-pointer text-sm flex items-center justify-center gap-2"
                     style={{
                       background: plan.popular ? 'linear-gradient(135deg,#2563EB,#10B981)' : 'rgba(255,255,255,0.03)',

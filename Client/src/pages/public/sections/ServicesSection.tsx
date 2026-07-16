@@ -586,17 +586,33 @@ const ServiceDetailDialog = memo(function ServiceDetailDialog({
                   className="flex justify-end gap-3 p-6 relative z-10"
                   style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
                 >
-                  <Link
-                    to="/login"
-                    onClick={onClose}
-                    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer border-none no-underline text-center transition-all hover:scale-[1.02]"
-                    style={{
-                      background: `linear-gradient(135deg, ${s.accent}, ${s.accent}dd)`,
-                      boxShadow: `0 8px 24px -6px ${s.glow}`,
-                    }}
-                  >
-                    Get Started
-                  </Link>
+                  {openAuth ? (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        openAuth('register');
+                      }}
+                      className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer border-none no-underline text-center transition-all hover:scale-[1.02]"
+                      style={{
+                        background: `linear-gradient(135deg, ${s.accent}, ${s.accent}dd)`,
+                        boxShadow: `0 8px 24px -6px ${s.glow}`,
+                      }}
+                    >
+                      Get Started
+                    </button>
+                  ) : (
+                    <Link
+                      to="/login"
+                      onClick={onClose}
+                      className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer border-none no-underline text-center transition-all hover:scale-[1.02]"
+                      style={{
+                        background: `linear-gradient(135deg, ${s.accent}, ${s.accent}dd)`,
+                        boxShadow: `0 8px 24px -6px ${s.glow}`,
+                      }}
+                    >
+                      Get Started
+                    </Link>
+                  )}
                 </div>
               </Dialog.Panel>
             </Transition.Child>

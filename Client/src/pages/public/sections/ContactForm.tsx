@@ -12,21 +12,70 @@ export function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const openWA = () => {
-    const lines = ["Hello! I have an inquiry via Contact Us form:", "", `Name: ${name}`, `Email: ${email}`, phone ? `Phone: ${phone}` : "", company ? `Company: ${company}` : "", "", `Message: ${message}`].filter(Boolean);
+
+  const openWA = (valName: string, valEmail: string, valPhone: string, valCompany: string, valMessage: string) => {
+    const lines = [
+      "Hello! I have an inquiry via Contact Us form:",
+      "",
+      `Name: ${valName}`,
+      `Email: ${valEmail}`,
+      valPhone ? `Phone: ${valPhone}` : "",
+      valCompany ? `Company: ${valCompany}` : "",
+      "",
+      `Message: ${valMessage}`
+    ].filter(Boolean);
     window.open(`https://wa.me/${CONTACT_PHONE_RAW}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phone.trim();
+    const trimmedCompany = company.trim();
+    const trimmedMessage = message.trim();
+
+    if (!trimmedName) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (trimmedPhone) {
+      const phoneRegex = /^\+?[0-9]{7,15}$/;
+      if (!phoneRegex.test(trimmedPhone)) {
+        setError("Please enter a valid phone number.");
+        return;
+      }
+    }
+
+    if (!trimmedMessage) {
+      setError("Please enter your message.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      await contactService.submit({ name, email, phone, company, message });
-      openWA();
-      setSubmitted(true);
+      await contactService.submit({
+        name: trimmedName,
+        email: trimmedEmail,
+        phone: trimmedPhone,
+        company: trimmedCompany,
+        message: trimmedMessage
+      });
     } catch (err: any) {
-      setError(err.response?.data?.message || "Something went wrong.");
+      console.error("Backend submission error:", err);
+      // We proceed to WhatsApp even if backend submission fails so the user message is sent
     } finally {
+      openWA(trimmedName, trimmedEmail, trimmedPhone, trimmedCompany, trimmedMessage);
+      setSubmitted(true);
       setLoading(false);
     }
   };

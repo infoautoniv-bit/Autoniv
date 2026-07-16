@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const stagger = { container: { animate: { transition: { staggerChildren: 0.04 } } } };
 
+const CONTACT_PHONE_RAW = import.meta.env.VITE_CONTACT_PHONE_RAW || '917065990307';
+
 const FAQ_ITEMS = [
   {
     q: 'How do I create a new AI agent?',
@@ -40,9 +42,9 @@ const FAQ_ITEMS = [
 ];
 
 const CONTACT_OPTIONS = [
-  { icon: '📧', label: 'Email', value: 'support@autoniv.com', action: 'mailto:support@autoniv.com' },
+  { icon: '📧', label: 'Email', value: import.meta.env.VITE_CONTACT_EMAIL || 'support@autoniv.com', action: `mailto:${import.meta.env.VITE_CONTACT_EMAIL || 'support@autoniv.com'}` },
   { icon: '💬', label: 'Live Chat', value: 'Available 9 AM – 6 PM IST', action: null },
-  { icon: '📞', label: 'Phone', value: '+91 98765 43210', action: 'tel:+919876543210' },
+  { icon: '📞', label: 'Phone', value: import.meta.env.VITE_CONTACT_PHONE || '+91 98765 43210', action: `tel:${import.meta.env.VITE_CONTACT_PHONE_RAW || '917065990307'}` },
 ];
 
 export function CustomerSupport() {
@@ -52,6 +54,28 @@ export function CustomerSupport() {
 
   const handleSubmitTicket = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const trimmedName = ticketForm.name.trim();
+    const trimmedEmail = ticketForm.email.trim();
+    const trimmedSubject = ticketForm.subject.trim();
+    const trimmedMessage = ticketForm.message.trim();
+
+    if (!trimmedName || !trimmedEmail || !trimmedSubject || !trimmedMessage) {
+      return;
+    }
+
+    const lines = [
+      "Hello! I am submitting a support ticket from the Dashboard:",
+      "",
+      `Name: ${trimmedName}`,
+      `Email: ${trimmedEmail}`,
+      `Subject: ${trimmedSubject}`,
+      "",
+      `Message: ${trimmedMessage}`
+    ];
+
+    window.open(`https://wa.me/${CONTACT_PHONE_RAW}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
+
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);

@@ -99,7 +99,7 @@ export function LandingSection() {
           </DeferRender>
           <DeferRender height={600} forceRender={forceRender}>
             <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-              <Pricing />
+              <Pricing openAuth={openAuth} />
             </Suspense>
           </DeferRender>
           <div id="contact">

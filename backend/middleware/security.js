@@ -164,7 +164,10 @@ export function csrfProtection(req, res, next) {
     return next();
   }
 
-  const sessionId = req.user?.userId || req.ip || 'anonymous';
+  let sessionId = req.cookies?.csrfSessionId;
+  if (!sessionId) {
+    sessionId = req.ip || 'anonymous';
+  }
   const csrfToken = req.headers['x-csrf-token'] || req.body?._csrf;
 
   if (!csrfToken || !verifyCsrfToken(csrfToken, sessionId)) {
@@ -180,7 +183,16 @@ export function csrfProtection(req, res, next) {
 }
 
 export function csrfTokenEndpoint(req, res) {
-  const sessionId = req.user?.userId || req.ip || 'anonymous';
+  let sessionId = req.cookies?.csrfSessionId;
+  if (!sessionId) {
+    sessionId = crypto.randomBytes(16).toString('hex');
+    res.cookie('csrfSessionId', sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
+    });
+  }
   const token = generateCsrfToken(sessionId);
   res.json({ csrfToken: token });
 }
