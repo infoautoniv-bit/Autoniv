@@ -4,6 +4,8 @@ import hpp from 'hpp';
 import cors from 'cors';
 import crypto from 'crypto';
 import { IS_PROD, log } from '../services/logger.js';
+import { verifyAccessToken } from '../services/tokenService.js';
+import { extractTokenFromCookie } from '../services/cookieService.js';
 
 const DEFAULT_ORIGINS = [
   'http://localhost:5173',
@@ -112,6 +114,36 @@ export function buildHelmet() {
 const CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('hex');
 const CSRF_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
 
+function extractToken(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && typeof authHeader === 'string') {
+    const [scheme, token] = authHeader.split(' ');
+    if (scheme === 'Bearer' && token) return token.trim();
+  }
+  return extractTokenFromCookie(req);
+}
+
+function resolveSessionId(req) {
+  try {
+    const token = extractToken(req);
+    if (token) {
+      const decoded = verifyAccessToken(token);
+      if (decoded && decoded.userId) {
+        return String(decoded.userId);
+      }
+    }
+  } catch (err) {
+    // Ignore verification errors
+  }
+
+  // Fallback to cookie-based session ID
+  let cookieSession = req.cookies?.csrfSessionId;
+  if (!cookieSession) {
+    cookieSession = req.ip || 'anonymous';
+  }
+  return cookieSession;
+}
+
 function generateCsrfToken(sessionId) {
   const payload = `${sessionId}:${Date.now()}:${crypto.randomBytes(16).toString('hex')}`;
   const signature = crypto.createHmac('sha256', CSRF_SECRET).update(payload).digest('hex');
@@ -164,10 +196,7 @@ export function csrfProtection(req, res, next) {
     return next();
   }
 
-  let sessionId = req.cookies?.csrfSessionId;
-  if (!sessionId) {
-    sessionId = req.ip || 'anonymous';
-  }
+  const sessionId = resolveSessionId(req);
   const csrfToken = req.headers['x-csrf-token'] || req.body?._csrf;
 
   if (!csrfToken || !verifyCsrfToken(csrfToken, sessionId)) {
@@ -183,18 +212,30 @@ export function csrfProtection(req, res, next) {
 }
 
 export function csrfTokenEndpoint(req, res) {
-  let sessionId = req.cookies?.csrfSessionId;
-  if (!sessionId) {
-    sessionId = crypto.randomBytes(16).toString('hex');
-    res.cookie('csrfSessionId', sessionId, {
+  let sessionId = resolveSessionId(req);
+  const token = extractToken(req);
+  let isAuthed = false;
+  if (token) {
+    try {
+      const decoded = verifyAccessToken(token);
+      if (decoded && decoded.userId) isAuthed = true;
+    } catch (err) {
+      // Ignore
+    }
+  }
+
+  if (!isAuthed && !req.cookies?.csrfSessionId) {
+    const newCookieSessionId = crypto.randomBytes(16).toString('hex');
+    res.cookie('csrfSessionId', newCookieSessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 1 day
     });
+    sessionId = newCookieSessionId;
   }
-  const token = generateCsrfToken(sessionId);
-  res.json({ csrfToken: token });
+  const csrfToken = generateCsrfToken(sessionId);
+  res.json({ csrfToken });
 }
 
 export const mongoSanitizer = mongoSanitize({
