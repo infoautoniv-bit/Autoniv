@@ -38,6 +38,8 @@ const UserBilling = lazy(() => import('./pages/user/UserBilling').then(m => ({ d
 const MyAddOns = lazy(() => import('./pages/user/MyAddOns').then(m => ({ default: m.MyAddOns })));
 const MyAppointments = lazy(() => import('./pages/user/MyAppointments').then(m => ({ default: m.MyAppointments })));
 const MyChat = lazy(() => import('./pages/user/MyChat').then(m => ({ default: m.MyChat })));
+const MyChatbots = lazy(() => import('./pages/user/MyChatbots').then(m => ({ default: m.MyChatbots })));
+const CreateChatbot = lazy(() => import('./pages/user/CreateChatbot').then(m => ({ default: m.CreateChatbot })));
 const CustomerSupport = lazy(() => import('./pages/user/CustomerSupport').then(m => ({ default: m.CustomerSupport })));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
@@ -168,6 +170,8 @@ const DASHBOARD_TITLES: Record<string, string> = {
   '/dashboard/leads': 'My Leads - Autoniv',
   '/dashboard/appointment-booking': 'My Appointments - Autoniv',
   '/dashboard/ai-chatbot': 'My Chatbots - Autoniv',
+  '/dashboard/chatbots': 'My Chatbots - Autoniv',
+  '/dashboard/chatbots/new': 'Create Chatbot - Autoniv',
   '/dashboard/billing': 'Billing & Plan - Autoniv',
   '/dashboard/add-ons': 'Billing Add-ons - Autoniv',
 };
@@ -447,6 +451,9 @@ function AppRoutes() {
         <Route path="/dashboard/leads" element={<ProtectedRoute><MyLeads /></ProtectedRoute>} />
         <Route path="/dashboard/appointment-booking" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
         <Route path="/dashboard/ai-chatbot" element={<ProtectedRoute feature="chat"><MyChat /></ProtectedRoute>} />
+        <Route path="/dashboard/chatbots" element={<ProtectedRoute feature="chat"><MyChatbots /></ProtectedRoute>} />
+        <Route path="/dashboard/chatbots/new" element={<ProtectedRoute feature="chat"><CreateChatbot /></ProtectedRoute>} />
+        <Route path="/dashboard/chatbots/:id" element={<ProtectedRoute feature="chat"><CreateChatbot /></ProtectedRoute>} />
         <Route path="/dashboard/billing" element={<ProtectedRoute><UserBilling /></ProtectedRoute>} />
         <Route path="/dashboard/add-ons" element={<ProtectedRoute><MyAddOns /></ProtectedRoute>} />
         <Route path="/dashboard/support" element={<CustomerSupport />} />

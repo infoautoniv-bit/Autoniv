@@ -409,34 +409,47 @@ export const agentService = {
 };
 
 // ── Chatbots ───────────────────────────────────────────────────────────────
-// export const chatbotService = {
-//   getMy: (pp?: PaginationParams) =>
-//     api.get('/chatbots/my', { params: pp }),
+export const chatbotService = {
+  list: (pp?: PaginationParams) =>
+    api.get('/chatbots', { params: pp }),
 
-//   create: (data: {
-//     name: string;
-//     type: string;
-//     prompt?: string;
-//     language?: string;
-//     useCustomEngine?: boolean;
-//     customEngineModel?: string;
-//   }) => api.post('/chatbots', data),
+  get: (id: string) =>
+    api.get(`/chatbots/${id}`),
 
-//   update: (id: string, data: {
-//     name?: string;
-//     type?: string;
-//     prompt?: string;
-//     isActive?: boolean;
-//     language?: string;
-//     useCustomEngine?: boolean;
-//     customEngineModel?: string;
-//   }) => api.put(`/chatbots/${id}`, data),
+  create: (data: {
+    name: string;
+    description?: string;
+    systemPrompt: string;
+    welcomeMessage?: string;
+    brandColor?: string;
+    channels?: {
+      whatsapp?: { enabled?: boolean; phoneNumberId?: string };
+      widget?: { enabled?: boolean };
+    };
+  }) => api.post('/chatbots', data),
 
-//   toggleActive: (id: string, isActive: boolean) =>
-//     api.put(`/chatbots/${id}`, { isActive }),
+  update: (id: string, data: {
+    name?: string;
+    description?: string;
+    systemPrompt?: string;
+    welcomeMessage?: string;
+    brandColor?: string;
+    brandLogo?: string;
+    isActive?: boolean;
+    channels?: {
+      whatsapp?: { enabled?: boolean; phoneNumberId?: string };
+      widget?: { enabled?: boolean };
+    };
+  }) => api.put(`/chatbots/${id}`, data),
 
-//   delete: (id: string) => api.delete(`/chatbots/${id}`),
-// };
+  delete: (id: string) => api.delete(`/chatbots/${id}`),
+
+  conversations: (id: string, pp?: PaginationParams) =>
+    api.get(`/chatbots/${id}/conversations`, { params: pp }),
+
+  analytics: (id: string) =>
+    api.get(`/chatbots/${id}/analytics`),
+};
 
 // ── Calls ──────────────────────────────────────────────────────────────────
 export const callService = {

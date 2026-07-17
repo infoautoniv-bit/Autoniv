@@ -31,7 +31,20 @@ function buildAllowedOrigins() {
 export function buildCors() {
   return cors((req, cb) => {
     const origin = req.header('Origin');
-    const isWidgetRoute = req.path && req.path.startsWith('/api/widget');
+    const path = req.path || '';
+    const isWidgetRoute = path.startsWith('/api/widget');
+    const isWhatsAppWebhook = path.startsWith('/api/webhooks/whatsapp');
+    const isChatbotWidget = path.startsWith('/api/chatbot-widget');
+
+    if (isWhatsAppWebhook || isChatbotWidget) {
+      cb(null, {
+        origin: '*',
+        methods: ['GET', 'POST', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'X-Hub-Signature-256'],
+        maxAge: 600,
+      });
+      return;
+    }
 
     if (isWidgetRoute) {
       cb(null, {
@@ -220,7 +233,7 @@ export function csrfProtection(req, res, next) {
   }
 
   // Skip for widget routes (verified by API key)
-  if (req.path?.startsWith('/api/widget')) {
+  if (req.path?.startsWith('/api/widget') || req.path?.startsWith('/api/chatbot-widget')) {
     return next();
   }
 

@@ -31,11 +31,11 @@ const GLOBAL_STATS = [
 const SERVICES = [
   {
     id: "chat",
-    title: "Chat Assistant",
+    title: "AI Chatbot",
     icon: "💬",
     color: "#2563EB",
-    description: "Intelligent AI chat assistants that handle customer queries, qualify leads, and provide instant support across websites, WhatsApp, and messaging platforms.",
-    features: ["Instant Responses", "Lead Qualification", "Multi-platform Support", "Smart Escalation", "Analytics Dashboard"],
+    description: "Create custom AI chatbots with unique personalities. Deploy on your website or WhatsApp — each chatbot learns your brand voice, answers questions, captures leads, and handles support 24/7.",
+    features: ["Custom AI Personality", "WhatsApp + Website", "Lead Capture", "Smart Escalation", "Analytics Dashboard"],
     metrics: [
       { value: "85%", label: "Resolution Rate" },
       { value: "24/7", label: "Availability" },
@@ -276,6 +276,7 @@ function Hero() {
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
                   <button
+                    onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
                     className="px-8 py-3.5 rounded-full text-sm font-bold text-center"
                     style={{ background: SURFACE, border: "1.5px solid rgba(15,23,42,0.10)", color: "#475569", cursor: "pointer" }}
                   >
@@ -598,14 +599,14 @@ function ComparisonSection() {
 
 /* ─── How It Works ─── */
 const STEPS = [
-  { step: "01", title: "Connect Your Channels", desc: "Link your website, WhatsApp, or phone number in under 2 minutes.", icon: "🔗", color: "#2563EB" },
-  { step: "02", title: "Train Your AI", desc: "Upload your knowledge base, FAQs, and scripts. The AI learns instantly.", icon: "🧠", color: "#10B981" },
-  { step: "03", title: "Go Live & Scale", desc: "Launch your AI assistant and scale to thousands of conversations.", icon: "🚀", color: "#f97316" },
+  { step: "01", title: "Create Your Chatbot", desc: "Write a custom prompt or pick a template. Set your brand color and welcome message.", icon: "🧠", color: "#2563EB" },
+  { step: "02", title: "Connect Channels", desc: "Enable WhatsApp or copy the embed code for your website. Takes under 2 minutes.", icon: "🔗", color: "#10B981" },
+  { step: "03", title: "Go Live & Scale", desc: "Your chatbot handles conversations on WhatsApp and web simultaneously. Scale to thousands.", icon: "🚀", color: "#f97316" },
 ];
 
 function HowItWorks() {
   return (
-    <div className="max-w-6xl mx-auto relative">
+    <div id="how-it-works" className="max-w-6xl mx-auto relative">
       <Reveal>
         <div className="text-center mb-16">
           <SectionLabel text="How It Works" />
