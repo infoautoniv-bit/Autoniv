@@ -2,30 +2,6 @@
 import WebSocket from 'ws';
 import { log } from './logger.js';
 
-// Standard PCM16 to Mu-law encoding
-function encodeMuLawSample(sample) {
-  const BIAS = 0x84;
-  const CLIP = 32635;
-  let sign = (sample >> 15) & 0x01;
-  if (sign) sample = -sample;
-  if (sample > CLIP) sample = CLIP;
-  sample += BIAS;
-  let exponent = 7;
-  for (let mask = 0x4000; (sample & mask) === 0 && exponent > 0; mask >>= 1) exponent--;
-  let mantissa = (sample >> (exponent + 3)) & 0x0F;
-  let uval = (sign << 7) | (exponent << 4) | mantissa;
-  return ~uval & 0xFF;
-}
-
-function pcm16ToMulaw(pcm16Buffer) {
-  const mulaw = Buffer.alloc(pcm16Buffer.length / 2);
-  for (let i = 0; i < mulaw.length; i++) {
-    const sample = pcm16Buffer.readInt16LE(i * 2);
-    mulaw[i] = encodeMuLawSample(sample);
-  }
-  return mulaw;
-}
-
 function addWavHeader(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerSample = 16) {
   const header = Buffer.alloc(44);
   const blockAlign = numChannels * (bitsPerSample / 8);
@@ -76,33 +52,6 @@ async function synthesizeSpeechDirectDeepgram(text, isTwilio, modelName) {
   const buffer = await response.arrayBuffer();
   return Buffer.from(buffer).toString('base64');
 }
-
-const AZURE_DEFAULT_VOICES = {
-  en: { female: 'en-US-JennyNeural', male: 'en-US-GuyNeural' },
-  hi: { female: 'hi-IN-SwaraNeural', male: 'hi-IN-MadhurNeural' },
-  es: { female: 'es-ES-ElviraNeural', male: 'es-ES-AlvaroNeural' },
-  fr: { female: 'fr-FR-DeniseNeural', male: 'fr-FR-HenriNeural' },
-  de: { female: 'de-DE-KatjaNeural', male: 'de-DE-ConradNeural' },
-  it: { female: 'it-IT-ElsaNeural', male: 'it-IT-DiegoNeural' },
-  pt: { female: 'pt-BR-FranciscaNeural', male: 'pt-BR-AntonioNeural' },
-  pl: { female: 'pl-PL-ZofiaNeural', male: 'pl-PL-MarekNeural' },
-  ar: { female: 'ar-EG-SalmaNeural', male: 'ar-EG-ShakirNeural' },
-  ja: { female: 'ja-JP-NanamiNeural', male: 'ja-JP-KeitaNeural' },
-  ko: { female: 'ko-KR-SunHiNeural', male: 'ko-KR-InJoonNeural' },
-  zh: { female: 'zh-CN-XiaoxiaoNeural', male: 'zh-CN-YunxiNeural' },
-  nl: { female: 'nl-NL-ColetteNeural', male: 'nl-NL-MaartenNeural' },
-  ru: { female: 'ru-RU-SvetlanaNeural', male: 'ru-RU-DmitryNeural' },
-  tr: { female: 'tr-TR-EmelNeural', male: 'tr-TR-AhmetNeural' },
-  bn: { female: 'bn-IN-TanishaNeural', male: 'bn-IN-BashkarNeural' },
-  te: { female: 'te-IN-ShrutiNeural', male: 'te-IN-MohanNeural' },
-  ta: { female: 'ta-IN-PallaviNeural', male: 'ta-IN-ValluvarNeural' },
-  mr: { female: 'mr-IN-AarohiNeural', male: 'mr-IN-ManoharNeural' },
-  gu: { female: 'gu-IN-DhwaniNeural', male: 'gu-IN-NiranjanNeural' },
-  kn: { female: 'kn-IN-SapnaNeural', male: 'kn-IN-GaganNeural' },
-  ml: { female: 'ml-IN-SobhanaNeural', male: 'ml-IN-MidhunNeural' },
-  pa: { female: 'pa-IN-OjasNeural', male: 'pa-IN-GurpreetNeural' },
-  or: { female: 'or-IN-SubhasiniNeural', male: 'or-IN-AnanyaNeural' }
-};
 
 // Gender of every Sarvam Bulbul speaker (mirrors the labels in
 // Client/src/config/voices.ts). Used so that when a Sarvam voice fails and we
@@ -190,7 +139,6 @@ export function detectLanguageOfText(text, agentLanguage = 'en') {
 function getBestMultilingualProvider(detectedLang, gender) {
   const deepgramKey = process.env.DEEPGRAM_API_KEY;
   const elevenlabsKey = process.env.ELEVENLABS_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
   const sarvamKey = process.env.SARVAM_API_KEY;
 
   if (detectedLang === 'en' && deepgramKey && !deepgramKey.startsWith('your-')) {
@@ -203,19 +151,15 @@ function getBestMultilingualProvider(detectedLang, gender) {
     return { provider: 'elevenlabs', voiceModelOrId: voiceId };
   }
 
-  if (openaiKey && !openaiKey.startsWith('your-')) {
-    const voiceId = gender === 'male' ? 'onyx' : 'nova';
-    return { provider: 'openai', voiceModelOrId: voiceId };
-  }
-
   const sarvamSupported = ['en', 'hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa', 'or'];
   if (sarvamKey && !sarvamKey.startsWith('your-') && sarvamSupported.includes(detectedLang)) {
     const voiceId = gender === 'male' ? 'shubh' : 'shreya';
     return { provider: 'sarvam', voiceModelOrId: voiceId };
   }
 
-  const voiceId = gender === 'male' ? 'onyx' : 'nova';
-  return { provider: 'openai', voiceModelOrId: voiceId };
+  // Default to Deepgram Aura
+  const voiceId = gender === 'male' ? 'aura-orion-en' : 'aura-asteria-en';
+  return { provider: 'deepgram', voiceModelOrId: voiceId };
 }
 
 export async function synthesizeSpeech(text, isTwilio = true, language = 'en', voiceId = null) {
@@ -228,7 +172,6 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
     voiceModelOrId = parts.slice(1).join(':');
   }
 
-  const hasAzure = !!(process.env.AZURE_SPEECH_KEY && !process.env.AZURE_SPEECH_KEY.startsWith('your-'));
   const detectedLang = detectLanguageOfText(text, language);
 
   if (detectedLang !== language) {
@@ -236,54 +179,25 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
     const isMale = /male|prabhat|guy|madhur|alvaro|henri|conrad|diego|antonio|marek|shakir|keita|injoon|yunxi|maarten|dmitry|ahmet|bashkar|mohan|valluvar|manohar|niranjan|gagan|midhun|gurpreet|ananya|zeus|orion|echo|fable|onyx|daniel|eric|chris|brian|adam|bill|shubh|manan|rohan|abhilash|karun|hitesh/i.test(voiceModelOrId || '');
     const gender = isMale ? 'male' : 'female';
 
-    if (provider === 'azure') {
-      if (hasAzure && AZURE_DEFAULT_VOICES[detectedLang]) {
-        voiceModelOrId = AZURE_DEFAULT_VOICES[detectedLang][gender];
-      } else {
+    if (provider === 'deepgram') {
+      if (detectedLang !== 'en') {
         const fallback = getBestMultilingualProvider(detectedLang, gender);
         provider = fallback.provider;
         voiceModelOrId = fallback.voiceModelOrId;
       }
-    } else if (provider === 'deepgram') {
-      if (detectedLang !== 'en') {
-        if (hasAzure && AZURE_DEFAULT_VOICES[detectedLang]) {
-          provider = 'azure';
-          voiceModelOrId = AZURE_DEFAULT_VOICES[detectedLang][gender];
-        } else {
-          const fallback = getBestMultilingualProvider(detectedLang, gender);
-          provider = fallback.provider;
-          voiceModelOrId = fallback.voiceModelOrId;
-        }
-      }
     } else if (provider === 'sarvam') {
       const sarvamSupported = ['en', 'hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa', 'or'];
       if (!sarvamSupported.includes(detectedLang)) {
-        if (hasAzure && AZURE_DEFAULT_VOICES[detectedLang]) {
-          provider = 'azure';
-          voiceModelOrId = AZURE_DEFAULT_VOICES[detectedLang][gender];
-        } else {
-          const fallback = getBestMultilingualProvider(detectedLang, gender);
-          provider = fallback.provider;
-          voiceModelOrId = fallback.voiceModelOrId;
-        }
+        const fallback = getBestMultilingualProvider(detectedLang, gender);
+        provider = fallback.provider;
+        voiceModelOrId = fallback.voiceModelOrId;
       }
     }
-  }
-
-  // Safeguard: Re-verify if Azure was selected but its key is missing
-  if (provider === 'azure' && !hasAzure) {
-    const isMale = /male|prabhat|guy|madhur|alvaro|henri|conrad|diego|antonio|marek|shakir|keita|injoon|yunxi|maarten|dmitry|ahmet|bashkar|mohan|valluvar|manohar|niranjan|gagan|midhun|gurpreet|ananya|zeus|orion|echo|fable|onyx|daniel|eric|chris|brian|adam|bill|shubh|manan|rohan|abhilash|karun|hitesh/i.test(voiceModelOrId || '');
-    const gender = isMale ? 'male' : 'female';
-    const fallback = getBestMultilingualProvider(language, gender);
-    provider = fallback.provider;
-    voiceModelOrId = fallback.voiceModelOrId;
   }
 
   if (!voiceModelOrId) {
     if (provider === 'elevenlabs') voiceModelOrId = 'hpp4J3VqNfWAUOO0d1Us';
     else if (provider === 'deepgram') voiceModelOrId = 'aura-asteria-en';
-    else if (provider === 'azure') voiceModelOrId = 'en-IN-NeerjaNeural';
-    else if (provider === 'openai') voiceModelOrId = 'nova';
     else if (provider === 'sarvam') voiceModelOrId = 'bulbul:v3:shreya';
   }
 
@@ -337,69 +251,6 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
     }
   }
 
-  if (provider === 'azure') {
-    const azureKey = process.env.AZURE_SPEECH_KEY;
-    const azureRegion = process.env.AZURE_SPEECH_REGION || 'eastus';
-    if (!azureKey || azureKey.startsWith('your-')) {
-      throw new Error('AZURE_SPEECH_KEY is not set');
-    }
-
-    const match = voiceModelOrId ? voiceModelOrId.match(/^([a-z]{2}-[A-Z]{2})/) : null;
-    const langCode = match ? match[1] : (language === 'en' ? 'en-IN' : (language === 'hi' ? 'hi-IN' : language));
-    const ssml = `<speak version='1.0' xml:lang='${langCode}'><voice xml:lang='${langCode}' name='${voiceModelOrId}'>${text}</voice></speak>`;
-
-    const tokenResponse = await fetch(`https://${azureRegion}.api.cognitive.microsoft.com/sts/v1/issueToken`, {
-      method: 'POST',
-      headers: {
-        'Ocp-Apim-Subscription-Key': azureKey,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-    const accessToken = await tokenResponse.text();
-
-    const audioFormat = isTwilio ? 'riff-8khz-16bit-mono-pcm' : 'riff-24khz-16bit-mono-pcm';
-    const speechResponse = await fetch(`https://${azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/ssml+xml',
-        'X-Microsoft-OutputFormat': audioFormat,
-      },
-      body: ssml,
-    });
-
-    if (!speechResponse.ok) {
-      const errTxt = await speechResponse.text();
-      throw new Error(`Azure TTS failed (${speechResponse.status}): ${errTxt}`);
-    }
-
-    const buffer = await speechResponse.arrayBuffer();
-    let audioBuffer = Buffer.from(buffer);
-
-    if (isTwilio && audioFormat.includes('pcm')) {
-      audioBuffer = pcm16ToMulaw(audioBuffer);
-    }
-
-    return audioBuffer.toString('base64');
-  }
-
-  if (provider === 'openai' && !isOpenAIMissing) {
-    try {
-      const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: openaiKey });
-      const mp3 = await openai.audio.speech.create({
-        model: 'tts-1',
-        voice: voiceModelOrId || 'nova',
-        input: text,
-      });
-      const buffer = Buffer.from(await mp3.arrayBuffer());
-      return buffer.toString('base64');
-    } catch (openaiErr) {
-      console.warn('[TTS] OpenAI TTS failed, falling back to Deepgram Aura:', openaiErr.message);
-      const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
-      return synthesizeSpeechDirectDeepgram(text, isTwilio, fallbackVoice);
-    }
-  }
   if (provider === 'sarvam') {
     const sarvamKey = process.env.SARVAM_API_KEY;
     if (!sarvamKey || sarvamKey.startsWith('your-')) {

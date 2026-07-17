@@ -111,7 +111,10 @@ export function buildHelmet() {
 
 // ─── CSRF Protection ────────────────────────────────────────────────────────
 
-const CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('hex');
+const CSRF_SECRET = process.env.CSRF_SECRET;
+if (!CSRF_SECRET) {
+  throw new Error('CSRF_SECRET is not set in environment variables');
+}
 const CSRF_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
 
 function extractToken(req) {

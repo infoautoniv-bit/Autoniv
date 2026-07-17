@@ -25,14 +25,6 @@ export const VOICE_OPTIONS: VoiceOption[] = [
   { value: 'deepgram:aura-orion-en', label: 'Orion (Deepgram) - English Male (Fast)' },
   { value: 'deepgram:aura-zeus-en', label: 'Zeus (Deepgram) - English Male (Fast)' },
 
-  // --- Azure Neural Voices (Multilingual / Indian English / Hindi) ---
-  { value: 'azure:en-IN-NeerjaNeural', label: 'Neerja (Azure) - Indian English Female' },
-  { value: 'azure:en-IN-PrabhatNeural', label: 'Prabhat (Azure) - Indian English Male' },
-  { value: 'azure:hi-IN-SwaraNeural', label: 'Swara (Azure) - Hindi Female' },
-  { value: 'azure:hi-IN-MadhurNeural', label: 'Madhur (Azure) - Hindi Male' },
-  { value: 'azure:en-US-JennyNeural', label: 'Jenny (Azure) - US English Female' },
-  { value: 'azure:en-US-GuyNeural', label: 'Guy (Azure) - US English Male' },
-
   // --- OpenAI TTS Voices (Simple / Natural) ---
   { value: 'openai:alloy', label: 'Alloy (OpenAI) - Neutral' },
   { value: 'openai:echo', label: 'Echo (OpenAI) - Male' },
@@ -40,13 +32,6 @@ export const VOICE_OPTIONS: VoiceOption[] = [
   { value: 'openai:onyx', label: 'Onyx (OpenAI) - Male' },
   { value: 'openai:nova', label: 'Nova (OpenAI) - Female' },
   { value: 'openai:shimmer', label: 'Shimmer (OpenAI) - Female' },
-
-  // --- Groq TTS (Fast Inference) ---
-  { value: 'groq:aura-asteria-en', label: 'Asteria (Groq) - English Female (Fast)' },
-  { value: 'groq:aura-luna-en', label: 'Luna (Groq) - English Female (Fast)' },
-  { value: 'groq:aura-stella-en', label: 'Stella (Groq) - English Female (Fast)' },
-  { value: 'groq:aura-orion-en', label: 'Orion (Groq) - English Male (Fast)' },
-  { value: 'groq:aura-zeus-en', label: 'Zeus (Groq) - English Male (Fast)' },
 
   // --- Sarvam AI Indian-Native Voices (Indic-native) - Bulbul V3 (Official 42+ Speakers) ---
   { value: 'sarvam:bulbul:v3:shubh', label: 'Sarvam Shubh (V3 - Male)' },

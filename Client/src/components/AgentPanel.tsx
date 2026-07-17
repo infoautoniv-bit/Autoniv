@@ -539,9 +539,7 @@ export function AgentPanel({
                       {([
                         { key: 'elevenlabs', title: 'ElevenLabs', desc: 'Premium natural voices', filter: (v: any) => v.value.startsWith('hpp4') || v.value.startsWith('cgSg') || v.value.startsWith('pFZP') || v.value.startsWith('onwK') || v.value.startsWith('cjVi') || v.value.startsWith('iP95') || v.value.startsWith('nPcz') || v.value.startsWith('pNIn') || v.value.startsWith('pqHf') },
                         { key: 'deepgram', title: 'Deepgram Aura', desc: 'Ultra low latency', filter: (v: any) => v.value.startsWith('deepgram:') },
-                        { key: 'azure', title: 'Azure Neural', desc: 'Multilingual & Indian voices', filter: (v: any) => v.value.startsWith('azure:') },
                         { key: 'openai', title: 'OpenAI TTS', desc: 'Simple & natural', filter: (v: any) => v.value.startsWith('openai:') },
-                        { key: 'groq', title: 'Groq TTS', desc: 'Fast inference', filter: (v: any) => v.value.startsWith('groq:') },
                         { key: 'sarvam', title: 'Sarvam AI', desc: 'Indian-native voices', filter: (v: any) => v.value.startsWith('sarvam:') },
                       ] as const).map(section => {
                         const voices = filteredVoices.filter(section.filter);
