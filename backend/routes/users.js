@@ -354,6 +354,7 @@ router.put('/:id/plan', requireValidObjectId('id'), async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    let planFromRequest = plan;
     if (plan && chatPlan === undefined && voicePlan === undefined) {
       if (plan.startsWith('chat_')) {
         chatPlan = plan;
@@ -390,7 +391,9 @@ router.put('/:id/plan', requireValidObjectId('id'), async (req, res) => {
     const finalChat = updates.chatPlan !== undefined ? updates.chatPlan : (user.chatPlan || 'chat_free');
     const finalVoice = updates.voicePlan !== undefined ? updates.voicePlan : (user.voicePlan || 'none');
 
-    if (finalChat !== 'none' && finalVoice !== 'none') {
+    if (planFromRequest) {
+      updates.plan = planFromRequest;
+    } else if (finalChat !== 'none' && finalVoice !== 'none') {
       const chatTier = finalChat.replace('chat_', '');
       const voiceTier = finalVoice.replace('voice_', '');
       updates.plan = chatTier === voiceTier ? `both_${chatTier}` : finalChat;

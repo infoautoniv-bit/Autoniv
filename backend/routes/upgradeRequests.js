@@ -136,13 +136,13 @@ router.put('/:id', requireAdmin, async (req, res) => {
         const voiceConfig = (voicePlan !== 'none' && User.PLAN_CONFIG[voicePlan]) ? User.PLAN_CONFIG[voicePlan] : null;
 
         let planLegacy = plan;
-        if (chatPlan !== 'none' && voicePlan !== 'none') {
+        if (plan.startsWith('both_')) {
           const chatTier = chatPlan.replace('chat_', '');
           const voiceTier = voicePlan.replace('voice_', '');
-          planLegacy = chatTier === voiceTier ? `both_${chatTier}` : chatPlan;
-        } else if (chatPlan !== 'none') {
+          planLegacy = chatTier === voiceTier ? `both_${chatTier}` : plan;
+        } else if (plan.startsWith('chat_')) {
           planLegacy = chatPlan;
-        } else if (voicePlan !== 'none') {
+        } else if (plan.startsWith('voice_')) {
           planLegacy = voicePlan;
         }
 
