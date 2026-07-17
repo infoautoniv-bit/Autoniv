@@ -9,10 +9,10 @@ const router = express.Router();
 router.use(authenticate);
 
 const VALID_UPGRADE_PLANS = [
-  'chat_starter', 'chat_growth', 'chat_enterprise',
-  'voice_starter', 'voice_growth', 'voice_enterprise',
-  'both_starter', 'both_growth', 'both_enterprise',
-  'starter', 'growth', 'enterprise' // backward compatibility
+  'chat_free', 'chat_starter', 'chat_growth', 'chat_enterprise',
+  'voice_free', 'voice_starter', 'voice_growth', 'voice_enterprise',
+  'both_free', 'both_starter', 'both_growth', 'both_enterprise',
+  'free', 'starter', 'growth', 'enterprise' // backward compatibility
 ];
 
 router.post('/', async (req, res) => {
