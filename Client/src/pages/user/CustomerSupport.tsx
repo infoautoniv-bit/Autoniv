@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { supportService } from '../../services/api';
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const stagger = { container: { animate: { transition: { staggerChildren: 0.04 } } } };
-
-const CONTACT_PHONE_RAW = import.meta.env.VITE_CONTACT_PHONE_RAW || '917065990307';
 
 const FAQ_ITEMS = [
   {
@@ -51,9 +50,12 @@ export function CustomerSupport() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [ticketForm, setTicketForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmitTicket = (e: React.FormEvent) => {
+  const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     const trimmedName = ticketForm.name.trim();
     const trimmedEmail = ticketForm.email.trim();
@@ -64,23 +66,25 @@ export function CustomerSupport() {
       return;
     }
 
-    const lines = [
-      "Hello! I am submitting a support ticket from the Dashboard:",
-      "",
-      `Name: ${trimmedName}`,
-      `Email: ${trimmedEmail}`,
-      `Subject: ${trimmedSubject}`,
-      "",
-      `Message: ${trimmedMessage}`
-    ];
-
-    window.open(`https://wa.me/${CONTACT_PHONE_RAW}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
-
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setTicketForm({ name: '', email: '', subject: '', message: '' });
-    }, 3000);
+    setLoading(true);
+    try {
+      await supportService.submit({
+        name: trimmedName,
+        email: trimmedEmail,
+        subject: trimmedSubject,
+        message: trimmedMessage,
+      });
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        setTicketForm({ name: '', email: '', subject: '', message: '' });
+      }, 3000);
+    } catch (err: any) {
+      console.error('Support ticket error:', err);
+      setError('Failed to submit. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -232,10 +236,12 @@ export function CustomerSupport() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-2.5 px-4 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+                  disabled={loading}
+                  className="w-full py-2.5 px-4 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
                 >
-                  Submit Ticket
+                  {loading ? 'Submitting…' : 'Submit Ticket'}
                 </button>
+                {error && <p className="text-xs text-red-500 text-center">{error}</p>}
               </form>
             )}
           </div>

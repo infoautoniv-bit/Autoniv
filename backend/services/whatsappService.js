@@ -3,7 +3,8 @@ import { log } from './logger.js';
 const WHATSAPP_API_URL         = process.env.WHATSAPP_API_URL         || null;
 const WHATSAPP_API_KEY         = process.env.WHATSAPP_API_KEY         || null;
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || null;
-const BUSINESS_NAME            = process.env.BUSINESS_NAME            || 'Our Team';
+const BUSINESS_NAME            = process.env.BUSINESS_NAME            || 'Autoniv';
+const ADMIN_WHATSAPP           = process.env.ADMIN_WHATSAPP           || '917065990307';
 
 function normalizePhone(phone) {
   if (!phone || typeof phone !== 'string') return null;
@@ -14,6 +15,105 @@ function normalizePhone(phone) {
   if (/^0\d{10}$/.test(digits))   return `91${digits.slice(1)}`;
   log.warn('whatsapp_invalid_phone', { raw: phone, digits });
   return null;
+}
+
+async function sendTextMessage(toPhone, text) {
+  if (!WHATSAPP_API_URL || !WHATSAPP_API_KEY || !WHATSAPP_PHONE_NUMBER_ID) {
+    return null;
+  }
+
+  const url = `${WHATSAPP_API_URL.replace(/\/$/, '')}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+
+  const payload = {
+    messaging_product: 'whatsapp',
+    to: toPhone,
+    type: 'text',
+    text: { body: text },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${WHATSAPP_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '(no body)');
+    throw new Error(`WhatsApp API ${res.status}: ${text}`);
+  }
+
+  return res.json().catch(() => ({}));
+}
+
+export async function sendContactWhatsApp({ name, email, phone, company, message }) {
+  const adminPhone = normalizePhone(ADMIN_WHATSAPP);
+  if (!adminPhone) {
+    log.warn('whatsapp_no_admin_phone');
+    return { success: false, error: 'No admin WhatsApp number configured' };
+  }
+
+  const lines = [
+    `📬 *New Contact Form Submission*`,
+    ``,
+    `*Name:* ${name}`,
+    `*Email:* ${email}`,
+  ];
+  if (phone) lines.push(`*Phone:* ${phone}`);
+  if (company) lines.push(`*Company:* ${company}`);
+  lines.push(``, `*Message:*`, message);
+
+  const text = lines.join('\n');
+
+  try {
+    const apiResponse = await sendTextMessage(adminPhone, text);
+    if (apiResponse) {
+      const messageId = apiResponse.messages?.[0]?.id ?? null;
+      log.info('whatsapp_contact_notification_sent', { messageId, sentTo: adminPhone });
+      return { success: true, messageId };
+    }
+    log.info('whatsapp_contact_notification_simulated', { sentTo: adminPhone });
+    return { success: true, simulated: true };
+  } catch (err) {
+    log.error('whatsapp_contact_notification_failed', { error: err.message });
+    return { success: false, error: err.message };
+  }
+}
+
+export async function sendLeadWhatsApp({ name, email, phone, purpose, notes }) {
+  const adminPhone = normalizePhone(ADMIN_WHATSAPP);
+  if (!adminPhone) {
+    log.warn('whatsapp_no_admin_phone');
+    return { success: false, error: 'No admin WhatsApp number configured' };
+  }
+
+  const lines = [
+    `🎯 *New Lead Captured*`,
+    ``,
+    `*Name:* ${name}`,
+    `*Email:* ${email}`,
+    `*Phone:* ${phone}`,
+  ];
+  if (purpose) lines.push(`*Purpose:* ${purpose}`);
+  if (notes) lines.push(``, `*Notes:*`, notes);
+
+  const text = lines.join('\n');
+
+  try {
+    const apiResponse = await sendTextMessage(adminPhone, text);
+    if (apiResponse) {
+      const messageId = apiResponse.messages?.[0]?.id ?? null;
+      log.info('whatsapp_lead_notification_sent', { messageId, sentTo: adminPhone });
+      return { success: true, messageId };
+    }
+    log.info('whatsapp_lead_notification_simulated', { sentTo: adminPhone });
+    return { success: true, simulated: true };
+  } catch (err) {
+    log.error('whatsapp_lead_notification_failed', { error: err.message });
+    return { success: false, error: err.message };
+  }
 }
 
 function buildConfirmationMessage(appointment) {

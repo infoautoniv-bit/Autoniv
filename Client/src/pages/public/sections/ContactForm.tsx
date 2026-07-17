@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { contactService } from "../../../services/api";
 
-const CONTACT_PHONE_RAW = import.meta.env.VITE_CONTACT_PHONE_RAW || '917065990307';
-
 export function ContactForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -12,20 +10,6 @@ export function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const openWA = (valName: string, valEmail: string, valPhone: string, valCompany: string, valMessage: string) => {
-    const lines = [
-      "Hello! I have an inquiry via Contact Us form:",
-      "",
-      `Name: ${valName}`,
-      `Email: ${valEmail}`,
-      valPhone ? `Phone: ${valPhone}` : "",
-      valCompany ? `Company: ${valCompany}` : "",
-      "",
-      `Message: ${valMessage}`
-    ].filter(Boolean);
-    window.open(`https://wa.me/${CONTACT_PHONE_RAW}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,12 +54,11 @@ export function ContactForm() {
         company: trimmedCompany,
         message: trimmedMessage
       });
+      setSubmitted(true);
     } catch (err: any) {
       console.error("Backend submission error:", err);
-      // We proceed to WhatsApp even if backend submission fails so the user message is sent
+      setError("Failed to send. Please try again.");
     } finally {
-      openWA(trimmedName, trimmedEmail, trimmedPhone, trimmedCompany, trimmedMessage);
-      setSubmitted(true);
       setLoading(false);
     }
   };
@@ -88,7 +71,7 @@ export function ContactForm() {
         <svg className="w-7 h-7" fill="none" stroke="#10B981" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
       </div>
       <h3 className="text-xl font-bold" style={{ color: "#0a0a0a" }}>Thank you!</h3>
-      <p className="text-sm" style={{ color: "#52525b" }}>Your details have been sent to our team on WhatsApp. We'll get back to you within 24 hours.</p>
+      <p className="text-sm" style={{ color: "#52525b" }}>Your details have been sent to our team. We'll get back to you within 24 hours.</p>
     </div>
   );
   return (

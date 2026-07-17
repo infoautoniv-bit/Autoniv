@@ -1,6 +1,8 @@
 import express from 'express';
 import Lead from '../db/models/Lead.js';
 import { contentFilter } from '../services/contentModeration.js';
+import { sendLeadNotification } from '../services/emailService.js';
+import { sendLeadWhatsApp } from '../services/whatsappService.js';
 import { log } from '../services/logger.js';
 
 const router = express.Router();
@@ -37,6 +39,10 @@ router.post('/', contentFilter('name', 'purpose', 'notes'), async (req, res) => 
     });
 
     log.info('public_lead_created', { leadId: String(lead._id), email, name });
+
+    const data = { name: name.trim(), email: email.trim(), phone: phone.trim(), purpose, notes };
+    sendLeadNotification(data).catch(err => log.error('lead_email_failed', { error: err.message }));
+    sendLeadWhatsApp(data).catch(err => log.error('lead_whatsapp_failed', { error: err.message }));
 
     return res.status(201).json({
       message: 'Thank you! Our team will contact you shortly.',

@@ -520,11 +520,18 @@ export const contactService = {
     company?: string;
     message: string;
   }) =>
-    axios.post(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/contact`,
-      data,
-      { headers: { 'Content-Type': 'application/json' } },
-    ),
+    api.post('/contact', data),
+};
+
+// ── Support ────────────────────────────────────────────────────────────────
+export const supportService = {
+  submit: (data: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+  }) =>
+    api.post('/support', data),
 };
 
 // ── Analytics ──────────────────────────────────────────────────────────────

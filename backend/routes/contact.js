@@ -1,6 +1,8 @@
 import express from 'express';
 import Contact from '../db/models/Contact.js';
 import { contentFilter } from '../services/contentModeration.js';
+import { sendContactNotification } from '../services/emailService.js';
+import { sendContactWhatsApp } from '../services/whatsappService.js';
 import { log } from '../services/logger.js';
 
 const router = express.Router();
@@ -27,6 +29,10 @@ router.post('/', contentFilter('name', 'message'), async (req, res) => {
     });
 
     log.info('contact_created', { contactId: String(contact._id), email, name });
+
+    const data = { name: name.trim(), email: email.trim(), phone, company, message: message.trim() };
+    sendContactNotification(data).catch(err => log.error('contact_email_failed', { error: err.message }));
+    sendContactWhatsApp(data).catch(err => log.error('contact_whatsapp_failed', { error: err.message }));
 
     return res.status(201).json({ message: 'Thank you! Our team will reach out within 24 hours.' });
   } catch (error) {

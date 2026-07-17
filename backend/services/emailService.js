@@ -95,3 +95,107 @@ export async function sendOtpEmail({ to, otp, purpose }) {
     }
   }
 }
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'info.autoniv@gmail.com';
+
+export async function sendContactNotification({ name, email, phone, company, message }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px; background: #080d17; border-radius: 12px; border: 1px solid rgba(0,119,255,0.15);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #0077ff, #00c8b4); line-height: 48px; color: white; font-size: 20px; font-weight: bold;">A</div>
+      </div>
+      <h2 style="color: #ffffff; text-align: center; margin-bottom: 8px;">New Contact Form Submission</h2>
+      <p style="color: #94a3b8; text-align: center; font-size: 14px; margin-bottom: 24px;">Someone submitted the contact form on your website.</p>
+      <div style="background: rgba(0,119,255,0.1); border: 1px solid rgba(0,119,255,0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <table style="width: 100%; color: #e2e8f0; font-size: 14px;">
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Name</td><td style="padding: 6px 0; text-align: right;">${name}</td></tr>
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Email</td><td style="padding: 6px 0; text-align: right;">${email}</td></tr>
+          ${phone ? `<tr><td style="padding: 6px 0; color: #94a3b8;">Phone</td><td style="padding: 6px 0; text-align: right;">${phone}</td></tr>` : ''}
+          ${company ? `<tr><td style="padding: 6px 0; color: #94a3b8;">Company</td><td style="padding: 6px 0; text-align: right;">${company}</td></tr>` : ''}
+        </table>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,119,255,0.2);">
+          <p style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Message:</p>
+          <p style="color: #e2e8f0; font-size: 14px; line-height: 1.5;">${message}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const { data, error } = await resend.emails.send({
+    from: `${fromName} <${fromEmail}>`,
+    to: ADMIN_EMAIL,
+    subject: `New Contact: ${name} — Autoniv`,
+    html,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function sendSupportNotification({ name, email, subject, message }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px; background: #080d17; border-radius: 12px; border: 1px solid rgba(0,119,255,0.15);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #0077ff, #00c8b4); line-height: 48px; color: white; font-size: 20px; font-weight: bold;">A</div>
+      </div>
+      <h2 style="color: #ffffff; text-align: center; margin-bottom: 8px;">New Support Ticket</h2>
+      <p style="color: #94a3b8; text-align: center; font-size: 14px; margin-bottom: 24px;">A user submitted a support ticket from the dashboard.</p>
+      <div style="background: rgba(0,119,255,0.1); border: 1px solid rgba(0,119,255,0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <table style="width: 100%; color: #e2e8f0; font-size: 14px;">
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Name</td><td style="padding: 6px 0; text-align: right;">${name}</td></tr>
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Email</td><td style="padding: 6px 0; text-align: right;">${email}</td></tr>
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Subject</td><td style="padding: 6px 0; text-align: right;">${subject}</td></tr>
+        </table>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,119,255,0.2);">
+          <p style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Message:</p>
+          <p style="color: #e2e8f0; font-size: 14px; line-height: 1.5;">${message}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const { data, error } = await resend.emails.send({
+    from: `${fromName} <${fromEmail}>`,
+    to: ADMIN_EMAIL,
+    subject: `Support Ticket: ${subject} — Autoniv`,
+    html,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function sendLeadNotification({ name, email, phone, purpose, notes }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px; background: #080d17; border-radius: 12px; border: 1px solid rgba(0,119,255,0.15);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #0077ff, #00c8b4); line-height: 48px; color: white; font-size: 20px; font-weight: bold;">A</div>
+      </div>
+      <h2 style="color: #ffffff; text-align: center; margin-bottom: 8px;">New Lead Captured</h2>
+      <p style="color: #94a3b8; text-align: center; font-size: 14px; margin-bottom: 24px;">A new lead was captured via the AI chat widget.</p>
+      <div style="background: rgba(0,119,255,0.1); border: 1px solid rgba(0,119,255,0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <table style="width: 100%; color: #e2e8f0; font-size: 14px;">
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Name</td><td style="padding: 6px 0; text-align: right;">${name}</td></tr>
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Email</td><td style="padding: 6px 0; text-align: right;">${email}</td></tr>
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Phone</td><td style="padding: 6px 0; text-align: right;">${phone}</td></tr>
+          ${purpose ? `<tr><td style="padding: 6px 0; color: #94a3b8;">Purpose</td><td style="padding: 6px 0; text-align: right;">${purpose}</td></tr>` : ''}
+        </table>
+        ${notes ? `
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,119,255,0.2);">
+          <p style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Notes:</p>
+          <p style="color: #e2e8f0; font-size: 14px; line-height: 1.5;">${notes}</p>
+        </div>` : ''}
+      </div>
+    </div>
+  `;
+
+  const { data, error } = await resend.emails.send({
+    from: `${fromName} <${fromEmail}>`,
+    to: ADMIN_EMAIL,
+    subject: `New Lead: ${name} — Autoniv`,
+    html,
+  });
+
+  if (error) throw error;
+  return data;
+}
