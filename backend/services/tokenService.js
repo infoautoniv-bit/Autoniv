@@ -72,6 +72,16 @@ export function verifyAccessToken(token) {
   });
 }
 
+export function verifyAccessTokenIgnoreExpiry(token) {
+  return jwt.verify(token, getAccessSecret(), {
+    algorithms: [ALGORITHM],
+    issuer: ISSUER,
+    audience: AUDIENCE,
+    clockTolerance: 5,
+    ignoreExpiration: true,
+  });
+}
+
 export function verifyRefreshToken(token) {
   return jwt.verify(token, getRefreshSecret(), {
     algorithms: [ALGORITHM],

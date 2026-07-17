@@ -4,7 +4,7 @@ import hpp from 'hpp';
 import cors from 'cors';
 import crypto from 'crypto';
 import { IS_PROD, log } from '../services/logger.js';
-import { verifyAccessToken } from '../services/tokenService.js';
+import { verifyAccessTokenIgnoreExpiry } from '../services/tokenService.js';
 import { extractTokenFromCookie } from '../services/cookieService.js';
 
 const DEFAULT_ORIGINS = [
@@ -127,7 +127,7 @@ function resolveSessionId(req) {
   try {
     const token = extractToken(req);
     if (token) {
-      const decoded = verifyAccessToken(token);
+      const decoded = verifyAccessTokenIgnoreExpiry(token);
       if (decoded && decoded.userId) {
         return String(decoded.userId);
       }
@@ -150,27 +150,57 @@ function generateCsrfToken(sessionId) {
   return Buffer.from(`${payload}:${signature}`).toString('base64');
 }
 
+import fs from 'fs';
+import path from 'path';
+
+function appendDebugLog(event, details) {
+  try {
+    const logPath = path.resolve('csrf-debug.log');
+    const logLine = `${new Date().toISOString()} [${event}] ${JSON.stringify(details)}\n`;
+    fs.appendFileSync(logPath, logLine);
+  } catch (err) {
+    // Ignore log write errors
+  }
+}
+
 function verifyCsrfToken(token, sessionId) {
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf8');
     const parts = decoded.split(':');
-    if (parts.length !== 4) return false;
+    if (parts.length !== 4) {
+      log.warn('csrf_parse_failed', { tokenLength: token?.length });
+      appendDebugLog('csrf_parse_failed', { tokenLength: token?.length, token });
+      return false;
+    }
 
     const [tokenSessionId, timestamp, random, signature] = parts;
     const payload = `${tokenSessionId}:${timestamp}:${random}`;
     const expectedSignature = crypto.createHmac('sha256', CSRF_SECRET).update(payload).digest('hex');
 
     if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+      log.warn('csrf_signature_mismatch');
+      appendDebugLog('csrf_signature_mismatch', { token, payload });
       return false;
     }
 
-    if (tokenSessionId !== sessionId) return false;
+    if (tokenSessionId !== sessionId) {
+      log.warn('csrf_session_mismatch', { tokenSessionId, requestSessionId: sessionId });
+      appendDebugLog('csrf_session_mismatch', { tokenSessionId, requestSessionId: sessionId, token });
+      return false;
+    }
 
     const age = Date.now() - parseInt(timestamp, 10);
-    if (age > CSRF_TOKEN_EXPIRY) return false;
+    if (age > CSRF_TOKEN_EXPIRY) {
+      log.warn('csrf_token_expired', { age, limit: CSRF_TOKEN_EXPIRY });
+      appendDebugLog('csrf_token_expired', { age, limit: CSRF_TOKEN_EXPIRY, token });
+      return false;
+    }
 
+    appendDebugLog('csrf_verified_success', { tokenSessionId, sessionId });
     return true;
-  } catch {
+  } catch (err) {
+    log.warn('csrf_verification_exception', { error: err.message });
+    appendDebugLog('csrf_verification_exception', { error: err.message, token });
     return false;
   }
 }
@@ -199,12 +229,24 @@ export function csrfProtection(req, res, next) {
   const sessionId = resolveSessionId(req);
   const csrfToken = req.headers['x-csrf-token'] || req.body?._csrf;
 
-  if (!csrfToken || !verifyCsrfToken(csrfToken, sessionId)) {
-    log.warn('csrf_validation_failed', {
+  if (!csrfToken) {
+    log.warn('csrf_token_missing', {
       ip: req.ip,
       path: req.originalUrl,
       method: req.method,
     });
+    appendDebugLog('csrf_token_missing', { path: req.originalUrl, method: req.method, ip: req.ip, resolvedSessionId: sessionId });
+    return res.status(403).json({ message: 'Invalid or missing CSRF token' });
+  }
+
+  if (!verifyCsrfToken(csrfToken, sessionId)) {
+    log.warn('csrf_validation_failed', {
+      ip: req.ip,
+      path: req.originalUrl,
+      method: req.method,
+      resolvedSessionId: sessionId,
+    });
+    appendDebugLog('csrf_validation_failed', { path: req.originalUrl, method: req.method, ip: req.ip, resolvedSessionId: sessionId });
     return res.status(403).json({ message: 'Invalid or missing CSRF token' });
   }
 
@@ -217,7 +259,7 @@ export function csrfTokenEndpoint(req, res) {
   let isAuthed = false;
   if (token) {
     try {
-      const decoded = verifyAccessToken(token);
+      const decoded = verifyAccessTokenIgnoreExpiry(token);
       if (decoded && decoded.userId) isAuthed = true;
     } catch (err) {
       // Ignore
