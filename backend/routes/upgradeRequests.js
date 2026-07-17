@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
       status: 'pending',
     });
 
-    res.status(201).json({ request });
+    res.status(201).json({ request: { ...request.toObject(), id: request._id } });
   } catch (error) {
     log.error('create_upgrade_request_error', { error: error.message, userId: req.user?.userId });
     res.status(500).json({ message: 'Failed to create upgrade request' });
@@ -159,7 +159,8 @@ router.put('/:id', requireAdmin, async (req, res) => {
       }
     }
 
-    res.json({ request });
+    const result = { ...request.toObject(), id: request._id };
+    res.json({ request: result });
   } catch (error) {
     log.error('process_upgrade_request_error', { error: error.message, userId: req.user?.userId });
     res.status(500).json({ message: 'Failed to process upgrade request' });
