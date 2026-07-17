@@ -19,16 +19,16 @@ const stagger = { container: { animate: { transition: { staggerChildren: 0.04 } 
 
 const statusConfig: Record<string, { label: string; dot: string; pill: string; text: string }> = {
   draft:     { label: 'Draft',     dot: 'bg-slate-400',   pill: 'bg-slate-50 border-slate-200',   text: 'text-slate-600' },
-  running:   { label: 'Running',   dot: 'bg-blue-500',    pill: 'bg-blue-50 border-blue-200',     text: 'text-blue-600' },
+  running:   { label: 'Running',   dot: 'bg-[var(--primary)]',    pill: 'bg-[var(--primary-soft)] border-[var(--primary)]/20',     text: 'text-[var(--primary)]' },
   paused:    { label: 'Paused',    dot: 'bg-amber-500',   pill: 'bg-amber-50 border-amber-200',   text: 'text-amber-600' },
-  completed: { label: 'Completed', dot: 'bg-emerald-500', pill: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-600' },
+  completed: { label: 'Completed', dot: 'bg-[var(--primary)]', pill: 'bg-[var(--primary-soft)] border-[var(--primary)]/20', text: 'text-[var(--primary)]' },
   cancelled: { label: 'Cancelled', dot: 'bg-rose-500',    pill: 'bg-rose-50 border-rose-200',     text: 'text-rose-600' },
 };
 
 const numberStatusConfig: Record<string, { label: string; color: string }> = {
   pending:   { label: 'Pending',   color: 'text-slate-500' },
-  calling:   { label: 'Calling',   color: 'text-blue-600' },
-  completed: { label: 'Completed', color: 'text-emerald-600' },
+  calling:   { label: 'Calling',   color: 'text-[var(--primary)]' },
+  completed: { label: 'Completed', color: 'text-[var(--primary)]' },
   failed:    { label: 'Failed',    color: 'text-rose-600' },
   'no-answer': { label: 'No Answer', color: 'text-amber-600' },
   busy:      { label: 'Busy',      color: 'text-orange-600' },
@@ -71,13 +71,13 @@ export function BulkCallDashboard() {
       {/* Header */}
       <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-[9px] font-black tracking-[0.22em] uppercase text-indigo-600">BULK CALL CAMPAIGNS</span>
+          <span className="text-[9px] font-black tracking-[0.22em] uppercase text-[var(--primary)]">BULK CALL CAMPAIGNS</span>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight mt-1">Bulk Calling</h2>
           <p className="text-xs text-slate-500 font-semibold mt-1">Create and manage bulk outbound call campaigns</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-sm cursor-pointer border-none"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all shadow-sm cursor-pointer border-none"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -90,8 +90,8 @@ export function BulkCallDashboard() {
       <motion.div variants={stagger.container} initial="initial" animate="animate" className="space-y-3">
         {myCampaigns.length === 0 && !loading ? (
           <motion.div variants={fadeUp} className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur-md p-10 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+            <div className="w-14 h-14 rounded-2xl bg-[var(--primary-soft)] border border-[var(--primary)]/20 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
             </div>
@@ -124,7 +124,7 @@ export function BulkCallDashboard() {
                     {/* Progress bar */}
                     <div className="mt-2.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400 transition-all"
+                        className="h-full rounded-full bg-[var(--primary)] transition-all"
                         style={{ width: `${Math.min(progress, 100)}%` }}
                       />
                     </div>
@@ -133,7 +133,7 @@ export function BulkCallDashboard() {
                     {campaign.status === 'draft' && (
                       <button
                         onClick={(e) => { e.stopPropagation(); dispatch(startBulkCampaign(campaign.id)); }}
-                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all cursor-pointer border-none"
+                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none"
                       >
                         Start
                       </button>
@@ -149,7 +149,7 @@ export function BulkCallDashboard() {
                     {campaign.status === 'paused' && (
                       <button
                         onClick={(e) => { e.stopPropagation(); dispatch(startBulkCampaign(campaign.id)); }}
-                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all cursor-pointer border-none"
+                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none"
                       >
                         Resume
                       </button>
@@ -345,7 +345,7 @@ function BulkCallCreator({
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="e.g. Follow-up Campaign #1"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
               />
             </div>
             <div>
@@ -353,7 +353,7 @@ function BulkCallCreator({
               <select
                 value={agentId}
                 onChange={e => setAgentId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
               >
                 <option value="">Choose agent...</option>
                 {agents.map(a => (
@@ -369,7 +369,7 @@ function BulkCallCreator({
               <select
                 value={concurrency}
                 onChange={e => setConcurrency(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
               >
                 {[1, 2, 3, 4, 5].map(n => (
                   <option key={n} value={n}>{n} parallel call{n > 1 ? 's' : ''}</option>
@@ -381,7 +381,7 @@ function BulkCallCreator({
               <select
                 value={delayMs}
                 onChange={e => setDelayMs(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
               >
                 <option value={0}>No delay</option>
                 <option value={1000}>1 second</option>
@@ -399,8 +399,8 @@ function BulkCallCreator({
             const hasTwilio = !!(sel?.twilioAccountSid && sel?.twilioAuthToken && sel?.phoneNumber);
             if (hasTwilio) {
               return (
-                <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200/60">
-                  <p className="text-[10px] font-bold text-emerald-600">
+                <div className="p-3 rounded-xl bg-[var(--primary-soft)] border border-[var(--primary)]/20">
+                  <p className="text-[10px] font-bold text-[var(--primary)]">
                     Using Twilio credentials from agent: <span className="font-black">{sel?.name}</span> ({sel?.phoneNumber})
                   </p>
                 </div>
@@ -408,8 +408,8 @@ function BulkCallCreator({
             }
             if (!agentId) return null;
             return (
-              <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-200/60 space-y-3">
-                <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Twilio Credentials (required — agent has none)</p>
+              <div className="p-4 rounded-xl bg-[var(--primary-soft)]/50 border border-[var(--primary)]/20 space-y-3">
+                <p className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wider">Twilio Credentials (required — agent has none)</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5 block">Phone Number</label>
@@ -418,7 +418,7 @@ function BulkCallCreator({
                       value={twilioPhoneNumber}
                       onChange={e => setTwilioPhoneNumber(e.target.value)}
                       placeholder="+14155551234"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                     />
                   </div>
                   <div>
@@ -428,7 +428,7 @@ function BulkCallCreator({
                       value={twilioAccountSid}
                       onChange={e => setTwilioAccountSid(e.target.value)}
                       placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] font-mono"
                     />
                   </div>
                 </div>
@@ -439,7 +439,7 @@ function BulkCallCreator({
                     value={twilioAuthToken}
                     onChange={e => setTwilioAuthToken(e.target.value)}
                     placeholder="Your Twilio auth token"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] font-mono"
                   />
                 </div>
               </div>
@@ -455,7 +455,7 @@ function BulkCallCreator({
                 value={manualPhone}
                 onChange={e => setManualPhone(e.target.value)}
                 placeholder="+14155551234"
-                className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                 onKeyDown={e => e.key === 'Enter' && addManual()}
               />
               <input
@@ -463,12 +463,12 @@ function BulkCallCreator({
                 value={manualName}
                 onChange={e => setManualName(e.target.value)}
                 placeholder="Name (optional)"
-                className="w-36 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-36 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                 onKeyDown={e => e.key === 'Enter' && addManual()}
               />
               <button
                 onClick={addManual}
-                className="px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all cursor-pointer border-none"
+                className="px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none"
               >
                 Add
               </button>
@@ -485,11 +485,11 @@ function BulkCallCreator({
                 value={csvInput}
                 onChange={e => setCsvInput(e.target.value)}
                 placeholder="Or paste CSV: phone,name&#10;+14155551234,John&#10;+14155555678,Jane"
-                className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-[11px] font-mono text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none h-16"
+                className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-[11px] font-mono text-slate-600 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] resize-none h-16"
               />
               <button
                 onClick={handleCSVPaste}
-                className="px-4 py-2 rounded-xl text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-all cursor-pointer border-none self-end"
+                className="px-4 py-2 rounded-xl text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none self-end"
               >
                 Parse
               </button>
@@ -538,7 +538,7 @@ function BulkCallCreator({
           <button
             onClick={handleSubmit}
             disabled={submitting || !name.trim() || !agentId || numbers.length === 0}
-            className="flex-1 py-3 rounded-xl text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-blue-600 to-indigo-600 text-white transition-all flex items-center justify-center gap-2 cursor-pointer border-none"
+            className="flex-1 py-3 rounded-xl text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--primary)] text-white transition-all flex items-center justify-center gap-2 cursor-pointer border-none"
           >
             {submitting ? 'Creating...' : `Create Campaign (${numbers.length} numbers)`}
           </button>
@@ -605,9 +605,9 @@ function CampaignDetailDialog({
         <div className="px-6 py-4 grid grid-cols-4 gap-3">
           {[
             { label: 'Total', value: campaign.totalCount, bg: 'bg-slate-50 border-slate-200 text-slate-700' },
-            { label: 'Completed', value: campaign.completedCount, bg: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
+            { label: 'Completed', value: campaign.completedCount, bg: 'bg-[var(--primary-soft)] border-[var(--primary)]/20 text-[var(--primary)]' },
             { label: 'Failed', value: campaign.failedCount, bg: 'bg-rose-50 border-rose-100 text-rose-600' },
-            { label: 'Pending', value: campaign.totalCount - campaign.completedCount - campaign.failedCount, bg: 'bg-blue-50 border-blue-100 text-blue-600' },
+            { label: 'Pending', value: campaign.totalCount - campaign.completedCount - campaign.failedCount, bg: 'bg-[var(--primary-soft)] border-[var(--primary)]/20 text-[var(--primary)]' },
           ].map(s => (
             <div key={s.label} className={`${s.bg} border rounded-xl p-3 text-center`}>
               <p className="text-lg font-black">{s.value}</p>
@@ -619,7 +619,7 @@ function CampaignDetailDialog({
         {/* Progress */}
         <div className="px-6 pb-4">
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400 transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
+            <div className="h-full rounded-full bg-[var(--primary)] transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
           </div>
           <p className="text-[10px] text-slate-400 font-bold mt-1.5 text-right">{progress.toFixed(0)}% complete</p>
         </div>
@@ -648,7 +648,7 @@ function CampaignDetailDialog({
         {/* Footer Actions */}
         <div className="px-6 py-4 border-t border-slate-100 flex items-center gap-2">
           {campaign.status === 'draft' && (
-            <button onClick={onStart} className="px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all cursor-pointer border-none">
+            <button onClick={onStart} className="px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none">
               Start Campaign
             </button>
           )}
@@ -658,7 +658,7 @@ function CampaignDetailDialog({
             </button>
           )}
           {campaign.status === 'paused' && (
-            <button onClick={onStart} className="px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all cursor-pointer border-none">
+            <button onClick={onStart} className="px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none">
               Resume
             </button>
           )}
