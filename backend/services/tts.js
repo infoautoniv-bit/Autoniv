@@ -163,13 +163,27 @@ function getBestMultilingualProvider(detectedLang, gender) {
 }
 
 export async function synthesizeSpeech(text, isTwilio = true, language = 'en', voiceId = null) {
-  let provider = (language === 'en' || !language) ? 'deepgram' : 'elevenlabs';
+  let provider = null;
   let voiceModelOrId = voiceId;
 
   if (voiceId && voiceId.includes(':')) {
     const parts = voiceId.split(':');
     provider = parts[0];
     voiceModelOrId = parts.slice(1).join(':');
+  } else if (voiceId) {
+    // Detect provider from voiceId format:
+    // ElevenLabs IDs are long alphanumeric strings (e.g. hpp4J3VqNfWAUOO0d1Us)
+    // Deepgram Aura IDs start with 'aura-'
+    // Sarvam IDs start with 'bulbul'
+    if (voiceId.startsWith('aura-')) {
+      provider = 'deepgram';
+    } else if (voiceId.startsWith('bulbul')) {
+      provider = 'sarvam';
+    } else {
+      provider = 'elevenlabs';
+    }
+  } else {
+    provider = 'deepgram';
   }
 
   const detectedLang = detectLanguageOfText(text, language);
@@ -202,11 +216,9 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
   }
 
   const elevenlabsKey = process.env.ELEVENLABS_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
   const deepgramKey = process.env.DEEPGRAM_API_KEY;
 
   const isElevenLabsMissing = provider === 'elevenlabs' && (!elevenlabsKey || elevenlabsKey.startsWith('your-') || elevenlabsKey.includes('placeholder'));
-  const isOpenAIMissing = provider === 'openai' && (!openaiKey || openaiKey.startsWith('your-'));
   const isDeepgramMissing = !deepgramKey || deepgramKey.startsWith('your-');
 
   if (provider === 'deepgram' && !isDeepgramMissing) {
