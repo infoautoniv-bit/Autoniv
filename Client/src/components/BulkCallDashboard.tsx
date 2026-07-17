@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppDispatch, useAppSelector } from '../hooks/useStore';
 import {
   fetchMyBulkCampaigns,
-  fetchBulkCampaign,
   createBulkCampaign,
   startBulkCampaign,
   pauseBulkCampaign,
@@ -12,7 +11,7 @@ import {
   clearActiveCampaign,
 } from '../store/slices/bulkCallsSlice';
 import { fetchMyAgents } from '../store/slices/agentsSlice';
-import type { Agent, BulkCampaign, BulkCampaignNumber } from '../types';
+import type { Agent, BulkCampaign } from '../types';
 import { Pagination } from './Pagination';
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
@@ -173,10 +172,7 @@ export function BulkCallDashboard() {
 
       {myPagination.totalPages > 1 && (
         <Pagination
-          page={myPagination.page}
-          totalPages={myPagination.totalPages}
-          hasNext={myPagination.hasNext}
-          hasPrev={myPagination.hasPrev}
+          pagination={myPagination}
           onPageChange={setPage}
         />
       )}
