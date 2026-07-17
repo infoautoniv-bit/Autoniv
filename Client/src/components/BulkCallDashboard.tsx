@@ -19,7 +19,7 @@ const stagger = { container: { animate: { transition: { staggerChildren: 0.04 } 
 
 const statusConfig: Record<string, { label: string; dot: string; pill: string; text: string }> = {
   draft:     { label: 'Draft',     dot: 'bg-slate-400',   pill: 'bg-slate-50 border-slate-200',   text: 'text-slate-600' },
-  running:   { label: 'Running',   dot: 'bg-[var(--primary)]',    pill: 'bg-[var(--primary-soft)] border-[var(--primary)]/20',     text: 'text-[var(--primary)]' },
+  running:   { label: 'Running',   dot: 'bg-[var(--primary-blue)]',    pill: 'bg-[var(--primary-blue-soft)] border-[var(--primary-blue)]/20',     text: 'text-[var(--primary-blue)]' },
   paused:    { label: 'Paused',    dot: 'bg-amber-500',   pill: 'bg-amber-50 border-amber-200',   text: 'text-amber-600' },
   completed: { label: 'Completed', dot: 'bg-[var(--primary)]', pill: 'bg-[var(--primary-soft)] border-[var(--primary)]/20', text: 'text-[var(--primary)]' },
   cancelled: { label: 'Cancelled', dot: 'bg-rose-500',    pill: 'bg-rose-50 border-rose-200',     text: 'text-rose-600' },
@@ -27,7 +27,7 @@ const statusConfig: Record<string, { label: string; dot: string; pill: string; t
 
 const numberStatusConfig: Record<string, { label: string; color: string }> = {
   pending:   { label: 'Pending',   color: 'text-slate-500' },
-  calling:   { label: 'Calling',   color: 'text-[var(--primary)]' },
+  calling:   { label: 'Calling',   color: 'text-[var(--primary-blue)]' },
   completed: { label: 'Completed', color: 'text-[var(--primary)]' },
   failed:    { label: 'Failed',    color: 'text-rose-600' },
   'no-answer': { label: 'No Answer', color: 'text-amber-600' },
@@ -71,13 +71,13 @@ export function BulkCallDashboard() {
       {/* Header */}
       <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-[9px] font-black tracking-[0.22em] uppercase text-[var(--primary)]">BULK CALL CAMPAIGNS</span>
+          <span className="text-[9px] font-black tracking-[0.22em] uppercase text-[var(--primary-blue)]">BULK CALL CAMPAIGNS</span>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight mt-1">Bulk Calling</h2>
           <p className="text-xs text-slate-500 font-semibold mt-1">Create and manage bulk outbound call campaigns</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all shadow-sm cursor-pointer border-none"
+          className="btn-cta inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition-all shadow-sm cursor-pointer border-none"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -124,7 +124,7 @@ export function BulkCallDashboard() {
                     {/* Progress bar */}
                     <div className="mt-2.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-[var(--primary)] transition-all"
+                        className="h-full rounded-full bg-[image:var(--gg)] transition-all"
                         style={{ width: `${Math.min(progress, 100)}%` }}
                       />
                     </div>
@@ -133,7 +133,7 @@ export function BulkCallDashboard() {
                     {campaign.status === 'draft' && (
                       <button
                         onClick={(e) => { e.stopPropagation(); dispatch(startBulkCampaign(campaign.id)); }}
-                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none"
+                        className="btn-cta px-3 py-1.5 rounded-lg text-[10px] font-bold text-white hover:opacity-90 transition-all cursor-pointer border-none"
                       >
                         Start
                       </button>
@@ -149,7 +149,7 @@ export function BulkCallDashboard() {
                     {campaign.status === 'paused' && (
                       <button
                         onClick={(e) => { e.stopPropagation(); dispatch(startBulkCampaign(campaign.id)); }}
-                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none"
+                        className="btn-cta px-3 py-1.5 rounded-lg text-[10px] font-bold text-white hover:opacity-90 transition-all cursor-pointer border-none"
                       >
                         Resume
                       </button>
@@ -468,7 +468,7 @@ function BulkCallCreator({
               />
               <button
                 onClick={addManual}
-                className="px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none"
+                className="btn-cta px-4 py-2.5 rounded-xl text-[10px] font-bold text-white hover:opacity-90 transition-all cursor-pointer border-none"
               >
                 Add
               </button>
@@ -489,7 +489,7 @@ function BulkCallCreator({
               />
               <button
                 onClick={handleCSVPaste}
-                className="px-4 py-2 rounded-xl text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none self-end"
+                className="btn-cta px-4 py-2 rounded-xl text-[10px] font-bold text-white hover:opacity-90 transition-all cursor-pointer border-none self-end"
               >
                 Parse
               </button>
@@ -538,7 +538,7 @@ function BulkCallCreator({
           <button
             onClick={handleSubmit}
             disabled={submitting || !name.trim() || !agentId || numbers.length === 0}
-            className="flex-1 py-3 rounded-xl text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--primary)] text-white transition-all flex items-center justify-center gap-2 cursor-pointer border-none"
+            className="btn-cta flex-1 py-3 rounded-xl text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all flex items-center justify-center gap-2 cursor-pointer border-none"
           >
             {submitting ? 'Creating...' : `Create Campaign (${numbers.length} numbers)`}
           </button>
@@ -619,7 +619,7 @@ function CampaignDetailDialog({
         {/* Progress */}
         <div className="px-6 pb-4">
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-[var(--primary)] transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
+            <div className="h-full rounded-full bg-[image:var(--gg)] transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
           </div>
           <p className="text-[10px] text-slate-400 font-bold mt-1.5 text-right">{progress.toFixed(0)}% complete</p>
         </div>
@@ -648,7 +648,7 @@ function CampaignDetailDialog({
         {/* Footer Actions */}
         <div className="px-6 py-4 border-t border-slate-100 flex items-center gap-2">
           {campaign.status === 'draft' && (
-            <button onClick={onStart} className="px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none">
+            <button onClick={onStart} className="btn-cta px-4 py-2.5 rounded-xl text-[10px] font-bold text-white hover:opacity-90 transition-all cursor-pointer border-none">
               Start Campaign
             </button>
           )}
@@ -658,7 +658,7 @@ function CampaignDetailDialog({
             </button>
           )}
           {campaign.status === 'paused' && (
-            <button onClick={onStart} className="px-4 py-2.5 rounded-xl text-[10px] font-bold text-white bg-[var(--primary)] hover:opacity-90 transition-all cursor-pointer border-none">
+            <button onClick={onStart} className="btn-cta px-4 py-2.5 rounded-xl text-[10px] font-bold text-white hover:opacity-90 transition-all cursor-pointer border-none">
               Resume
             </button>
           )}
