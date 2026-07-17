@@ -137,6 +137,7 @@ export function AdminUpgradeRequests() {
     setProcessing(id);
     try {
       await dispatch(processUpgradeRequest({ id, status })).unwrap();
+      dispatch(fetchAllUpgradeRequests({ status: filter || undefined, page, limit: 20 }));
       dispatch(checkAuth());
     } catch (err: any) {
       alert(err?.response?.data?.message || err?.message || 'Failed to process request');
