@@ -1,10 +1,27 @@
 import express from 'express';
 import { handleChatbotMessage, findChatbotByPhoneId } from '../services/whatsappChatbot.js';
+import { decrypt } from '../services/encryption.js';
+import { generateWebhookSignature, timingSafeEqualHex } from '../services/crypto.js';
 import { log } from '../services/logger.js';
 
 const router = express.Router();
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'autoniv_chatbot_verify';
+
+// Verify Meta's X-Hub-Signature-256 header against the raw request body.
+// Meta signs with the App Secret; header format is "sha256=<hex>".
+// Returns true when no secret is configured (so local/manual testing still works).
+function verifyMetaSignature(req) {
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appSecret) return true; // signature enforcement is opt-in via META_APP_SECRET
+
+  const header = req.get('X-Hub-Signature-256') || '';
+  const provided = header.startsWith('sha256=') ? header.slice(7) : '';
+  if (!provided || !req.rawBody) return false;
+
+  const expected = generateWebhookSignature(req.rawBody.toString('utf8'), appSecret);
+  return timingSafeEqualHex(provided, expected);
+}
 
 // Meta webhook verification
 router.get('/', (req, res) => {
@@ -24,6 +41,12 @@ router.get('/', (req, res) => {
 // Incoming messages
 router.post('/', async (req, res) => {
   try {
+    // Reject unsigned/forged payloads before doing any work (prevents Groq abuse).
+    if (!verifyMetaSignature(req)) {
+      log.warn('whatsapp_webhook_bad_signature');
+      return res.sendStatus(401);
+    }
+
     // Always respond 200 immediately to prevent Meta retries
     res.sendStatus(200);
 
@@ -65,8 +88,8 @@ router.post('/', async (req, res) => {
             message: text,
           });
 
-          // Send reply back via Meta API
-          await sendWhatsAppReply(phoneNumberId, customerPhone, reply);
+          // Send reply back via Meta API using this chatbot's own token when present
+          await sendWhatsAppReply(phoneNumberId, customerPhone, reply, chatbot);
         }
       }
     }
@@ -75,9 +98,20 @@ router.post('/', async (req, res) => {
   }
 });
 
-async function sendWhatsAppReply(phoneNumberId, toPhone, text) {
+// Resolve the token to use for a chatbot: its own Embedded-Signup token (decrypted),
+// falling back to the global env key for manually-configured bots.
+function resolveChatbotToken(chatbot) {
+  const stored = chatbot?.channels?.whatsapp?.accessToken;
+  if (stored) {
+    const token = decrypt(stored);
+    if (token) return token;
+  }
+  return process.env.WHATSAPP_API_KEY || null;
+}
+
+async function sendWhatsAppReply(phoneNumberId, toPhone, text, chatbot) {
   const apiUrl = process.env.WHATSAPP_API_URL || 'https://graph.facebook.com/v20.0';
-  const apiKey = process.env.WHATSAPP_API_KEY;
+  const apiKey = resolveChatbotToken(chatbot);
 
   if (!apiKey || !phoneNumberId) {
     log.warn('whatsapp_reply_no_config', { phoneNumberId });

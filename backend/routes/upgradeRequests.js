@@ -4,6 +4,7 @@ import User from '../db/models/User.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { log } from '../services/logger.js';
 import { parsePage, paginatedResponse } from '../services/pagination.js';
+import { notifyPlanChange } from '../services/planNotifier.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -147,6 +148,17 @@ router.put('/:id', requireAdmin, async (req, res) => {
         }
 
         await User.findByIdAndUpdate(request.userId, {
+          plan: planLegacy,
+          chatPlan,
+          voicePlan,
+          chatEnabled: chatPlan !== 'none',
+          voiceEnabled: voicePlan !== 'none',
+          callsLimit: voiceConfig ? voiceConfig.limits.calls : 0,
+          minutesLimit: voiceConfig ? voiceConfig.limits.minutes : 0,
+          chatLimit: chatConfig ? chatConfig.limits.conversations : 0,
+        });
+
+        notifyPlanChange(request.userId, {
           plan: planLegacy,
           chatPlan,
           voicePlan,

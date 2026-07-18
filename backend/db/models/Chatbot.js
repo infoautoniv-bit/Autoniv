@@ -16,6 +16,12 @@ const chatbotSchema = new mongoose.Schema({
     whatsapp: {
       enabled: { type: Boolean, default: false },
       phoneNumberId: { type: String, default: null },
+      wabaId: { type: String, default: null },              // WhatsApp Business Account ID
+      businessId: { type: String, default: null },          // Meta Business (portfolio) ID
+      accessToken: { type: String, default: null },         // AES-256-CBC encrypted at rest; never returned to client
+      displayPhoneNumber: { type: String, default: null },  // e.g. "+1 555 123 4567" for UI display
+      verifiedName: { type: String, default: null },        // business display name from Meta
+      connectedAt: { type: Date, default: null },           // set when connected via Embedded Signup
     },
     widget: {
       enabled: { type: Boolean, default: true },

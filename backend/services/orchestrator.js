@@ -115,6 +115,13 @@ const TIME_LIMIT_CLOSING = 'I have everything I need for now. Thank you so much 
 // Appended to every agent's system prompt so it works efficiently within the cap.
 const TIME_LIMIT_RULES = `\n\nTIME LIMIT: You have a strict maximum of 2 minutes for this entire call. Be warm but efficient — collect all essential details (full name, phone number, and the purpose or booking information) as early and quickly as possible. Do not make small talk or ask unnecessary questions. Call the required tools (like saveLead) as soon as you have the information, without waiting.`;
 
+// Appended to every agent's system prompt so the agent remembers caller details.
+const CALLER_MEMORY_RULES = `\n\nCALLER INFORMATION MEMORY:
+- If the caller has already provided their name or phone number earlier in this conversation, you MUST remember it and NEVER ask for it again.
+- Before asking for any detail, check the conversation history to see if it was already shared.
+- If the caller says something like "I already told you my name is [X]" or "I just gave you my number", acknowledge it and do NOT ask again.
+- When you have all the required information from previous turns, proceed directly to the next step (e.g., saveLead, saveAppointment) without re-asking.`;
+
 function interpolatePrompt(prompt, user) {
   if (!prompt || !user) return prompt;
   let result = prompt;
@@ -211,6 +218,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
   let isInterrupted = false;
   let isProcessing = false;
   let toolAlreadyExecuted = { saveAppointment: false, saveLead: false };
+  let callerInfo = { name: null, phone: null };
   let cleanedUp = false;
   // Twilio stamps every inbound media frame with a monotonic `timestamp` (ms
   // since stream start). We anchor it to wall-clock once so caller audio is
@@ -259,9 +267,60 @@ function handleTwilioStream(twilioWs, urlAgentId) {
     }
   };
 
+  const extractCallerInfo = (text) => {
+    if (!text) return;
+
+    if (!callerInfo.name) {
+      const namePatterns = [
+        /(?:my name is|i'm|i am|this is|name's|name:)\s+([A-Za-z][A-Za-z\s]{1,30})/i,
+      ];
+      for (const pat of namePatterns) {
+        const m = text.match(pat);
+        if (m && m[1] && !/unknown|none|test|hello|hi|hey/i.test(m[1].trim())) {
+          callerInfo.name = m[1].trim();
+          break;
+        }
+      }
+    }
+
+    if (!callerInfo.phone) {
+      const phonePatterns = [
+        /(?:my (?:phone |number |cell )?(?:number|is|:))\s*([\d\s\-+()]{7,20})/i,
+        /(?:call me at|reach me at|number is)\s*([\d\s\-+()]{7,20})/i,
+        /\b(\d{10,15})\b/,
+      ];
+      for (const pat of phonePatterns) {
+        const m = text.match(pat);
+        if (m && m[1]) {
+          const digits = m[1].replace(/\D/g, '');
+          if (digits.length >= 7 && digits.length <= 15) {
+            callerInfo.phone = m[1].trim();
+            break;
+          }
+        }
+      }
+    }
+  };
+
+  const injectCallerContext = () => {
+    if (!callerInfo.name && !callerInfo.phone) return;
+    const sysIdx = conversationHistory.findIndex(m => m.role === 'system');
+    if (sysIdx === -1) return;
+
+    let ctx = '\n\nCALLER CONTEXT (already provided — do NOT ask again):';
+    if (callerInfo.name) ctx += `\n- Name: ${callerInfo.name}`;
+    if (callerInfo.phone) ctx += `\n- Phone: ${callerInfo.phone}`;
+    ctx += '\nUse this information directly. Never re-ask for details already listed above.';
+
+    const base = conversationHistory[sysIdx].content.replace(/\n\nCALLER CONTEXT \(already provided[^)]*\):[\s\S]*$/, '');
+    conversationHistory[sysIdx] = { role: 'system', content: base + ctx };
+  };
+
   const handleUserUtterance = async (userInputText) => {
     isInterrupted = false;
+    extractCallerInfo(userInputText);
     conversationHistory.push({ role: 'user', content: userInputText });
+    injectCallerContext();
     executeCompletionFlow();
   };
 
@@ -381,6 +440,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
     if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser);
     if ((agentObj?.type || 'receptionist') === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
     systemInstructions += TIME_LIMIT_RULES;
+    systemInstructions += CALLER_MEMORY_RULES;
 
     const agentLangName = LANGUAGE_NAMES[agentObj?.language || 'en'] || 'English';
     systemInstructions += `\n\nMULTILINGUAL & HUMAN SPEECH RULES:
@@ -520,6 +580,7 @@ async function handleWebCall(clientWs, req) {
   let chunkCount = 0;
   let isProcessing = false;
   let toolAlreadyExecuted = { saveAppointment: false, saveLead: false };
+  let callerInfo = { name: null, phone: null };
   const recorder = new AudioRecorder(24000);
   // Hard 2-minute call cap (see MAX_CALL_DURATION_MS).
   let callTimeout = null;
@@ -581,9 +642,60 @@ async function handleWebCall(clientWs, req) {
     }
   };
 
+  const extractCallerInfo = (text) => {
+    if (!text) return;
+
+    if (!callerInfo.name) {
+      const namePatterns = [
+        /(?:my name is|i'm|i am|this is|name's|name:)\s+([A-Za-z][A-Za-z\s]{1,30})/i,
+      ];
+      for (const pat of namePatterns) {
+        const m = text.match(pat);
+        if (m && m[1] && !/unknown|none|test|hello|hi|hey/i.test(m[1].trim())) {
+          callerInfo.name = m[1].trim();
+          break;
+        }
+      }
+    }
+
+    if (!callerInfo.phone) {
+      const phonePatterns = [
+        /(?:my (?:phone |number |cell )?(?:number|is|:))\s*([\d\s\-+()]{7,20})/i,
+        /(?:call me at|reach me at|number is)\s*([\d\s\-+()]{7,20})/i,
+        /\b(\d{10,15})\b/,
+      ];
+      for (const pat of phonePatterns) {
+        const m = text.match(pat);
+        if (m && m[1]) {
+          const digits = m[1].replace(/\D/g, '');
+          if (digits.length >= 7 && digits.length <= 15) {
+            callerInfo.phone = m[1].trim();
+            break;
+          }
+        }
+      }
+    }
+  };
+
+  const injectCallerContext = () => {
+    if (!callerInfo.name && !callerInfo.phone) return;
+    const sysIdx = conversationHistory.findIndex(m => m.role === 'system');
+    if (sysIdx === -1) return;
+
+    let ctx = '\n\nCALLER CONTEXT (already provided — do NOT ask again):';
+    if (callerInfo.name) ctx += `\n- Name: ${callerInfo.name}`;
+    if (callerInfo.phone) ctx += `\n- Phone: ${callerInfo.phone}`;
+    ctx += '\nUse this information directly. Never re-ask for details already listed above.';
+
+    const base = conversationHistory[sysIdx].content.replace(/\n\nCALLER CONTEXT \(already provided[^)]*\):[\s\S]*$/, '');
+    conversationHistory[sysIdx] = { role: 'system', content: base + ctx };
+  };
+
   const handleUserUtterance = async (userInputText) => {
     isInterrupted = false;
+    extractCallerInfo(userInputText);
     conversationHistory.push({ role: 'user', content: userInputText });
+    injectCallerContext();
     executeCompletionFlow();
   };
 
@@ -675,6 +787,7 @@ async function handleWebCall(clientWs, req) {
     if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser);
     if (agentObj.type === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
     systemInstructions += TIME_LIMIT_RULES;
+    systemInstructions += CALLER_MEMORY_RULES;
 
     const agentLangName = LANGUAGE_NAMES[agentObj?.language || 'en'] || 'English';
     systemInstructions += `\n\nMULTILINGUAL & HUMAN SPEECH RULES:

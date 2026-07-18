@@ -48,18 +48,44 @@ process.on('voiceAgentToolCall', async ({ callSid, toolName, args }) => {
         return;
       }
 
-      const appointment = await Appointment.create({
-        agentId: call.agentId,
-        callId: call._id,
-        userId: call.userId,
-        customerName: args.name,
-        customerPhone: cleanPhone,
-        service: args.service,
-        preferredDate: args.preferredDate || null,
-        preferredTime: args.preferredTime || null,
-        status: 'pending',
-      });
-      log.info('orchestrator_appointment_saved', { appointmentId: appointment._id, callSid });
+      try {
+        const appointment = await Appointment.create({
+          agentId: call.agentId,
+          callId: call._id,
+          userId: call.userId,
+          customerName: args.name,
+          customerPhone: cleanPhone,
+          service: args.service,
+          preferredDate: args.preferredDate || null,
+          preferredTime: args.preferredTime || null,
+          status: 'pending',
+        });
+        log.info('orchestrator_appointment_saved', { appointmentId: appointment._id, callSid });
+      } catch (apptErr) {
+        log.error('orchestrator_appointment_save_failed', { error: apptErr.message, callSid });
+
+        const existingLead = await Lead.findOne({
+          agentId: call.agentId,
+          $or: [
+            { callId: call._id },
+            ...(cleanPhone ? [{ phone: cleanPhone }] : [])
+          ]
+        }).lean();
+
+        if (!existingLead && cleanPhone) {
+          await Lead.create({
+            agentId: call.agentId,
+            callId: call._id,
+            userId: call.userId,
+            name: args.name || null,
+            phone: cleanPhone,
+            email: args.email || null,
+            purpose: args.service || 'Appointment booking',
+            leadType: 'call',
+          });
+          log.info('orchestrator_lead_fallback_from_appointment_failure', { phone: cleanPhone, callSid });
+        }
+      }
     }
   } catch (err) {
     log.error('orchestrator_tool_call_error', { error: err.message, callSid });
