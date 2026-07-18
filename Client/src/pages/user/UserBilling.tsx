@@ -301,7 +301,6 @@ export function UserBilling() {
     setUpgrading(true);
     try {
       await dispatch(createUpgradeRequest(selectedPlan)).unwrap();
-      await dispatch(fetchMyUpgradeRequests());
       setShowUpgrade(false);
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Something went wrong';

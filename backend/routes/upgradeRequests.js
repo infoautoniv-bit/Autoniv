@@ -110,9 +110,6 @@ router.put('/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ message: `Request was already ${request.status}` });
     }
 
-    request.status = status;
-    await request.save();
-
     if (status === 'approved') {
       const plan = request.requestedPlan;
       const user = await User.findById(request.userId).lean();
@@ -159,11 +156,13 @@ router.put('/:id', requireAdmin, async (req, res) => {
       }
     }
 
-    const result = { ...request.toObject(), id: request._id };
+    await UpgradeRequest.findByIdAndDelete(id);
+
+    const result = { ...request.toObject(), id: request._id, status };
     res.json({ request: result });
   } catch (error) {
     log.error('process_upgrade_request_error', { error: error.message, userId: req.user?.userId });
-    res.status(500).json({ message: 'Failed to process upgrade request' });
+    res.status(500).json({ message: 'Failed to process request' });
   }
 });
 

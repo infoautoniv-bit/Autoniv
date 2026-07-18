@@ -678,6 +678,36 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
+// ─── Plan Status (lightweight polling endpoint) ─────────────────────────────
+router.get('/plan-status', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).lean();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const { chatPlan, voicePlan } = resolvePlans(user);
+
+    const chatConfig = chatPlan !== 'none' && PLAN_CONFIG[chatPlan] ? PLAN_CONFIG[chatPlan] : null;
+    const voiceConfig = voicePlan !== 'none' && PLAN_CONFIG[voicePlan] ? PLAN_CONFIG[voicePlan] : null;
+
+    return res.json({
+      plan: user.plan || (chatPlan !== 'none' ? chatPlan : voicePlan),
+      chatPlan,
+      voicePlan,
+      chatEnabled: chatPlan !== 'none',
+      voiceEnabled: voicePlan !== 'none',
+      minutesUsed: user.minutesUsed,
+      minutesLimit: voiceConfig ? voiceConfig.limits.minutes : 0,
+      callsUsed: user.callsUsed || 0,
+      callsLimit: voiceConfig ? voiceConfig.limits.calls : 0,
+      chatUsed: user.chatUsed || 0,
+      chatLimit: chatConfig ? chatConfig.limits.conversations : 0,
+    });
+  } catch (error) {
+    log.error('plan_status_error', { error: error.message });
+    return res.status(500).json({ message: 'Failed to get plan status' });
+  }
+});
+
 // ─── Forgot Password ────────────────────────────────────────────────────────
 
 router.post('/forgot-password', authLimiter, async (req, res) => {

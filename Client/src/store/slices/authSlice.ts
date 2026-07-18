@@ -195,6 +195,12 @@ const authSlice = createSlice({
         sessionStorage.setItem('user', JSON.stringify(state.user));
       }
     },
+    updatePlan: (state, action: PayloadAction<Partial<User>>) => {
+      if (state.user) {
+        Object.assign(state.user, action.payload);
+        sessionStorage.setItem('user', JSON.stringify(state.user));
+      }
+    },
     logout: (state) => {
       authService.logout(); // async — clears cookies/sessionStorage and calls /auth/logout
       state.user = null;
@@ -360,5 +366,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, updateChatUsed } = authSlice.actions;
+export const { logout, clearError, updateChatUsed, updatePlan } = authSlice.actions;
 export default authSlice.reducer;

@@ -91,10 +91,8 @@ const upgradeRequestsSlice = createSlice({
         state.error = action.error.message || 'Failed to fetch upgrade requests';
       })
       .addCase(processUpgradeRequest.fulfilled, (state, action) => {
-        const idx = state.all.findIndex((r) => r.id === action.payload.id);
-        if (idx !== -1) state.all[idx] = action.payload;
-        const myIdx = state.my.findIndex((r) => r.id === action.payload.id);
-        if (myIdx !== -1) state.my[myIdx] = action.payload;
+        state.all = state.all.filter((r) => r.id !== action.payload.id);
+        state.my = state.my.filter((r) => r.id !== action.payload.id);
       });
   },
 });
