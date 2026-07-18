@@ -137,18 +137,18 @@ export function detectLanguageOfText(text, agentLanguage = 'en') {
 }
 
 function getBestMultilingualProvider(detectedLang, gender) {
-  const deepgramKey = process.env.DEEPGRAM_API_KEY;
   const elevenlabsKey = process.env.ELEVENLABS_API_KEY;
+  const deepgramKey = process.env.DEEPGRAM_API_KEY;
   const sarvamKey = process.env.SARVAM_API_KEY;
-
-  if (detectedLang === 'en' && deepgramKey && !deepgramKey.startsWith('your-')) {
-    const voiceId = gender === 'male' ? 'aura-orion-en' : 'aura-asteria-en';
-    return { provider: 'deepgram', voiceModelOrId: voiceId };
-  }
 
   if (elevenlabsKey && !elevenlabsKey.startsWith('your-') && !elevenlabsKey.includes('placeholder')) {
     const voiceId = gender === 'male' ? 'cjVigY5qzO86Huf0OWal' : 'hpp4J3VqNfWAUOO0d1Us';
     return { provider: 'elevenlabs', voiceModelOrId: voiceId };
+  }
+
+  if (detectedLang === 'en' && deepgramKey && !deepgramKey.startsWith('your-')) {
+    const voiceId = gender === 'male' ? 'aura-orion-en' : 'aura-asteria-en';
+    return { provider: 'deepgram', voiceModelOrId: voiceId };
   }
 
   const sarvamSupported = ['en', 'hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa', 'or'];
@@ -183,7 +183,11 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
       provider = 'elevenlabs';
     }
   } else {
-    provider = 'deepgram';
+    // No voiceId set — use best available provider with default female voice
+    const detectedLang = detectLanguageOfText(text, language);
+    const best = getBestMultilingualProvider(detectedLang, 'female');
+    provider = best.provider;
+    voiceModelOrId = best.voiceModelOrId;
   }
 
   const detectedLang = detectLanguageOfText(text, language);
@@ -241,9 +245,9 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
           text,
           model_id: 'eleven_turbo_v2_5',
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.0,
+            stability: 0.65,
+            similarity_boost: 0.80,
+            style: 0.15,
             use_speaker_boost: true,
           },
         }),

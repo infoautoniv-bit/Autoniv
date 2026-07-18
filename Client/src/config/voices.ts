@@ -16,23 +16,6 @@ export const VOICE_OPTIONS: VoiceOption[] = [
   { value: 'pNInz6obpgDQGcFmaJgB', label: 'Adam (ElevenLabs) - Dominant, Firm (Male)' },
   { value: 'pqHfZKP75CvOlQylNhV4', label: 'Bill (ElevenLabs) - Wise, Mature, Balanced (Male)' },
 
-  // --- Deepgram Aura Voices (Ultra Low Latency) ---
-  { value: 'deepgram:aura-asteria-en', label: 'Asteria (Deepgram) - English Female (Fast)' },
-  { value: 'deepgram:aura-luna-en', label: 'Luna (Deepgram) - English Female (Fast)' },
-  { value: 'deepgram:aura-stella-en', label: 'Stella (Deepgram) - English Female (Fast)' },
-  { value: 'deepgram:aura-athena-en', label: 'Athena (Deepgram) - English Female (Fast)' },
-  { value: 'deepgram:aura-hera-en', label: 'Hera (Deepgram) - English Female (Fast)' },
-  { value: 'deepgram:aura-orion-en', label: 'Orion (Deepgram) - English Male (Fast)' },
-  { value: 'deepgram:aura-zeus-en', label: 'Zeus (Deepgram) - English Male (Fast)' },
-
-  // --- OpenAI TTS Voices (Simple / Natural) ---
-  { value: 'openai:alloy', label: 'Alloy (OpenAI) - Neutral' },
-  { value: 'openai:echo', label: 'Echo (OpenAI) - Male' },
-  { value: 'openai:fable', label: 'Fable (OpenAI) - Male' },
-  { value: 'openai:onyx', label: 'Onyx (OpenAI) - Male' },
-  { value: 'openai:nova', label: 'Nova (OpenAI) - Female' },
-  { value: 'openai:shimmer', label: 'Shimmer (OpenAI) - Female' },
-
   // --- Sarvam AI Indian-Native Voices (Indic-native) - Bulbul V3 (Official 42+ Speakers) ---
   { value: 'sarvam:bulbul:v3:shubh', label: 'Sarvam Shubh (V3 - Male)' },
   { value: 'sarvam:bulbul:v3:shreya', label: 'Sarvam Shreya (V3 - Female)' },
@@ -86,7 +69,7 @@ export const VOICE_OPTIONS: VoiceOption[] = [
 export function getVoicesForLanguage(language: string): VoiceOption[] {
   // If language is Hindi, bubble up Hindi/Indian voices first
   if (language === 'hi') {
-    return VOICE_OPTIONS.filter(v => v.value.includes('hi-IN') || v.value.includes('en-IN') || v.value.includes('aura') || v.value.includes('openai'));
+    return VOICE_OPTIONS.filter(v => v.value.includes('hi-IN') || v.value.includes('en-IN') || v.value.includes('sarvam'));
   }
   return VOICE_OPTIONS;
 }
