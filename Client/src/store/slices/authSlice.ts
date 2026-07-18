@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { User } from '../../types';
-import { authService } from '../../services/api';
+import { authService, fetchCsrfToken } from '../../services/api';
 import { getCookie, setCookie, deleteCookie } from '../../services/cookies';
 
 export interface DashboardStats {
@@ -59,6 +59,7 @@ export const checkAuth = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await authService.me();
+      fetchCsrfToken();
       return res.data.user as User;
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.message ?? 'Session expired');
@@ -84,6 +85,7 @@ export const login = createAsyncThunk(
       setCookie('accessToken', accessToken, 1);
       if (refreshToken) setCookie('refreshToken', refreshToken, 7);
       sessionStorage.setItem('user', JSON.stringify(user));
+      fetchCsrfToken();
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
     } catch (err: any) {
@@ -102,6 +104,7 @@ export const googleLogin = createAsyncThunk(
       setCookie('accessToken', accessToken, 1);
       if (refreshToken) setCookie('refreshToken', refreshToken, 7);
       sessionStorage.setItem('user', JSON.stringify(user));
+      fetchCsrfToken();
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
     } catch (err: any) {
