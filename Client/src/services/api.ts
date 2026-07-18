@@ -267,6 +267,8 @@ export const authService = {
 
   me: () => api.get('/auth/me'),
 
+  planStatus: () => api.get('/auth/plan-status'),
+
   logout: async () => {
     const refreshToken = getCookie('refreshToken');
     try {
@@ -449,6 +451,13 @@ export const chatbotService = {
 
   analytics: (id: string) =>
     api.get(`/chatbots/${id}/analytics`),
+
+  // WhatsApp Embedded Signup — connect a chatbot to the tenant's own WABA.
+  connectWhatsapp: (id: string, data: { code: string; wabaId: string; phoneNumberId?: string }) =>
+    api.post('/whatsapp/connect', { chatbotId: id, ...data }),
+
+  disconnectWhatsapp: (id: string) =>
+    api.post('/whatsapp/disconnect', { chatbotId: id }),
 };
 
 // ── Calls ──────────────────────────────────────────────────────────────────

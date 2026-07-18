@@ -1,18 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { chatbotService } from '../../services/api';
 
-const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
+const ease = [0.16, 1, 0.3, 1] as const;
+const fadeUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease } },
+};
+
+// ── WhatsApp Embedded Signup (Meta) ──────────────────────────────────────────
+const FB_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID as string | undefined;
+const FB_CONFIG_ID = import.meta.env.VITE_FACEBOOK_CONFIG_ID as string | undefined;
+const FB_GRAPH_VERSION = 'v20.0';
+
+interface FBLoginResponse {
+  authResponse?: { code?: string } | null;
+  status?: string;
+}
+interface FacebookSDK {
+  init(params: Record<string, unknown>): void;
+  login(cb: (response: FBLoginResponse) => void, params: Record<string, unknown>): void;
+}
+declare global {
+  interface Window {
+    FB?: FacebookSDK;
+    fbAsyncInit?: () => void;
+  }
+}
+
 
 const PROMPT_SUGGESTIONS = [
-  { label: 'Customer Support', prompt: 'You are a friendly customer support agent. Help users with their questions, troubleshoot issues, and escalate complex problems to a human agent. Be polite, patient, and solution-focused.' },
-  { label: 'Sales Assistant', prompt: 'You are a helpful sales assistant. Answer product questions, explain pricing, highlight features, and guide users toward making a purchase. Be persuasive but not pushy.' },
-  { label: 'Booking Agent', prompt: 'You are a booking assistant. Help users schedule appointments, check availability, and confirm bookings. Collect their name, phone, email, preferred date and time.' },
-  { label: 'FAQ Bot', prompt: 'You are an FAQ bot. Answer common questions about our product/service. If you don\'t know the answer, politely let the user know and offer to connect them with a human agent.' },
-  { label: 'Lead Qualifier', prompt: 'You are a lead qualification agent. Ask users about their needs, budget, timeline, and decision-making process. Collect their name, email, phone, and company. Save qualified leads for the sales team.' },
-  { label: 'E-commerce Helper', prompt: 'You are an e-commerce assistant. Help users find products, check order status, process returns, and answer questions about shipping and payments.' },
+  { label: 'Customer Support', icon: '🎧', prompt: 'You are a warm, professional customer support agent for our company. Your goal is to resolve customer issues quickly and make every person feel heard. Greet the customer politely and ask clarifying questions before answering. Troubleshoot problems step by step, confirm the issue is resolved, and summarize the solution at the end. If you cannot solve a problem or the customer is frustrated, apologize sincerely and offer to escalate to a human agent, collecting their name, email, and a short description of the issue first. Never make up information — if you are unsure, say so honestly. Keep your tone patient, empathetic, and solution-focused at all times.' },
+  { label: 'Sales Assistant', icon: '💼', prompt: 'You are an enthusiastic and knowledgeable sales assistant. Your job is to understand what the customer needs, recommend the right product or plan, and guide them confidently toward a purchase. Start by asking about their goals, budget, and use case. Highlight the specific features and benefits that match their situation, and clearly explain pricing, plans, and any current offers. Address objections honestly and reassure hesitant buyers with facts, not pressure. When the customer shows interest, walk them through the next step to buy or start a trial. Be persuasive, friendly, and genuinely helpful — never pushy or misleading.' },
+  { label: 'Booking Agent', icon: '📅', prompt: 'You are a professional booking and scheduling assistant. Help customers book appointments smoothly and accurately. Ask for the service they want, their preferred date and time, and any special requirements. Always collect their full name, phone number, and email address before confirming. Check for the details you need one at a time so the conversation feels natural, then read the booking back to the customer to confirm everything is correct. If their preferred slot is unavailable, politely suggest the closest alternatives. Once confirmed, thank them warmly and let them know they will receive a confirmation. Be organized, precise, and friendly throughout.' },
+  { label: 'FAQ Bot', icon: '❓', prompt: 'You are a helpful FAQ assistant for our product and service. Answer common questions clearly, concisely, and accurately using simple language that anyone can understand. Break complex answers into short, easy steps when helpful. Always stay on topic and base your answers only on verified information about our company. If a question falls outside what you know, or the customer needs account-specific help, politely explain that you are not certain and offer to connect them with a human team member. Be friendly, respectful, and quick, and end by asking if there is anything else you can help with.' },
+  { label: 'Lead Qualifier', icon: '🎯', prompt: 'You are a lead qualification specialist. Your goal is to have a natural conversation that uncovers whether a prospect is a good fit for our product while collecting the key details our sales team needs. Ask thoughtful questions about their business, their main challenges, their goals, their timeline, and their budget. Collect their full name, work email, phone number, and company name during the conversation without making it feel like an interrogation. Listen carefully and adapt your questions to what they tell you. When a lead looks qualified, express genuine interest and let them know a specialist will follow up soon. Always be professional, curious, and respectful of their time.' },
+  { label: 'E-commerce Helper', icon: '🛍️', prompt: 'You are a friendly e-commerce shopping assistant. Help customers find the right products, answer questions about sizing, availability, shipping, and returns, and make their shopping experience easy and enjoyable. Ask about what they are looking for and their preferences, then recommend suitable products and explain why they fit. Help with order status, tracking, returns, and exchanges by collecting the order number and email when needed. Clearly explain shipping options, delivery times, and payment methods. Be upbeat, patient, and helpful, and always look for a way to make the customer feel confident about their purchase.' },
+  { label: 'Onboarding Guide', icon: '🚀', prompt: 'You are a friendly onboarding guide who helps new users get started and succeed with our product. Welcome them warmly and find out what they want to achieve. Walk them through setup and key features one step at a time, checking in to make sure they are following along before moving on. Share helpful tips, shortcuts, and best practices tailored to their goals. If they get stuck, reassure them and offer clear, simple guidance. Celebrate their progress to keep them motivated. Your mission is to help every new user reach their first success quickly and feel confident using the product on their own.' },
+  { label: 'Technical Helpdesk', icon: '🛠️', prompt: 'You are a calm and capable technical support specialist. Help users diagnose and fix technical problems clearly and methodically. Begin by asking for the specifics — what they were doing, what went wrong, any error messages, and their device or platform. Guide them through troubleshooting one step at a time, and confirm the result of each step before continuing. Explain technical concepts in plain language and avoid jargon unless the user is technical. If the issue requires deeper investigation, collect their contact details and a clear summary of the problem, then escalate to the engineering team. Stay patient, precise, and reassuring, even when the user is stressed.' },
 ];
+
+type Toast = { id: number; text: string; kind: 'success' | 'error' };
 
 export function CreateChatbot() {
   const { id } = useParams();
@@ -23,7 +52,7 @@ export function CreateChatbot() {
   const [description, setDescription] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
   const [welcomeMessage, setWelcomeMessage] = useState('Hi! How can I help you today?');
-  const [brandColor, setBrandColor] = useState('#0077ff');
+  const [brandColor, setBrandColor] = useState('#2563EB');
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [whatsappPhoneId, setWhatsappPhoneId] = useState('');
   const [widgetEnabled, setWidgetEnabled] = useState(true);
@@ -31,6 +60,24 @@ export function CreateChatbot() {
   const [fetching, setFetching] = useState(isEdit);
   const [error, setError] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastId = useRef(0);
+
+  // WhatsApp Embedded Signup state
+  const [waConnecting, setWaConnecting] = useState(false);
+  const [waConnected, setWaConnected] = useState(false);
+  const [waDisplayPhone, setWaDisplayPhone] = useState<string | null>(null);
+  const [waVerifiedName, setWaVerifiedName] = useState<string | null>(null);
+  const [showManual, setShowManual] = useState(false);
+  const fbReady = useRef(false);
+  // Captures wabaId/phoneNumberId that Meta posts back via the window "message" event.
+  const waSignupData = useRef<{ wabaId?: string; phoneNumberId?: string }>({});
+
+  const pushToast = useCallback((text: string, kind: Toast['kind'] = 'success') => {
+    const tid = ++toastId.current;
+    setToasts((t) => [...t, { id: tid, text, kind }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== tid)), 2600);
+  }, []);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -40,14 +87,66 @@ export function CreateChatbot() {
         setDescription(c.description || '');
         setSystemPrompt(c.systemPrompt);
         setWelcomeMessage(c.welcomeMessage || 'Hi! How can I help you today?');
-        setBrandColor(c.brandColor || '#0077ff');
+        setBrandColor(c.brandColor || '#2563EB');
         setWhatsappEnabled(c.channels?.whatsapp?.enabled || false);
         setWhatsappPhoneId(c.channels?.whatsapp?.phoneNumberId || '');
         setWidgetEnabled(c.channels?.widget?.enabled !== false);
         setApiKey(c.apiKey || '');
+        // Reflect an existing Embedded-Signup connection (accessToken is never returned;
+        // connectedAt is the signal that a per-tenant token is stored).
+        if (c.channels?.whatsapp?.connectedAt) {
+          setWaConnected(true);
+          setWaDisplayPhone(c.channels.whatsapp.displayPhoneNumber || null);
+          setWaVerifiedName(c.channels.whatsapp.verifiedName || null);
+        }
       }).catch(() => setError('Failed to load chatbot')).finally(() => setFetching(false));
     }
   }, [id, isEdit]);
+
+  // Load the Facebook JS SDK once (mirrors the Google GSI dedupe-loader pattern).
+  useEffect(() => {
+    if (!FB_APP_ID) return; // Embedded Signup not configured — manual fallback still works.
+
+    function initFb() {
+      if (window.FB) {
+        window.FB.init({ appId: FB_APP_ID, autoLogAppEvents: true, xfbml: false, version: FB_GRAPH_VERSION });
+        fbReady.current = true;
+      }
+    }
+
+    if (window.FB) { initFb(); return; }
+
+    window.fbAsyncInit = initFb;
+    let script = document.querySelector('script[src="https://connect.facebook.net/en_US/sdk.js"]') as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement('script');
+      script.src = 'https://connect.facebook.net/en_US/sdk.js';
+      script.async = true;
+      script.defer = true;
+      script.crossOrigin = 'anonymous';
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  // Capture the wabaId / phoneNumberId that the Embedded Signup popup posts back.
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return;
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (data?.type === 'WA_EMBEDDED_SIGNUP' && data.event === 'FINISH') {
+          waSignupData.current = {
+            wabaId: data.data?.waba_id,
+            phoneNumberId: data.data?.phone_number_id,
+          };
+        }
+      } catch {
+        // Non-JSON messages from the SDK are expected; ignore them.
+      }
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -85,10 +184,74 @@ export function CreateChatbot() {
     }
   }
 
+  async function handleConnectWhatsapp() {
+    if (!isEdit || !id) {
+      pushToast('Save the chatbot first, then connect WhatsApp.', 'error');
+      return;
+    }
+    if (!FB_APP_ID || !FB_CONFIG_ID) {
+      pushToast('WhatsApp connect is not configured. Use "Connect manually" below.', 'error');
+      setShowManual(true);
+      return;
+    }
+    if (!window.FB || !fbReady.current) {
+      pushToast('WhatsApp SDK is still loading — try again in a moment.', 'error');
+      return;
+    }
+
+    waSignupData.current = {};
+    setWaConnecting(true);
+    window.FB.login(async (response) => {
+      const code = response?.authResponse?.code;
+      if (!code) {
+        setWaConnecting(false);
+        pushToast('WhatsApp connection was cancelled.', 'error');
+        return;
+      }
+      try {
+        const { wabaId, phoneNumberId } = waSignupData.current;
+        if (!wabaId) throw new Error('Could not read your WhatsApp Business account. Please retry.');
+        const { data } = await chatbotService.connectWhatsapp(id, { code, wabaId, phoneNumberId });
+        const wa = data.chatbot?.channels?.whatsapp;
+        setWaConnected(true);
+        setWhatsappEnabled(true);
+        setWaDisplayPhone(wa?.displayPhoneNumber || null);
+        setWaVerifiedName(wa?.verifiedName || null);
+        if (wa?.phoneNumberId) setWhatsappPhoneId(wa.phoneNumberId);
+        pushToast('WhatsApp connected 🎉', 'success');
+      } catch (err: any) {
+        pushToast(err?.response?.data?.message || err?.message || 'Failed to connect WhatsApp', 'error');
+      } finally {
+        setWaConnecting(false);
+      }
+    }, {
+      config_id: FB_CONFIG_ID,
+      response_type: 'code',
+      override_default_response_type: true,
+      extras: { setup: {}, featureType: '', sessionInfoVersion: '2' },
+    });
+  }
+
+  async function handleDisconnectWhatsapp() {
+    if (!isEdit || !id) return;
+    setWaConnecting(true);
+    try {
+      await chatbotService.disconnectWhatsapp(id);
+      setWaConnected(false);
+      setWaDisplayPhone(null);
+      setWaVerifiedName(null);
+      pushToast('WhatsApp disconnected', 'success');
+    } catch (err: any) {
+      pushToast(err?.response?.data?.message || 'Failed to disconnect', 'error');
+    } finally {
+      setWaConnecting(false);
+    }
+  }
+
   if (fetching) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin w-7 h-7 border-2 border-[var(--primary-blue)] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -96,139 +259,349 @@ export function CreateChatbot() {
   const embedCode = id ? `<script src="${window.location.origin}/api/chatbot-widget/widget.js" data-chatbot-id="${id}"></script>` : '';
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <motion.div {...fadeUp}>
-        <h1 className="text-2xl font-bold text-[var(--text)] mb-1">{isEdit ? 'Edit Chatbot' : 'Create Chatbot'}</h1>
-        <p className="text-sm text-[var(--text-muted)] mb-6">Configure your AI chatbot's personality and channels.</p>
-      </motion.div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Info */}
-        <motion.div {...fadeUp} transition={{ delay: 0.05 }} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider">Basic Info</h2>
-          <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5">Name *</label>
-            <input type="text" required value={name} onChange={e => setName(e.target.value)}
-              placeholder="e.g. Support Bot, Sales Assistant"
-              className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--s1)] border border-[var(--border)] text-[var(--text)] focus:outline-none focus:border-[var(--primary)]" />
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5">Description</label>
-            <input type="text" value={description} onChange={e => setDescription(e.target.value)}
-              placeholder="Brief description of what this chatbot does"
-              className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--s1)] border border-[var(--border)] text-[var(--text)] focus:outline-none focus:border-[var(--primary)]" />
-          </div>
-        </motion.div>
-
-        {/* AI Personality */}
-        <motion.div {...fadeUp} transition={{ delay: 0.1 }} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider">AI Personality</h2>
-
-          <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5">Quick Templates</label>
-            <div className="flex flex-wrap gap-2">
-              {PROMPT_SUGGESTIONS.map(s => (
-                <button key={s.label} type="button"
-                  onClick={() => setSystemPrompt(s.prompt)}
-                  className="px-3 py-1 text-xs rounded-full border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors">
-                  {s.label}
-                </button>
-              ))}
+    <div className="h-full overflow-y-auto pb-12 pr-1 scroll-smooth">
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        {/* ── Header ── */}
+        <motion.div {...fadeUp} className="mb-6">
+          <button
+            onClick={() => navigate('/dashboard/chatbots')}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--primary-blue)] transition-colors mb-3 cursor-pointer border-none bg-transparent"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Chatbots
+          </button>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-sm shrink-0"
+              style={{ background: `linear-gradient(135deg, ${brandColor}, #00c8b4)` }}
+            >
+              {name.trim() ? name.trim().charAt(0).toUpperCase() : '＋'}
+            </div>
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-[var(--text)] leading-none">
+                {isEdit ? 'Edit Chatbot' : 'Create Chatbot'}
+              </h1>
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] font-semibold mt-1">
+                Configure your AI chatbot's personality and channels.
+              </p>
             </div>
           </div>
-
-          <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5">System Prompt *</label>
-            <textarea required rows={6} value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)}
-              placeholder="Describe your chatbot's personality, tone, and what it should do..."
-              className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--s1)] border border-[var(--border)] text-[var(--text)] focus:outline-none focus:border-[var(--primary)] resize-none" />
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">{systemPrompt.length} / 10,000 characters</p>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5">Welcome Message</label>
-            <input type="text" value={welcomeMessage} onChange={e => setWelcomeMessage(e.target.value)}
-              placeholder="Hi! How can I help you today?"
-              className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--s1)] border border-[var(--border)] text-[var(--text)] focus:outline-none focus:border-[var(--primary)]" />
-          </div>
         </motion.div>
 
-        {/* Appearance */}
-        <motion.div {...fadeUp} transition={{ delay: 0.15 }} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider">Appearance</h2>
-          <div className="flex items-center gap-4">
-            <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5">Brand Color</label>
-              <div className="flex items-center gap-2">
-                <input type="color" value={brandColor} onChange={e => setBrandColor(e.target.value)}
-                  className="w-8 h-8 rounded border border-[var(--border)] cursor-pointer" />
-                <input type="text" value={brandColor} onChange={e => setBrandColor(e.target.value)}
-                  className="w-24 px-2 py-1 text-xs rounded bg-[var(--s1)] border border-[var(--border)] text-[var(--text)] focus:outline-none" />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Basic Info */}
+          <Section {...fadeUp} transition={{ delay: 0.05, duration: 0.35, ease }} icon="🪪" title="Basic Info" subtitle="Name and short description">
+            <Field label="Name" required>
+              <input type="text" required value={name} onChange={e => setName(e.target.value)}
+                placeholder="e.g. Support Bot, Sales Assistant"
+                className="form-input" maxLength={100} />
+            </Field>
+            <Field label="Description">
+              <input type="text" value={description} onChange={e => setDescription(e.target.value)}
+                placeholder="Brief description of what this chatbot does"
+                className="form-input" maxLength={500} />
+            </Field>
+          </Section>
+
+          {/* AI Personality */}
+          <Section {...fadeUp} transition={{ delay: 0.1, duration: 0.35, ease }} icon="🧠" title="AI Personality" subtitle="How your bot thinks and talks">
+            <Field label="Quick Templates">
+              <div className="flex flex-wrap gap-2">
+                {PROMPT_SUGGESTIONS.map(s => {
+                  const active = systemPrompt === s.prompt;
+                  return (
+                    <button key={s.label} type="button"
+                      onClick={() => setSystemPrompt(s.prompt)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl border transition-all cursor-pointer ${
+                        active
+                          ? 'text-white border-transparent shadow-sm'
+                          : 'text-[var(--text-secondary)] border-[var(--slate-border)] hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)] bg-white'
+                      }`}
+                      style={active ? { background: 'linear-gradient(135deg, var(--primary-blue), #00c8b4)' } : undefined}>
+                      <span>{s.icon}</span>
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+
+            <Field label="System Prompt" required
+              hint={`${systemPrompt.length.toLocaleString()} / 10,000 characters`}>
+              <textarea required rows={6} value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)}
+                placeholder="Describe your chatbot's personality, tone, and what it should do..."
+                maxLength={10000}
+                className="form-input resize-none leading-relaxed" />
+            </Field>
+
+            <Field label="Welcome Message" hint="First message shown to visitors">
+              <input type="text" value={welcomeMessage} onChange={e => setWelcomeMessage(e.target.value)}
+                placeholder="Hi! How can I help you today?"
+                className="form-input" />
+            </Field>
+          </Section>
+
+          {/* Appearance */}
+          <Section {...fadeUp} transition={{ delay: 0.15, duration: 0.35, ease }} icon="🎨" title="Appearance" subtitle="Brand color for the chat widget">
+            <div className="flex items-end gap-4 flex-wrap">
+              <Field label="Brand Color">
+                <div className="flex items-center gap-2">
+                  <input type="color" value={brandColor} onChange={e => setBrandColor(e.target.value)}
+                    className="w-10 h-10 rounded-xl border border-[var(--slate-border)] cursor-pointer p-0.5 bg-white" />
+                  <input type="text" value={brandColor} onChange={e => setBrandColor(e.target.value)}
+                    className="w-28 px-3 py-2 text-xs font-mono rounded-xl bg-[var(--s1)] border border-[var(--slate-border)] text-[var(--text)] focus:outline-none focus:border-[var(--primary-blue)] uppercase" />
+                </div>
+              </Field>
+
+              {/* live preview bubble */}
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">Preview</span>
+                <div
+                  className="px-3.5 py-2 rounded-2xl rounded-bl-sm text-white text-xs font-semibold shadow-sm max-w-[220px] truncate"
+                  style={{ background: brandColor }}
+                >
+                  {welcomeMessage || 'Hi! How can I help you today?'}
+                </div>
               </div>
             </div>
+          </Section>
+
+          {/* Channels */}
+          <Section {...fadeUp} transition={{ delay: 0.2, duration: 0.35, ease }} icon="🔌" title="Channels" subtitle="Where your bot is available">
+            <ChannelToggle
+              on={widgetEnabled} onChange={setWidgetEnabled}
+              icon="🌐" title="Website Widget"
+              desc="Embed on any website with a script tag" />
+
+            <ChannelToggle
+              on={whatsappEnabled} onChange={setWhatsappEnabled}
+              icon="📱" title="WhatsApp"
+              desc="Reply to WhatsApp messages with this chatbot" />
+
+            <AnimatePresence initial={false}>
+              {whatsappEnabled && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25, ease }}
+                  className="overflow-hidden">
+                  <div className="ml-1 pt-1 space-y-3">
+                    {waConnected ? (
+                      /* Connected state — show the verified number + disconnect */
+                      <div className="flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50">
+                        <span className="text-lg shrink-0">✅</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-bold text-emerald-900">
+                            Connected{waVerifiedName ? ` · ${waVerifiedName}` : ''}
+                          </span>
+                          <p className="text-[11px] text-emerald-700 font-semibold">
+                            {waDisplayPhone || 'WhatsApp Business number linked'}
+                          </p>
+                        </div>
+                        <button type="button" onClick={handleDisconnectWhatsapp} disabled={waConnecting}
+                          className="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-emerald-300 text-emerald-800 bg-white hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-60">
+                          Disconnect
+                        </button>
+                      </div>
+                    ) : (
+                      /* Primary path — Meta Embedded Signup */
+                      <div className="p-3 rounded-xl border border-[var(--slate-border)] bg-white">
+                        <p className="text-[11px] text-[var(--text-muted)] font-semibold mb-2.5">
+                          Connect your own WhatsApp Business account — no API keys to copy.
+                        </p>
+                        <button type="button" onClick={handleConnectWhatsapp}
+                          disabled={waConnecting || !isEdit}
+                          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl text-white shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-60 disabled:pointer-events-none border-none"
+                          style={{ background: '#25D366' }}>
+                          {waConnecting ? (
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2z" />
+                            </svg>
+                          )}
+                          {waConnecting ? 'Connecting…' : 'Connect WhatsApp'}
+                        </button>
+                        {!isEdit && (
+                          <p className="text-[10px] text-amber-600 font-semibold mt-2">
+                            Save the chatbot first, then reopen it to connect WhatsApp.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Advanced / manual fallback — paste a Phone Number ID directly */}
+                    <div>
+                      <button type="button" onClick={() => setShowManual(v => !v)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--primary-blue)] transition-colors cursor-pointer bg-transparent border-none">
+                        <svg className={`w-3 h-3 transition-transform ${showManual ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                        Advanced · connect manually
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {showManual && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2, ease }}
+                            className="overflow-hidden">
+                            <div className="pt-2">
+                              <Field label="Phone Number ID"
+                                hint="Find this in Meta Business Manager → WhatsApp → Phone Numbers">
+                                <input type="text" value={whatsappPhoneId} onChange={e => setWhatsappPhoneId(e.target.value)}
+                                  placeholder="Meta WhatsApp Phone Number ID"
+                                  className="form-input" />
+                              </Field>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Section>
+
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                className="text-sm text-rose-500 font-semibold bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => navigate('/dashboard/chatbots')}
+              className="px-5 py-2.5 text-xs font-bold rounded-xl border border-[var(--slate-border)] text-[var(--text)] bg-white hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading}
+              className="btn-cta inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-bold rounded-xl text-white shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-60 disabled:pointer-events-none border-none"
+              style={{ background: 'linear-gradient(135deg, var(--primary-blue), #00c8b4)' }}>
+              {loading && (
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {loading ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Chatbot'}
+            </button>
           </div>
-        </motion.div>
+        </form>
 
-        {/* Channels */}
-        <motion.div {...fadeUp} transition={{ delay: 0.2 }} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider">Channels</h2>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={widgetEnabled} onChange={e => setWidgetEnabled(e.target.checked)}
-              className="w-4 h-4 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]" />
-            <div>
-              <span className="text-sm font-medium text-[var(--text)]">🌐 Website Widget</span>
-              <p className="text-[10px] text-[var(--text-muted)]">Embed on any website with a script tag</p>
+        {/* Embed Code (shown after creation / in edit) */}
+        {apiKey && embedCode && (
+          <motion.div {...fadeUp} className="mt-6 rounded-2xl border border-[var(--slate-border)] bg-white/70 backdrop-blur-md p-5 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(90deg, var(--primary-blue), #00c8b4)' }} />
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-base">🔗</span>
+              <h2 className="text-sm font-black text-[var(--text)]">Embed Code</h2>
             </div>
-          </label>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={whatsappEnabled} onChange={e => setWhatsappEnabled(e.target.checked)}
-              className="w-4 h-4 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]" />
-            <div>
-              <span className="text-sm font-medium text-[var(--text)]">📱 WhatsApp</span>
-              <p className="text-[10px] text-[var(--text-muted)]">Reply to WhatsApp messages with this chatbot</p>
+            <p className="text-xs text-[var(--text-secondary)] font-semibold mb-3">
+              Copy this snippet and paste it before the closing &lt;/body&gt; tag on your website.
+            </p>
+            <div className="bg-[var(--s1)] rounded-xl p-3.5 font-mono text-[11px] text-[var(--text)] break-all border border-[var(--slate-border)]">
+              {embedCode}
             </div>
-          </label>
+            <button
+              onClick={() => navigator.clipboard.writeText(embedCode).then(
+                () => pushToast('Embed code copied to clipboard'),
+                () => pushToast('Could not copy code', 'error'),
+              )}
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-[11px] font-bold rounded-xl border border-[var(--slate-border)] text-[var(--primary-blue)] hover:bg-[var(--primary-blue-soft)] transition-all cursor-pointer bg-white">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Code
+            </button>
+          </motion.div>
+        )}
+      </div>
 
-          {whatsappEnabled && (
-            <div className="ml-7">
-              <label className="block text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5">Phone Number ID</label>
-              <input type="text" value={whatsappPhoneId} onChange={e => setWhatsappPhoneId(e.target.value)}
-                placeholder="Meta WhatsApp Phone Number ID"
-                className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--s1)] border border-[var(--border)] text-[var(--text)] focus:outline-none focus:border-[var(--primary)]" />
-              <p className="text-[10px] text-[var(--text-muted)] mt-1">Find this in Meta Business Manager → WhatsApp → Phone Numbers</p>
-            </div>
-          )}
-        </motion.div>
-
-        {error && <p className="text-sm text-red-500">{error}</p>}
-
-        <div className="flex gap-3">
-          <button type="button" onClick={() => navigate('/dashboard/chatbots')}
-            className="px-4 py-2 text-sm font-semibold rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--s1)] transition-colors">
-            Cancel
-          </button>
-          <button type="submit" disabled={loading}
-            className="px-6 py-2 text-sm font-semibold rounded-lg text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-            style={{ background: 'var(--primary)' }}>
-            {loading ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Chatbot'}
-          </button>
-        </div>
-      </form>
-
-      {/* Embed Code (shown after creation) */}
-      {apiKey && embedCode && (
-        <motion.div {...fadeUp} className="mt-6 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <h2 className="text-sm font-bold text-[var(--text)] mb-2">Embed Code</h2>
-          <p className="text-xs text-[var(--text-muted)] mb-3">Copy this code and paste it before the closing &lt;/body&gt; tag on your website.</p>
-          <div className="bg-[var(--s1)] rounded-lg p-3 font-mono text-xs text-[var(--text)] break-all">{embedCode}</div>
-          <button onClick={() => navigator.clipboard.writeText(embedCode).then(() => alert('Copied!'))}
-            className="mt-2 px-3 py-1 text-xs font-semibold rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--s1)] transition-colors">
-            Copy Code
-          </button>
-        </motion.div>
-      )}
+      {/* ── Toasts ── */}
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none">
+        <AnimatePresence>
+          {toasts.map((t) => (
+            <motion.div
+              key={t.id}
+              initial={{ opacity: 0, y: 16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ duration: 0.22, ease }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg flex items-center gap-2 ${
+                t.kind === 'success' ? 'bg-slate-900' : 'bg-rose-600'
+              }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${t.kind === 'success' ? 'bg-emerald-400' : 'bg-white'}`} />
+              {t.text}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
+  );
+}
+
+function Section({ icon, title, subtitle, children, ...motionProps }: {
+  icon: string; title: string; subtitle?: string; children: React.ReactNode;
+} & React.ComponentProps<typeof motion.div>) {
+  return (
+    <motion.div {...motionProps}
+      className="rounded-2xl border border-[var(--slate-border)] bg-white/70 backdrop-blur-md p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/10 to-teal-500/10 border border-blue-100 flex items-center justify-center text-base shrink-0">
+          {icon}
+        </div>
+        <div>
+          <h2 className="text-sm font-black text-[var(--text)] leading-none">{title}</h2>
+          {subtitle && <p className="text-[11px] text-[var(--text-muted)] font-semibold mt-1">{subtitle}</p>}
+        </div>
+      </div>
+      {children}
+    </motion.div>
+  );
+}
+
+function Field({ label, required, hint, children }: {
+  label: string; required?: boolean; hint?: string; children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+        {label} {required && <span className="text-rose-500">*</span>}
+      </label>
+      {children}
+      {hint && <p className="text-[10px] text-[var(--text-muted)] font-semibold mt-1">{hint}</p>}
+    </div>
+  );
+}
+
+function ChannelToggle({ on, onChange, icon, title, desc }: {
+  on: boolean; onChange: (v: boolean) => void; icon: string; title: string; desc: string;
+}) {
+  return (
+    <button type="button" onClick={() => onChange(!on)}
+      className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left cursor-pointer ${
+        on ? 'border-[var(--primary-blue)] bg-[var(--primary-blue-soft)]' : 'border-[var(--slate-border)] bg-white hover:border-slate-300'
+      }`}>
+      <span className="text-lg shrink-0">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-bold text-[var(--text)]">{title}</span>
+        <p className="text-[11px] text-[var(--text-muted)] font-semibold">{desc}</p>
+      </div>
+      <span className={`w-9 h-5 rounded-full transition-colors shrink-0 relative ${on ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+        <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transform transition-transform ${on ? 'translate-x-4' : 'translate-x-0.5'}`} />
+      </span>
+    </button>
   );
 }

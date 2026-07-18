@@ -195,6 +195,29 @@ const authSlice = createSlice({
         sessionStorage.setItem('user', JSON.stringify(state.user));
       }
     },
+    updatePlan: (state, action: PayloadAction<{
+      plan?: string;
+      chatPlan?: string;
+      voicePlan?: string;
+      chatEnabled?: boolean;
+      voiceEnabled?: boolean;
+      callsLimit?: number;
+      minutesLimit?: number;
+      chatLimit?: number;
+    }>) => {
+      if (state.user) {
+        const p = action.payload;
+        if (p.plan !== undefined) state.user.plan = p.plan;
+        if (p.chatPlan !== undefined) state.user.chatPlan = p.chatPlan;
+        if (p.voicePlan !== undefined) state.user.voicePlan = p.voicePlan;
+        if (p.chatEnabled !== undefined) state.user.chatEnabled = p.chatEnabled;
+        if (p.voiceEnabled !== undefined) state.user.voiceEnabled = p.voiceEnabled;
+        if (p.callsLimit !== undefined) state.user.callsLimit = p.callsLimit;
+        if (p.minutesLimit !== undefined) state.user.minutesLimit = p.minutesLimit;
+        if (p.chatLimit !== undefined) state.user.chatLimit = p.chatLimit;
+        sessionStorage.setItem('user', JSON.stringify(state.user));
+      }
+    },
     logout: (state) => {
       authService.logout(); // async — clears cookies/sessionStorage and calls /auth/logout
       state.user = null;
@@ -360,5 +383,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, updateChatUsed } = authSlice.actions;
+export const { logout, clearError, updateChatUsed, updatePlan } = authSlice.actions;
 export default authSlice.reducer;

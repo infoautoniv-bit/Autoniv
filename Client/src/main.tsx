@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import App from './App.tsx';
+import { PlanSyncProvider } from './components/PlanSyncProvider';
 import './index.css';
 
 // Self-hosted fonts to eliminate render-blocking external requests
@@ -58,7 +59,9 @@ if (clarityId && clarityId.length > 5 && !clarityId.includes('%')) {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <App />
+      <PlanSyncProvider>
+        <App />
+      </PlanSyncProvider>
     </Provider>
   </React.StrictMode>
 );
