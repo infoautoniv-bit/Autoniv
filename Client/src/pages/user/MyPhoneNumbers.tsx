@@ -143,6 +143,35 @@ const PLATFORM_CONFIG: Record<
   },
 };
 
+// Capability tier per provider on our own voice orchestrator. Mirrors
+// backend/services/telephony/capabilities.js (activeTier). 'realtime' streams
+// live audio (lowest latency); 'basic' is the turn-based Gather loop (works,
+// higher latency); 'unsupported' cannot run on our engine (its own AI engine).
+type CapabilityTier = 'realtime' | 'basic' | 'unsupported';
+
+const PLATFORM_TIER: Record<PhoneNumberPlatform, CapabilityTier> = {
+  twilio: 'realtime',
+  signalwire: 'realtime',
+  exotel: 'basic',
+  plivo: 'basic',
+  ozonetel: 'basic',
+  mcube: 'basic',
+  tatatele: 'basic',
+  maqsam: 'basic',
+  vobiz: 'basic',
+  voicelink: 'basic',
+  telnyx: 'basic',
+  custom: 'basic',
+  retell: 'unsupported',
+  vapi: 'unsupported',
+};
+
+const TIER_BADGE: Record<CapabilityTier, { label: string; cls: string }> = {
+  realtime: { label: 'Real-time', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+  basic: { label: 'Basic', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+  unsupported: { label: 'Unsupported', cls: 'bg-rose-500/15 text-rose-400 border-rose-500/30' },
+};
+
 export function MyPhoneNumbers() {
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [usersList, setUsersList] = useState<AssignableUser[]>([]);
@@ -207,6 +236,11 @@ export function MyPhoneNumbers() {
   const handleCreateNumber = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phoneNumberInput.trim()) return;
+
+    if (PLATFORM_TIER[selectedPlatform] === 'unsupported') {
+      alert(`${PLATFORM_CONFIG[selectedPlatform].name} runs its own AI engine and cannot be used with our voice orchestrator. Please choose a real-time or basic provider.`);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -404,9 +438,14 @@ export function MyPhoneNumbers() {
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${platformCfg.bg}`}>
-                      {platformCfg.name}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${platformCfg.bg}`}>
+                        {platformCfg.name}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase border ${TIER_BADGE[PLATFORM_TIER[num.platform] || 'basic'].cls}`}>
+                        {TIER_BADGE[PLATFORM_TIER[num.platform] || 'basic'].label}
+                      </span>
+                    </div>
                     <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${num.assignedToAgent || num.assignedToUser ? 'bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]/20' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
                       {num.assignedToAgent || num.assignedToUser ? 'Assigned' : 'Unassigned'}
                     </span>
@@ -477,6 +516,7 @@ export function MyPhoneNumbers() {
 
             <div className="flex-1 overflow-y-auto max-h-[340px] space-y-1 pr-1 custom-scrollbar">
               {Object.entries(PLATFORM_CONFIG)
+                .filter(([key]) => PLATFORM_TIER[key as PhoneNumberPlatform] !== 'unsupported')
                 .filter(([key, cfg]) => cfg.name.toLowerCase().includes(modalSearch.toLowerCase()) || key.includes(modalSearch.toLowerCase()))
                 .map(([key, cfg]) => {
                   const isSelected = selectedPlatform === key;
@@ -495,8 +535,8 @@ export function MyPhoneNumbers() {
                       }`}
                     >
                       <span>{cfg.name}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-extrabold ${cfg.bg}`}>
-                        {key === 'vapi' || key === 'retell' ? 'AI' : key === 'custom' ? 'SIP' : 'Telco'}
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-extrabold border ${TIER_BADGE[PLATFORM_TIER[key as PhoneNumberPlatform]].cls}`}>
+                        {TIER_BADGE[PLATFORM_TIER[key as PhoneNumberPlatform]].label}
                       </span>
                     </button>
                   );
@@ -520,6 +560,37 @@ export function MyPhoneNumbers() {
                   {PLATFORM_CONFIG[selectedPlatform].name}
                 </span>
               </div>
+
+              {/* Capability notice for the selected provider */}
+              {(() => {
+                const tier = PLATFORM_TIER[selectedPlatform];
+                const badge = TIER_BADGE[tier];
+                const msg =
+                  tier === 'realtime'
+                    ? 'Streams live audio into our voice engine for the lowest latency.'
+                    : tier === 'basic'
+                    ? 'Works via a turn-based voice loop (play + listen). Fully functional, with slightly higher latency than real-time providers.'
+                    : `${PLATFORM_CONFIG[selectedPlatform].name} runs its own AI engine and cannot be connected to our voice orchestrator. Adding it here is disabled.`;
+                return (
+                  <div className={`rounded-xl border px-3 py-2.5 flex items-start gap-2.5 ${badge.cls}`}>
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded border shrink-0 mt-0.5">{badge.label}</span>
+                    <p className="text-[11px] font-semibold leading-relaxed">{msg}</p>
+                  </div>
+                );
+              })()}
+
+              {/* Inbound webhook URL — configure this in the carrier console */}
+              {PLATFORM_TIER[selectedPlatform] !== 'unsupported' && (
+                <div className="rounded-xl border border-white/10 bg-[#071322] px-3 py-2.5 space-y-1.5">
+                  <p className="text-[10px] font-black uppercase text-white/40 tracking-wider">Inbound Webhook URL</p>
+                  <p className="text-[11px] text-white/60 font-semibold leading-relaxed">
+                    Point this {PLATFORM_CONFIG[selectedPlatform].name} number's voice webhook here so incoming calls reach your agent:
+                  </p>
+                  <code className="block text-[11px] text-[#10B981] font-mono break-all bg-black/30 rounded-lg px-2.5 py-1.5">
+                    {`${(import.meta.env.VITE_API_URL || `${window.location.origin}/api`).replace(/\/$/, '')}/webhooks/incoming-call`}
+                  </code>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -619,11 +690,11 @@ export function MyPhoneNumbers() {
               </button>
               <button
                 type="submit"
-                disabled={submitting}
-                className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white rounded-xl transition-all disabled:opacity-50 border-none cursor-pointer"
+                disabled={submitting || PLATFORM_TIER[selectedPlatform] === 'unsupported'}
+                className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer"
                 style={{ background: 'var(--gg)', boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}
               >
-                {submitting ? 'Saving...' : `Add ${PLATFORM_CONFIG[selectedPlatform].name} Number`}
+                {submitting ? 'Saving...' : PLATFORM_TIER[selectedPlatform] === 'unsupported' ? 'Not Supported' : `Add ${PLATFORM_CONFIG[selectedPlatform].name} Number`}
               </button>
             </div>
           </div>

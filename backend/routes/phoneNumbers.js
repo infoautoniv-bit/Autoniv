@@ -6,9 +6,16 @@ import { authenticate } from '../middleware/auth.js';
 import { requireValidObjectId } from '../middleware/validators.js';
 import { log } from '../services/logger.js';
 import { parsePage } from '../services/pagination.js';
+import { encryptCredentials, decryptCredentials } from '../services/encryption.js';
+import { capabilitySummary } from '../services/telephony/capabilities.js';
 
 const router = express.Router();
 router.use(authenticate);
+
+// GET /api/phone-numbers/capabilities - Per-provider capability tiers for the UI
+router.get('/capabilities', (req, res) => {
+  res.json({ capabilities: capabilitySummary() });
+});
 
 // GET /api/phone-numbers - List phone numbers
 router.get('/', async (req, res) => {
@@ -29,7 +36,7 @@ router.get('/', async (req, res) => {
         phoneNumber: num.phoneNumber,
         friendlyName: num.friendlyName || '',
         platform: num.platform,
-        credentials: num.credentials || {},
+        credentials: decryptCredentials(num.credentials || {}),
         assignedToAgent: num.assignedToAgent
           ? {
               id: num.assignedToAgent._id?.toString(),
@@ -133,7 +140,7 @@ router.post('/', async (req, res) => {
       phoneNumber: cleanNumber,
       friendlyName: friendlyName ? friendlyName.trim() : null,
       platform,
-      credentials: credentials || {},
+      credentials: encryptCredentials(credentials || {}),
       assignedToAgent: assignedToAgent || null,
       assignedToUser: assignedToUser || null,
       capabilities: Array.isArray(capabilities) && capabilities.length > 0 ? capabilities : ['voice'],
@@ -162,7 +169,7 @@ router.post('/', async (req, res) => {
         phoneNumber: populated.phoneNumber,
         friendlyName: populated.friendlyName || '',
         platform: populated.platform,
-        credentials: populated.credentials || {},
+        credentials: decryptCredentials(populated.credentials || {}),
         assignedToAgent: populated.assignedToAgent
           ? { id: populated.assignedToAgent._id?.toString(), name: populated.assignedToAgent.name, type: populated.assignedToAgent.type }
           : null,
@@ -199,7 +206,7 @@ router.put('/:id', requireValidObjectId('id'), async (req, res) => {
 
     if (friendlyName !== undefined) numberDoc.friendlyName = friendlyName.trim();
     if (platform) numberDoc.platform = platform;
-    if (credentials) numberDoc.credentials = { ...numberDoc.credentials, ...credentials };
+    if (credentials) numberDoc.credentials = { ...numberDoc.credentials, ...encryptCredentials(credentials) };
     if (capabilities) numberDoc.capabilities = capabilities;
     if (status) numberDoc.status = status;
 
@@ -217,7 +224,7 @@ router.put('/:id', requireValidObjectId('id'), async (req, res) => {
         phoneNumber: populated.phoneNumber,
         friendlyName: populated.friendlyName || '',
         platform: populated.platform,
-        credentials: populated.credentials || {},
+        credentials: decryptCredentials(populated.credentials || {}),
         assignedToAgent: populated.assignedToAgent
           ? { id: populated.assignedToAgent._id?.toString(), name: populated.assignedToAgent.name, type: populated.assignedToAgent.type }
           : null,
@@ -285,7 +292,7 @@ router.put('/:id/assign', requireValidObjectId('id'), async (req, res) => {
         phoneNumber: populated.phoneNumber,
         friendlyName: populated.friendlyName || '',
         platform: populated.platform,
-        credentials: populated.credentials || {},
+        credentials: decryptCredentials(populated.credentials || {}),
         assignedToAgent: populated.assignedToAgent
           ? { id: populated.assignedToAgent._id?.toString(), name: populated.assignedToAgent.name, type: populated.assignedToAgent.type }
           : null,

@@ -31,7 +31,35 @@ export function decrypt(encryptedText) {
   }
 }
 
+// Encrypt every string value in a credentials-style object (carrier secrets:
+// auth tokens, API keys, account SIDs). Non-string values pass through
+// untouched. Empty strings are left as-is so blank fields stay blank. Safe to
+// call on an object that is already encrypted only if you avoid double-calling;
+// callers encrypt once on write.
+export function encryptCredentials(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const out = Array.isArray(obj) ? [] : {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = typeof v === 'string' && v.length > 0 ? encrypt(v) : v;
+  }
+  return out;
+}
+
+// Inverse of encryptCredentials. decrypt() falls back to returning the input
+// unchanged when it is not our `iv:ciphertext` format, so legacy plaintext
+// records decrypt cleanly to themselves.
+export function decryptCredentials(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const out = Array.isArray(obj) ? [] : {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = typeof v === 'string' && v.length > 0 ? decrypt(v) : v;
+  }
+  return out;
+}
+
 export default {
   encrypt,
   decrypt,
+  encryptCredentials,
+  decryptCredentials,
 };
