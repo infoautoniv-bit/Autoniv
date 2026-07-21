@@ -302,8 +302,6 @@ export const authService = {
 
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post('/auth/change-password', { currentPassword, newPassword }),
-
-  planStatus: () => api.get('/auth/plan-status'),
 };
 
 // ── Shared types ───────────────────────────────────────────────────────────
