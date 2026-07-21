@@ -162,7 +162,24 @@ function getBestMultilingualProvider(detectedLang, gender) {
   return { provider: 'deepgram', voiceModelOrId: voiceId };
 }
 
-export async function synthesizeSpeech(text, isTwilio = true, language = 'en', voiceId = null) {
+// Normalize the telephony/format argument. Historically this was a boolean
+// `isTwilio` (true => mulaw/8000 telephony output, false => linear16/24000 web
+// output). To let per-provider transport adapters declare their own audio
+// format, the second argument now also accepts a descriptor
+// `{ encoding, sampleRate }`. Today both telephony adapters (Twilio, SignalWire)
+// use mulaw/8000, so any mulaw/ulaw or 8kHz format maps to the existing
+// telephony profile — keeping current behavior byte-for-byte identical.
+function normalizeTelephonyFormat(fmt) {
+  if (typeof fmt === 'boolean') return fmt;
+  if (fmt && typeof fmt === 'object') {
+    const enc = String(fmt.encoding || '').toLowerCase();
+    return enc === 'mulaw' || enc === 'ulaw' || fmt.sampleRate === 8000;
+  }
+  return true;
+}
+
+export async function synthesizeSpeech(text, telephonyOrFormat = true, language = 'en', voiceId = null) {
+  const isTwilio = normalizeTelephonyFormat(telephonyOrFormat);
   let provider = null;
   let voiceModelOrId = voiceId;
 

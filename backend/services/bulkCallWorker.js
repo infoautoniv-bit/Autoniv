@@ -5,7 +5,7 @@ import Call from '../db/models/Call.js';
 import User from '../db/models/User.js';
 import PhoneNumber from '../db/models/PhoneNumber.js';
 import { log } from './logger.js';
-import { decrypt } from './encryption.js';
+import { decrypt, decryptCredentials } from './encryption.js';
 import { createVapiOutboundCall } from './vapi.js';
 
 // Active campaigns being processed (in-memory map of campaignId -> abort flag)
@@ -62,7 +62,7 @@ async function placeTwilioCall(agent, e164Number, campaign) {
 
     if (isMatch) {
       platform = phoneDoc.platform || 'twilio';
-      credentials = phoneDoc.credentials || {};
+      credentials = decryptCredentials(phoneDoc.credentials || {});
     } else {
       phoneDoc = null;
     }

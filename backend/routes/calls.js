@@ -8,7 +8,7 @@ import { authenticate, requireAdmin, requireFeature, checkVoiceLimit } from '../
 import { log } from '../services/logger.js';
 import { getVapiCalls, extractVapiCallData, createVapiOutboundCall, createVapiAssistant } from '../services/vapi.js';
 import { parsePage, paginatedResponse } from '../services/pagination.js';
-import { decrypt } from '../services/encryption.js';
+import { decrypt, decryptCredentials } from '../services/encryption.js';
 import { deleteRecording } from '../services/cloudinary.js';
 
 const router = express.Router();
@@ -457,7 +457,9 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
 
         if (isMatch) {
           platform = phoneDoc.platform || 'twilio';
-          credentials = phoneDoc.credentials || {};
+          // Carrier secrets are stored encrypted; decrypt for use here. Legacy
+          // plaintext records pass through unchanged (decrypt falls back to input).
+          credentials = decryptCredentials(phoneDoc.credentials || {});
         } else {
           phoneDoc = null; // Mismatched number, discard stale Exotel/other fallback
         }

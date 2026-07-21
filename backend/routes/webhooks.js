@@ -5,6 +5,9 @@ import Agent from '../db/models/Agent.js';
 import Call from '../db/models/Call.js';
 import Webhook from '../db/models/Webhook.js';
 import User from '../db/models/User.js';
+import PhoneNumber from '../db/models/PhoneNumber.js';
+import { activeTier } from '../services/telephony/capabilities.js';
+import { buildTurnBasedResponse } from '../services/telephony/fallbackTurnBased.js';
 import { verifyVapiSignature } from '../middleware/webhookSignature.js';
 import { enforceTwilioSignature } from '../middleware/twilioSignature.js';
 import { webhookLimiter } from '../middleware/rateLimiters.js';
@@ -431,6 +434,25 @@ router.post('/incoming-call', async (req, res) => {
     return res.status(400).type('text/xml').send(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`);
   }
 
+  let platform = 'twilio';
+  try {
+    const dialed = (to || from || '').replace(/\D/g, '');
+    if (dialed) {
+      const candidates = await PhoneNumber.find({}).select('phoneNumber platform').lean();
+      const match = candidates.find((p) => {
+        const n = (p.phoneNumber || '').replace(/\D/g, '');
+        return n && (n === dialed ||
+          (n.length >= 10 && dialed.endsWith(n.slice(-10))) ||
+          (dialed.length >= 10 && n.endsWith(dialed.slice(-10))));
+      });
+      if (match?.platform) platform = match.platform;
+    }
+  } catch (err) {
+    log.warn('incoming_call_platform_resolve_failed', { error: err.message });
+  }
+  const tier = activeTier(platform);
+  log.info('incoming_call_platform_resolved', { platform, tier, callSid });
+
   res.type('text/xml');
 
   // No agent could be resolved for this number — answer gracefully instead of
@@ -444,16 +466,17 @@ router.post('/incoming-call', async (req, res) => {
 </Response>`);
   }
 
-  // Our WebSocket orchestrator handles custom-engine agents. The single source
-  // of truth is `vapiId`: an agent WITHOUT a vapiId is a custom agent (its
-  // Twilio number points here), while an agent WITH a vapiId is answered by
-  // Vapi directly — reaching this webhook means that number is misconfigured.
-  // We key off vapiId (not useCustomEngine) so the inbound path agrees with the
-  // outbound path in routes/calls.js, which also branches on `!agent.vapiId`.
-  // Connect media stream to agent websocket orchestrator
+  // Provider runs its own AI engine (e.g. Retell) and cannot hand raw audio to
+  // our orchestrator. Reject clearly instead of opening a stream that goes silent.
+  if (tier === 'unsupported') {
+    log.warn('incoming_call_unsupported_platform', { platform, callSid });
+    return res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say>This phone number is configured for a provider that is not supported by our voice engine. Please contact support.</Say>
+    <Hangup/>
+</Response>`);
+  }
 
-  // Twilio Media Streams REQUIRE wss. Force it in production and whenever the
-  // proxy reports https; tolerate comma-separated x-forwarded-proto values.
   const xfProto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
   const isSecure = xfProto === 'https' || req.secure || IS_PROD;
   const protocol = isSecure ? 'wss' : 'ws';
@@ -467,8 +490,7 @@ router.post('/incoming-call', async (req, res) => {
   const isExotel = (req.headers['user-agent'] || '').includes('Exotel') || (callSid || '').startsWith('exo_') || !!req.body.CallFrom;
   const userSpeech = req.body.SpeechResult || req.body.Digits || '';
 
-  // Exotel calls do not support Twilio <Connect><Stream> -> use Gather loop
-  if (isExotel || (userSpeech && req.body.CallFrom)) {
+  if (tier === 'turn-based' || isExotel || (userSpeech && req.body.CallFrom)) {
     let responseText = agent.prompt ? `Hello! ${agent.name} here. How can I help you today?` : 'Hello! I am your AI voice assistant. How can I help you today?';
 
     if (userSpeech) {
@@ -494,14 +516,7 @@ router.post('/incoming-call', async (req, res) => {
 
     const actionUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/vapi', '/incoming-call') : `https://${host}/api/webhooks/incoming-call`}`;
     const speakUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/vapi', '/tts/speak') : `https://${host}/api/tts/speak`}?agentId=${agentId}&text=${encodeURIComponent(responseText)}`;
-    const escapedSpeakUrl = speakUrl.replace(/&/g, '&amp;');
-
-    return res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Gather input="speech dtmf" action="${actionUrl}" method="POST" timeout="10" speechTimeout="auto">
-        <Play>${escapedSpeakUrl}</Play>
-    </Gather>
-</Response>`);
+    return res.send(buildTurnBasedResponse({ platform, responseText, actionUrl, speakUrl }));
   }
 
   // Twilio calls: Connect media stream directly to agent WebSocket orchestrator (/media-stream)
