@@ -5,6 +5,7 @@ import User from '../db/models/User.js';
 import Call from '../db/models/Call.js';
 import Lead from '../db/models/Lead.js';
 import Appointment from '../db/models/Appointment.js';
+import PhoneNumber from '../db/models/PhoneNumber.js';
 import { authenticate, requireAdmin, requireFeature } from '../middleware/auth.js';
 import { contentFilter } from '../services/contentModeration.js';
 import { log } from '../services/logger.js';
@@ -311,6 +312,27 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       phoneNumber: isDirectNumber ? phoneNumberId : (phoneNumber || null),
     });
 
+    if (agent.phoneNumber || agent.phoneNumberId) {
+      const rawNum = (agent.phoneNumber || '').replace(/[\s\-()]/g, '');
+      const numOrNull = rawNum ? (rawNum.startsWith('+') ? rawNum : `+${rawNum}`) : null;
+      const numWithoutPlus = rawNum ? rawNum.replace(/^\+/, '') : null;
+
+      const filterConditions = [];
+      if (agent.phoneNumber) filterConditions.push({ phoneNumber: agent.phoneNumber });
+      if (numOrNull) filterConditions.push({ phoneNumber: numOrNull });
+      if (numWithoutPlus) filterConditions.push({ phoneNumber: numWithoutPlus });
+      if (agent.phoneNumberId && mongoose.Types.ObjectId.isValid(agent.phoneNumberId)) {
+        filterConditions.push({ _id: agent.phoneNumberId });
+      }
+
+      if (filterConditions.length > 0) {
+        await PhoneNumber.findOneAndUpdate(
+          { userId: user._id, $or: filterConditions },
+          { assignedToAgent: agent._id }
+        );
+      }
+    }
+
     res.status(201).json({
       agent: normalizeAgent(agent),
     });
@@ -376,8 +398,31 @@ router.put('/:id', contentFilter('name', 'prompt'), async (req, res) => {
     if (customEngineModel !== undefined) updates.customEngineModel = customEngineModel;
     if (twilioAccountSid !== undefined) updates.twilioAccountSid = twilioAccountSid ? encrypt(twilioAccountSid) : null;
     if (twilioAuthToken !== undefined) updates.twilioAuthToken = twilioAuthToken ? encrypt(twilioAuthToken) : null;
+    if (req.body.phoneNumber !== undefined) updates.phoneNumber = req.body.phoneNumber;
+    if (req.body.phoneNumberId !== undefined) updates.phoneNumberId = req.body.phoneNumberId;
 
     const updated = await Agent.findByIdAndUpdate(id, updates, { new: true }).lean();
+
+    if (updated.phoneNumber || updated.phoneNumberId) {
+      const rawNum = (updated.phoneNumber || '').replace(/[\s\-()]/g, '');
+      const numOrNull = rawNum ? (rawNum.startsWith('+') ? rawNum : `+${rawNum}`) : null;
+      const numWithoutPlus = rawNum ? rawNum.replace(/^\+/, '') : null;
+
+      const filterConditions = [];
+      if (updated.phoneNumber) filterConditions.push({ phoneNumber: updated.phoneNumber });
+      if (numOrNull) filterConditions.push({ phoneNumber: numOrNull });
+      if (numWithoutPlus) filterConditions.push({ phoneNumber: numWithoutPlus });
+      if (updated.phoneNumberId && mongoose.Types.ObjectId.isValid(updated.phoneNumberId)) {
+        filterConditions.push({ _id: updated.phoneNumberId });
+      }
+
+      if (filterConditions.length > 0) {
+        await PhoneNumber.findOneAndUpdate(
+          { userId: agent.userId, $or: filterConditions },
+          { assignedToAgent: agent._id }
+        );
+      }
+    }
 
     res.json({
       agent: normalizeAgent(updated),
@@ -519,6 +564,27 @@ router.post('/:id/assign-phone', async (req, res) => {
     if (twilioAccountSid) updateFields.twilioAccountSid = encrypt(twilioAccountSid);
     if (twilioAuthToken) updateFields.twilioAuthToken = encrypt(twilioAuthToken);
     const updated = await Agent.findByIdAndUpdate(id, updateFields, { new: true }).lean();
+
+    if (updated.phoneNumber || updated.phoneNumberId) {
+      const rawNum = (updated.phoneNumber || '').replace(/[\s\-()]/g, '');
+      const numOrNull = rawNum ? (rawNum.startsWith('+') ? rawNum : `+${rawNum}`) : null;
+      const numWithoutPlus = rawNum ? rawNum.replace(/^\+/, '') : null;
+
+      const filterConditions = [];
+      if (updated.phoneNumber) filterConditions.push({ phoneNumber: updated.phoneNumber });
+      if (numOrNull) filterConditions.push({ phoneNumber: numOrNull });
+      if (numWithoutPlus) filterConditions.push({ phoneNumber: numWithoutPlus });
+      if (updated.phoneNumberId && mongoose.Types.ObjectId.isValid(updated.phoneNumberId)) {
+        filterConditions.push({ _id: updated.phoneNumberId });
+      }
+
+      if (filterConditions.length > 0) {
+        await PhoneNumber.findOneAndUpdate(
+          { userId: agent.userId, $or: filterConditions },
+          { assignedToAgent: agent._id }
+        );
+      }
+    }
 
     res.json({
       agent: normalizeAgent(updated),

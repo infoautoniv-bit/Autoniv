@@ -223,6 +223,8 @@ const UserAvatar = () => (
 export function MyChat() {
   const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
+  const chatLimit = user?.chatLimit || 100;
+
   const [messages, setMessages]   = useState<Message[]>(() => loadMessages() ?? [WELCOME_MESSAGE]);
   const [input, setInput]         = useState('');
   const [loading, setLoading]     = useState(false);
@@ -266,8 +268,11 @@ export function MyChat() {
     try {
       const res = await chatHistoryService.list();
       setSessions(res.data.sessions);
+      if (res.data.chatUsed !== undefined) {
+        dispatch(updateChatUsed({ chatUsed: res.data.chatUsed, chatLimit }));
+      }
     } catch { /* ignore */ }
-  }, []);
+  }, [dispatch, chatLimit]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
@@ -289,17 +294,23 @@ export function MyChat() {
       } else {
         const res = await chatHistoryService.create({ title, messages: backendMsgs });
         setSessionId(res.data.id);
+        if (res.data.chatUsed !== undefined) {
+          dispatch(updateChatUsed({ chatUsed: res.data.chatUsed, chatLimit }));
+        }
       }
       fetchSessions();
     } catch { /* ignore */ }
-  }, [sessionId, fetchSessions]);
+  }, [sessionId, fetchSessions, dispatch, chatLimit]);
 
   // Delete a session
   const deleteSession = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await chatHistoryService.delete(id);
+      const res = await chatHistoryService.delete(id);
       setSessions(prev => prev.filter(s => s.id !== id));
+      if (res.data?.chatUsed !== undefined) {
+        dispatch(updateChatUsed({ chatUsed: res.data.chatUsed, chatLimit }));
+      }
       if (sessionId === id) {
         const welcome = { ...WELCOME_MESSAGE, id: `welcome-${Date.now()}`, timestamp: new Date() };
         setMessages([welcome]);
@@ -310,7 +321,7 @@ export function MyChat() {
         setInput('');
       }
     } catch { /* ignore */ }
-  }, [sessionId]);
+  }, [sessionId, dispatch, chatLimit]);
 
   // Load a session from backend
   const loadSession = useCallback(async (id: string) => {

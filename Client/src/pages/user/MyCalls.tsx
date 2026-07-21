@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAppDispatch, useAppSelector } from '../../hooks/useStore';
@@ -433,6 +434,7 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
 
 export function MyCalls() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const calls    = useAppSelector((s) => s.calls.myCalls);
   const loading  = useAppSelector((s) => s.calls.loading);
   const pagination = useAppSelector((s) => s.calls.myPagination);
@@ -709,16 +711,27 @@ export function MyCalls() {
             <p className="mt-1.5 text-xs sm:text-sm text-slate-500 font-semibold">Review recordings, transcripts, and voice call logs</p>
           </div>
           
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="btn-cta self-start group inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-[var(--primary-blue)] bg-white border border-slate-200 hover:border-slate-350 hover:bg-slate-50 transition-all disabled:opacity-40 shadow-sm cursor-pointer btn-press"
-          >
-            <svg className={`w-3.5 h-3.5 text-[var(--primary)] transition-transform ${syncing ? 'animate-spin' : 'group-hover:rotate-180 duration-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
-            </svg>
-            {syncing ? 'Syncing...' : 'Sync from Vapi'}
-          </button>
+          <div className="flex items-center gap-2 self-start">
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="btn-cta group inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-[var(--primary-blue)] bg-white border border-slate-200 hover:border-slate-350 hover:bg-slate-50 transition-all disabled:opacity-40 shadow-sm cursor-pointer btn-press"
+            >
+              <svg className={`w-3.5 h-3.5 text-[var(--primary)] transition-transform ${syncing ? 'animate-spin' : 'group-hover:rotate-180 duration-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
+              </svg>
+              {syncing ? 'Syncing...' : 'Sync from Vapi'}
+            </button>
+            <button
+              onClick={() => navigate('/dashboard/bulk-calls')}
+              className="btn-cta group inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-sm cursor-pointer border-none"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Bulk Calls
+            </button>
+          </div>
         </motion.div>
 
         {/* ── Glass metrics cards ── */}

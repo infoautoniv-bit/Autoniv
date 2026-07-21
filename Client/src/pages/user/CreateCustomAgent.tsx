@@ -2,13 +2,14 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppDispatch } from '../../hooks/useStore';
 import { createAgent, fetchMyAgents } from '../../store/slices/agentsSlice';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AgentCard } from '../../components/AgentCard';
-import type { Agent } from '../../types';
+import type { Agent, PhoneNumber } from '../../types';
 import { createPortal } from 'react-dom';
 import { VOICE_OPTIONS } from '../../config/voices';
 import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
+import { phoneNumberService } from '../../services/api';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const LANGUAGE_OPTIONS = [
@@ -92,7 +93,7 @@ const DEFAULT_FORM_DATA = {
   type: 'receptionist',
   prompt: '',
   language: 'en',
-  voiceId: 'sarvam:bulbul',
+  voiceId: 'sarvam:bulbul:v3:shreya',
   useCustomEngine: true,
   customEngineModel: 'groq:llama-3.3-70b',
   phoneNumberId: '',
@@ -313,15 +314,33 @@ export function CreateCustomAgent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
 
+  const [savedPhoneNumbers, setSavedPhoneNumbers] = useState<PhoneNumber[]>([]);
+  const [phoneMode, setPhoneMode] = useState<'saved' | 'direct'>('saved');
+  const [selectedProvider, setSelectedProvider] = useState<string>('twilio');
 
-
+  useEffect(() => {
+    phoneNumberService.getAll().then(res => {
+      setSavedPhoneNumbers(res.data.phoneNumbers || []);
+    }).catch(() => {});
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
     setSubmitting(true);
     setError(null);
     try {
-      await dispatch(createAgent(formData)).unwrap();
+      let phoneNumberVal = formData.phoneNumberId;
+      if (phoneMode === 'saved') {
+        const found = savedPhoneNumbers.find(p => p.id === formData.phoneNumberId || p.phoneNumber === formData.phoneNumberId);
+        phoneNumberVal = found ? found.phoneNumber : formData.phoneNumberId;
+      }
+      const submitData = {
+        ...formData,
+        phoneNumber: phoneNumberVal,
+        twilioAccountSid: phoneMode === 'direct' ? formData.twilioAccountSid : '',
+        twilioAuthToken: phoneMode === 'direct' ? formData.twilioAuthToken : '',
+      };
+      await dispatch(createAgent(submitData)).unwrap();
       await dispatch(fetchMyAgents({ page: 1, limit: 20 }));
       navigate('/dashboard/ai-voice-agent');
     } catch (err: any) {
@@ -329,7 +348,7 @@ export function CreateCustomAgent() {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, dispatch, formData, navigate]);
+  }, [submitting, formData, phoneMode, savedPhoneNumbers, dispatch, navigate]);
 
   const previewAgent: Agent = {
     id: 'preview',
@@ -647,72 +666,136 @@ export function CreateCustomAgent() {
             </SectionCard>
 
             {/* 4 — Phone configuration */}
-            <SectionCard step={4} title="Phone Number Settings" subtitle="Assign Twilio phone number and credentials (Optional)">
+            <SectionCard step={4} title="Phone Configuration" subtitle="Assign phone number from 14+ providers (Optional)">
               <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex flex-wrap gap-3">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] cursor-pointer">
+                    <input
+                      type="radio"
+                      name="phoneMode"
+                      checked={phoneMode === 'saved'}
+                      onChange={() => setPhoneMode('saved')}
+                      className="text-[var(--primary-blue)] focus:ring-0 focus:ring-offset-0"
+                    />
+                    Saved Phone Numbers ({savedPhoneNumbers.length})
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] cursor-pointer">
+                    <input
+                      type="radio"
+                      name="phoneMode"
+                      checked={phoneMode === 'direct'}
+                      onChange={() => setPhoneMode('direct')}
+                      className="text-[var(--primary-blue)] focus:ring-0 focus:ring-offset-0"
+                    />
+                    Custom Direct Number
+                  </label>
+                </div>
+
+                {phoneMode === 'saved' ? (
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span style={{ ...fieldLabel, marginBottom: 0 }}>Twilio Phone Number</span>
-                      <a
-                        href="https://console.twilio.com/us1/develop/phone-numbers/manage/search"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150"
-                        style={{
-                          background: 'rgba(37,99,235,0.08)',
-                          border: '1px solid rgba(37,99,235,0.2)',
-                          color: 'var(--primary-blue)',
-                          textDecoration: 'none',
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.background = 'rgba(37,99,235,0.14)';
-                          e.currentTarget.style.borderColor = 'var(--primary-blue)';
-                          e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.background = 'rgba(37,99,235,0.08)';
-                          e.currentTarget.style.borderColor = 'rgba(37,99,235,0.2)';
-                          e.currentTarget.style.transform = 'none';
-                        }}
+                      <label style={fieldLabel}>Select Saved Phone Number</label>
+                      <Link
+                        to="/dashboard/phone-numbers"
+                        className="text-[10px] font-bold text-[var(--primary-blue)] hover:underline"
                       >
-                        Buy Number ↗
-                      </a>
+                        Manage Numbers ↗
+                      </Link>
                     </div>
-                    <input
-                      type="text"
-                      value={formData.phoneNumberId}
-                      onChange={e => patch({ phoneNumberId: e.target.value })}
-                      placeholder="e.g. +1845541210"
-                      style={inputBase}
-                      onFocus={focusStyle}
-                      onBlur={blurStyle}
-                    />
+                    <div className="relative">
+                      <select
+                        value={formData.phoneNumberId}
+                        onChange={e => patch({ phoneNumberId: e.target.value })}
+                        style={inputBase}
+                        className="appearance-none cursor-pointer focus:outline-none focus:border-[var(--primary-blue)]/50 focus:ring-1 focus:ring-[var(--primary-blue)]/10"
+                      >
+                        <option value="">— No phone number —</option>
+                        {savedPhoneNumbers.map((pn) => (
+                          <option key={pn.id} value={pn.phoneNumber}>
+                            {pn.phoneNumber} ({pn.platform.toUpperCase()}){pn.friendlyName ? ` — ${pn.friendlyName}` : ''}{pn.assignedToAgent ? ' (Assigned)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    </div>
+                    {savedPhoneNumbers.length === 0 && (
+                      <p className="text-[11px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                        No saved phone numbers found.{' '}
+                        <Link to="/dashboard/phone-numbers" className="text-[var(--primary-blue)] font-bold hover:underline">
+                          Add numbers from Exotel, Plivo, Twilio, Ozonetel, etc.
+                        </Link>
+                      </p>
+                    )}
                   </div>
-                  <div>
-                    <label style={fieldLabel}>Twilio Account SID</label>
-                    <input
-                      type="text"
-                      value={formData.twilioAccountSid}
-                      onChange={e => patch({ twilioAccountSid: e.target.value })}
-                      placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      style={inputBase}
-                      onFocus={focusStyle}
-                      onBlur={blurStyle}
-                    />
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span style={{ ...fieldLabel, marginBottom: 0 }}>Phone Number</span>
+                          <select
+                            value={selectedProvider}
+                            onChange={(e) => setSelectedProvider(e.target.value)}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--s1)] border border-[var(--border)] text-[var(--text)]"
+                          >
+                            <option value="twilio">Twilio</option>
+                            <option value="exotel">Exotel</option>
+                            <option value="plivo">Plivo</option>
+                            <option value="ozonetel">Ozonetel</option>
+                            <option value="mcube">MCUBE</option>
+                            <option value="tatatele">Tata Tele</option>
+                            <option value="maqsam">Maqsam</option>
+                            <option value="vobiz">Vobiz</option>
+                            <option value="voicelink">VoiceLink</option>
+                            <option value="retell">Retell AI</option>
+                            <option value="telnyx">Telnyx</option>
+                            <option value="signalwire">SignalWire</option>
+                            <option value="custom">Custom / SIP</option>
+                          </select>
+                        </div>
+                        <input
+                          type="text"
+                          value={formData.phoneNumberId}
+                          onChange={e => patch({ phoneNumberId: e.target.value })}
+                          placeholder="e.g. +919876543210 or +1845541210"
+                          style={inputBase}
+                          onFocus={focusStyle}
+                          onBlur={blurStyle}
+                        />
+                      </div>
+                      {selectedProvider === 'twilio' && (
+                        <>
+                          <div>
+                            <label style={fieldLabel}>Twilio Account SID</label>
+                            <input
+                              type="text"
+                              value={formData.twilioAccountSid}
+                              onChange={e => patch({ twilioAccountSid: e.target.value })}
+                              placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                              style={inputBase}
+                              onFocus={focusStyle}
+                              onBlur={blurStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={fieldLabel}>Twilio Auth Token</label>
+                            <input
+                              type="password"
+                              value={formData.twilioAuthToken}
+                              onChange={e => patch({ twilioAuthToken: e.target.value })}
+                              placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                              style={inputBase}
+                              onFocus={focusStyle}
+                              onBlur={blurStyle}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label style={fieldLabel}>Twilio Auth Token</label>
-                    <input
-                      type="password"
-                      value={formData.twilioAuthToken}
-                      onChange={e => patch({ twilioAuthToken: e.target.value })}
-                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      style={inputBase}
-                      onFocus={focusStyle}
-                      onBlur={blurStyle}
-                    />
-                  </div>
-                </div>
+                )}
                 <p className="text-[10.5px] font-medium" style={{ color: 'var(--text-muted)' }}>
                   If left blank, the agent can only be tested using web chat.
                 </p>

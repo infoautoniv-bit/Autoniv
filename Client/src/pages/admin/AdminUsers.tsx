@@ -358,6 +358,20 @@ export function AdminUsers() {
     dispatch(fetchAllUsers({ period: timeRange === 'all' ? undefined : timeRange, page, limit: 20 }));
   }, [dispatch, timeRange, page]);
 
+  useEffect(() => {
+    const refetch = () => {
+      if (document.visibilityState === 'visible') {
+        dispatch(fetchAllUsers({ period: timeRange === 'all' ? undefined : timeRange, page, limit: 20 }));
+      }
+    };
+    window.addEventListener('focus', refetch);
+    document.addEventListener('visibilitychange', refetch);
+    return () => {
+      window.removeEventListener('focus', refetch);
+      document.removeEventListener('visibilitychange', refetch);
+    };
+  }, [dispatch, timeRange, page]);
+
   useEffect(() => { setPage(1); }, [timeRange, searchTerm, statusFilter]);
 
   const filteredUsers = users.filter(user => {

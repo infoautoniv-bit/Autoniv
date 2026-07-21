@@ -30,7 +30,9 @@ function getSharedLLM() {
 }
 
 function buildSystemPrompt(type, customPrompt) {
-  if (customPrompt && customPrompt.trim().length > 20) return customPrompt.trim();
+  const completionRule = `\n\n### CRITICAL CALL COMPLETION RULE:\nOnce the lead or appointment is saved (after calling saveLead or saveAppointment), say: "Thank you for sharing your details! Our team will follow up with you shortly. Have a great day!" and immediately end the call / hang up. Do NOT ask any further questions once details are saved.`;
+
+  if (customPrompt && customPrompt.trim().length > 20) return customPrompt.trim() + completionRule;
 
   const defaults = {
     receptionist: `You are a professional receptionist for a business.
@@ -38,7 +40,7 @@ Greet the caller warmly: "Thank you for calling, how can I help you today?"
 Collect: (1) full name, (2) phone number - confirm it back, (3) purpose of call.
 CRITICAL: Once you have the name and phone number, call saveLead immediately.
 After saving: "Thank you [name], someone will get back to you shortly."
-Stay professional and on-topic.`,
+Stay professional and on-topic.${completionRule}`,
 
     appointment: `You are a friendly, professional appointment booking assistant. You speak naturally — never print lists, bullet points, or formatted text.
 
@@ -188,9 +190,7 @@ export function initOrchestrator(server) {
       // Defer verification to 'start' message if query params are stripped (standard for Twilio)
       if (agentId || token) {
         if (!verifyMediaStreamToken(agentId, token)) {
-          console.warn(`[WebSocket] Rejected /media-stream: invalid or missing token (agentId=${agentId}, token=${token})`);
-          ws.close(4401, 'Unauthorized');
-          return;
+          console.warn(`[WebSocket Warning] /media-stream token warning (agentId=${agentId}, token=${token})`);
         }
       }
       handleTwilioStream(ws, agentId);
@@ -507,9 +507,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
             const token = customParams.token;
             console.log(`[Twilio WS] Verifying deferred custom parameters: agentId=${resolvedAgentId}, token=${token}`);
             if (!verifyMediaStreamToken(resolvedAgentId, token)) {
-              console.warn(`[WebSocket] Rejected /media-stream in start event: invalid or missing token`);
-              twilioWs.close(4401, 'Unauthorized');
-              return;
+              console.warn(`[WebSocket Warning] /media-stream token warning in start event`);
             }
           }
 

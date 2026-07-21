@@ -104,6 +104,8 @@ const Icons = {
 const userNavItems: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', badge: null },
   { path: '/dashboard/ai-voice-agent', label: 'My Agents', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', badge: null },
+  { path: '/dashboard/phone-numbers', label: 'Phone Numbers', icon: 'M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z', badge: null },
+  { path: '/dashboard/bulk-calls', label: 'Bulk Calls', icon: 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.684A1 1 0 014.544 13H3a1 1 0 01-1-1V9a1 1 0 011-1h1.544a1 1 0 01.892.684l.6.9L7 11l-1.564 1.784z', badge: null },
   { path: '/dashboard/ai-phone-answering', label: 'Custom Call', icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4 0h8m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z', badge: null },
   { path: '/dashboard/ai-chatbot', label: 'Chat Sandbox', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z', badge: null },
   { path: '/dashboard/chatbots', label: 'Chatbots', icon: 'M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z', badge: null },
@@ -752,7 +754,9 @@ export function Sidebar() {
       if (
         item.path === '/dashboard/ai-voice-agent' ||
         item.path === '/dashboard/ai-phone-answering' ||
-        item.path === '/dashboard/calls'
+        item.path === '/dashboard/calls' ||
+        item.path === '/dashboard/phone-numbers' ||
+        item.path === '/dashboard/bulk-calls'
       ) {
         return isVoice;
       }

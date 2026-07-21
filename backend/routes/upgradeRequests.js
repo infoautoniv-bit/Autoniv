@@ -10,10 +10,10 @@ const router = express.Router();
 router.use(authenticate);
 
 const VALID_UPGRADE_PLANS = [
-  'chat_starter', 'chat_growth', 'chat_enterprise',
-  'voice_starter', 'voice_growth', 'voice_enterprise',
-  'both_starter', 'both_growth', 'both_enterprise',
-  'starter', 'growth', 'enterprise' // backward compatibility
+  'chat_free', 'chat_starter', 'chat_growth', 'chat_enterprise',
+  'voice_free', 'voice_starter', 'voice_growth', 'voice_enterprise',
+  'both_free', 'both_starter', 'both_growth', 'both_enterprise',
+  'free', 'starter', 'growth', 'enterprise' // backward compatibility
 ];
 
 router.post('/', async (req, res) => {
@@ -44,7 +44,7 @@ router.post('/', async (req, res) => {
       status: 'pending',
     });
 
-    res.status(201).json({ request });
+    res.status(201).json({ request: { ...request.toObject(), id: request._id } });
   } catch (error) {
     log.error('create_upgrade_request_error', { error: error.message, userId: req.user?.userId });
     res.status(500).json({ message: 'Failed to create upgrade request' });
@@ -111,9 +111,6 @@ router.put('/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ message: `Request was already ${request.status}` });
     }
 
-    request.status = status;
-    await request.save();
-
     if (status === 'approved') {
       const plan = request.requestedPlan;
       const user = await User.findById(request.userId).lean();
@@ -137,13 +134,13 @@ router.put('/:id', requireAdmin, async (req, res) => {
         const voiceConfig = (voicePlan !== 'none' && User.PLAN_CONFIG[voicePlan]) ? User.PLAN_CONFIG[voicePlan] : null;
 
         let planLegacy = plan;
-        if (chatPlan !== 'none' && voicePlan !== 'none') {
+        if (plan.startsWith('both_')) {
           const chatTier = chatPlan.replace('chat_', '');
           const voiceTier = voicePlan.replace('voice_', '');
-          planLegacy = chatTier === voiceTier ? `both_${chatTier}` : chatPlan;
-        } else if (chatPlan !== 'none') {
+          planLegacy = chatTier === voiceTier ? `both_${chatTier}` : plan;
+        } else if (plan.startsWith('chat_')) {
           planLegacy = chatPlan;
-        } else if (voicePlan !== 'none') {
+        } else if (plan.startsWith('voice_')) {
           planLegacy = voicePlan;
         }
 
@@ -171,10 +168,13 @@ router.put('/:id', requireAdmin, async (req, res) => {
       }
     }
 
-    res.json({ request });
+    await UpgradeRequest.findByIdAndDelete(id);
+
+    const result = { ...request.toObject(), id: request._id, status };
+    res.json({ request: result });
   } catch (error) {
     log.error('process_upgrade_request_error', { error: error.message, userId: req.user?.userId });
-    res.status(500).json({ message: 'Failed to process upgrade request' });
+    res.status(500).json({ message: 'Failed to process request' });
   }
 });
 

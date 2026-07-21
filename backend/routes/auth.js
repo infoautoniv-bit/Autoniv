@@ -678,15 +678,16 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
-// ─── Lightweight plan-status check (for polling) ────────────────────────────
+// ─── Plan Status (lightweight polling endpoint) ─────────────────────────────
 router.get('/plan-status', authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId)
-      .select('plan chatPlan voicePlan chatEnabled voiceEnabled minutesUsed minutesLimit callsUsed callsLimit chatUsed chatLimit')
-      .lean();
+    const user = await User.findById(req.user.userId).lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const { chatPlan, voicePlan } = resolvePlans(user);
+
+    const chatConfig = chatPlan !== 'none' && PLAN_CONFIG[chatPlan] ? PLAN_CONFIG[chatPlan] : null;
+    const voiceConfig = voicePlan !== 'none' && PLAN_CONFIG[voicePlan] ? PLAN_CONFIG[voicePlan] : null;
 
     return res.json({
       plan: user.plan || (chatPlan !== 'none' ? chatPlan : voicePlan),
@@ -695,11 +696,11 @@ router.get('/plan-status', authenticate, async (req, res) => {
       chatEnabled: chatPlan !== 'none',
       voiceEnabled: voicePlan !== 'none',
       minutesUsed: user.minutesUsed,
-      minutesLimit: voicePlan !== 'none' && PLAN_CONFIG[voicePlan] ? PLAN_CONFIG[voicePlan].limits.minutes : user.minutesLimit,
+      minutesLimit: voiceConfig ? voiceConfig.limits.minutes : 0,
       callsUsed: user.callsUsed || 0,
-      callsLimit: voicePlan !== 'none' && PLAN_CONFIG[voicePlan] ? PLAN_CONFIG[voicePlan].limits.calls : user.callsLimit,
+      callsLimit: voiceConfig ? voiceConfig.limits.calls : 0,
       chatUsed: user.chatUsed || 0,
-      chatLimit: chatPlan !== 'none' && PLAN_CONFIG[chatPlan] ? PLAN_CONFIG[chatPlan].limits.conversations : (user.chatLimit || 0),
+      chatLimit: chatConfig ? chatConfig.limits.conversations : 0,
     });
   } catch (error) {
     log.error('plan_status_error', { error: error.message });

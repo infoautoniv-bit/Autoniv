@@ -3,22 +3,48 @@ import express from 'express';
 import Call from '../db/models/Call.js';
 import Agent from '../db/models/Agent.js';
 import User from '../db/models/User.js';
+import PhoneNumber from '../db/models/PhoneNumber.js';
 import { authenticate, requireAdmin, requireFeature, checkVoiceLimit } from '../middleware/auth.js';
 import { log } from '../services/logger.js';
-import { getVapiCalls, extractVapiCallData, createVapiOutboundCall } from '../services/vapi.js';
+import { getVapiCalls, extractVapiCallData, createVapiOutboundCall, createVapiAssistant } from '../services/vapi.js';
 import { parsePage, paginatedResponse } from '../services/pagination.js';
-import { decrypt } from '../services/encryption.js';
+import { decrypt, decryptCredentials } from '../services/encryption.js';
 import { deleteRecording } from '../services/cloudinary.js';
 
 const router = express.Router();
 router.use(authenticate);
 router.use(requireFeature('voice'));
 
+async function cleanupStaleCalls(userId) {
+  try {
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const filter = {
+      status: 'in-progress',
+      startedAt: { $lt: twoMinutesAgo },
+    };
+    if (userId) filter.userId = new mongoose.Types.ObjectId(userId);
+
+    await Call.updateMany(filter, {
+      $set: {
+        status: 'failed',
+        duration: 0,
+      },
+    });
+  } catch (_) {}
+}
+
 // Normalize a call document for frontend consumption
 function normalizeCall(c) {
+  let finalStatus = c.status;
+  const isStale = c.status === 'in-progress' && c.startedAt && (Date.now() - new Date(c.startedAt).getTime() > 120000);
+  if (isStale) {
+    finalStatus = 'failed';
+  }
+
   return {
     ...c,
     id: c._id?.toString(),
+    status: finalStatus,
     agentId: c.agentId?._id?.toString() ?? c.agentId?.toString() ?? null,
     userId: c.userId?._id?.toString() ?? c.userId?.toString() ?? null,
     agentName: c.agentId?.name ?? null,
@@ -41,6 +67,7 @@ const STATUS_MAP = {
 // GET /calls — admin: all calls
 router.get('/', requireAdmin, async (req, res) => {
   try {
+    await cleanupStaleCalls(null);
     const { page, limit, skip } = parsePage(req.query);
     const { status } = req.query;
     const filter = {};
@@ -61,12 +88,13 @@ router.get('/', requireAdmin, async (req, res) => {
 // GET /calls/my — current user's calls
 router.get('/my', async (req, res) => {
   try {
-    const { page, limit, skip } = parsePage(req.query);
-    const { status } = req.query;
-
     if (!mongoose.Types.ObjectId.isValid(req.user.userId)) {
       return res.status(400).json({ message: 'Invalid user ID in token' });
     }
+
+    await cleanupStaleCalls(req.user.userId);
+    const { page, limit, skip } = parsePage(req.query);
+    const { status } = req.query;
 
     const filter = { userId: new mongoose.Types.ObjectId(req.user.userId) };
     if (status) filter.status = status;
@@ -368,85 +396,363 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
 
     const e164Number = phoneClean.startsWith('+') ? phoneClean : `+${phoneClean}`;
 
-    if (!agent.vapiId) {
-      // Check if we have Twilio credentials to make direct Twilio outbound call (agent-specific first, fallback to env)
-      const accountSid = agent.twilioAccountSid ? decrypt(agent.twilioAccountSid) : process.env.TWILIO_ACCOUNT_SID;
-      const authToken = agent.twilioAuthToken ? decrypt(agent.twilioAuthToken) : process.env.TWILIO_AUTH_TOKEN;
-      if (!accountSid || !authToken) {
-        return res.status(400).json({
-          message: 'To use custom outbound calls, please configure your Twilio Account SID and Twilio Auth Token in your agent settings or backend .env file.'
+    let currentVapiId = agent.vapiId;
+
+    if (!currentVapiId && !agent.useCustomEngine && process.env.VAPI_API_KEY) {
+      try {
+        const vapiAssistant = await createVapiAssistant({
+          name: agent.name,
+          type: agent.type || 'receptionist',
+          prompt: agent.prompt || '',
+          language: agent.language || 'en',
+          voiceId: agent.voiceId || 'vapi:jennifer',
+          userId: agent.userId,
         });
+        if (vapiAssistant && vapiAssistant.id) {
+          currentVapiId = vapiAssistant.id;
+          await Agent.findByIdAndUpdate(agent._id, { vapiId: currentVapiId });
+        }
+      } catch (vapiErr) {
+        log.warn('vapi_auto_create_assistant_failed', { error: vapiErr.message, agentId: agent._id });
+      }
+    }
+
+    if (!currentVapiId) {
+      // Lookup registered phone number document if available
+      const rawNum = (agent.phoneNumber || agent.phoneNumberId || '').replace(/[\s\-()]/g, '');
+      const numOrNull = rawNum ? (rawNum.startsWith('+') ? rawNum : `+${rawNum}`) : null;
+      const numWithoutPlus = rawNum ? rawNum.replace(/^\+/, '') : null;
+
+      const orConditions = [
+        { assignedToAgent: agent._id },
+      ];
+      if (agent.phoneNumber) orConditions.push({ phoneNumber: agent.phoneNumber });
+      if (numOrNull) orConditions.push({ phoneNumber: numOrNull });
+      if (numWithoutPlus) orConditions.push({ phoneNumber: numWithoutPlus });
+      if (agent.phoneNumberId && mongoose.Types.ObjectId.isValid(agent.phoneNumberId)) {
+        orConditions.push({ _id: agent.phoneNumberId });
       }
 
-      const fromNumber = agent.phoneNumber || process.env.TWILIO_FROM_NUMBER;
+      let phoneDoc = await PhoneNumber.findOne({
+        userId: agent.userId,
+        $or: orConditions,
+      }).lean();
+
+      if (!phoneDoc && !agent.phoneNumber && !agent.phoneNumberId) {
+        phoneDoc = await PhoneNumber.findOne({ userId: agent.userId })
+          .sort({ createdAt: -1 })
+          .lean();
+      }
+
+      let platform = 'twilio';
+      let credentials = {};
+      if (phoneDoc) {
+        const rawPhoneDocNum = (phoneDoc.phoneNumber || '').replace(/\D/g, '');
+        const rawAgentNum = (agent.phoneNumber || '').replace(/\D/g, '');
+        
+        // If agent has an explicit phoneNumber set, phoneDoc MUST match that number
+        const isMatch = rawAgentNum && rawPhoneDocNum
+          ? (rawPhoneDocNum.endsWith(rawAgentNum.slice(-10)) || rawAgentNum.endsWith(rawPhoneDocNum.slice(-10)))
+          : (!rawAgentNum || (phoneDoc.assignedToAgent && phoneDoc.assignedToAgent.toString() === agent._id.toString()));
+
+        if (isMatch) {
+          platform = phoneDoc.platform || 'twilio';
+          // Carrier secrets are stored encrypted; decrypt for use here. Legacy
+          // plaintext records pass through unchanged (decrypt falls back to input).
+          credentials = decryptCredentials(phoneDoc.credentials || {});
+        } else {
+          phoneDoc = null; // Mismatched number, discard stale Exotel/other fallback
+        }
+      }
+
+      if (!phoneDoc) {
+        platform = agent.twilioAccountSid ? 'twilio' : (process.env.TWILIO_ACCOUNT_SID ? 'twilio' : 'twilio');
+      }
+
+      const fromNumber = agent.phoneNumber || (phoneDoc ? phoneDoc.phoneNumber : null) || process.env.TWILIO_FROM_NUMBER;
+
+      log.info('outbound_credentials_resolved', {
+        agentId: agent._id,
+        phoneNumber: fromNumber,
+        platform,
+        hasPhoneDoc: !!phoneDoc,
+        credentialKeys: Object.keys(credentials),
+      });
+
       if (!fromNumber) {
         return res.status(400).json({
-          message: 'No outbound caller ID number associated with this agent. Please link a Twilio phone number first.'
+          message: 'No outbound caller ID number associated with this agent. Please link or select a phone number first.'
         });
       }
 
-      // Calculate Twilio callback URLs
+      // Calculate callback URLs
       const baseWebhookUrl = process.env.WEBHOOK_URL || `https://${req.headers.host}`;
-      let twilioWebhookUrl;
-      let twilioStatusCallbackUrl;
+      let webhookUrl;
+      let statusCallbackUrl;
       if (baseWebhookUrl.endsWith('/api/webhooks/vapi')) {
-        twilioWebhookUrl = baseWebhookUrl.replace('/vapi', '/incoming-call');
-        twilioStatusCallbackUrl = baseWebhookUrl.replace('/vapi', '/twilio/status');
+        webhookUrl = baseWebhookUrl.replace('/vapi', '/incoming-call');
+        statusCallbackUrl = baseWebhookUrl.replace('/vapi', '/twilio/status');
       } else {
         const base = baseWebhookUrl.replace(/\/$/, '');
-        twilioWebhookUrl = `${base}/api/webhooks/incoming-call`;
-        twilioStatusCallbackUrl = `${base}/api/webhooks/twilio/status`;
+        webhookUrl = `${base}/api/webhooks/incoming-call`;
+        statusCallbackUrl = `${base}/api/webhooks/twilio/status`;
       }
 
-      // Place Twilio outbound call using REST API
-      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json`;
-      const bodyParams = new URLSearchParams({
-        To: e164Number,
-        From: fromNumber,
-        Url: twilioWebhookUrl,
-        StatusCallback: twilioStatusCallbackUrl,
-        StatusCallbackMethod: 'POST',
-      });
+      let callSid = `call_${Date.now()}`;
 
-      const basicAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-      const twilioRes = await fetch(twilioUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${basicAuth}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: bodyParams.toString(),
-      });
+      if (platform === 'exotel') {
+        const sid = credentials.accountSid || credentials.subdomain || process.env.EXOTEL_ACCOUNT_SID;
+        const apiKey = credentials.apiKey || process.env.EXOTEL_API_KEY;
+        const apiToken = credentials.apiToken || credentials.authToken || process.env.EXOTEL_API_TOKEN;
 
-      if (!twilioRes.ok) {
-        const responseText = await twilioRes.text();
-        throw new Error(`Twilio API Error (${twilioRes.status}): ${responseText}`);
+        if (!sid || !apiKey || !apiToken) {
+          return res.status(400).json({ message: 'Exotel credentials incomplete. Account SID/Subdomain, API Key, and API Token are required.' });
+        }
+
+        let cleanFromNumber = fromNumber.replace(/\D/g, '');
+        let cleanE164Number = e164Number.replace(/\D/g, '');
+        // If 10-digit Indian number, format as 0... or 91... for Exotel
+        if (cleanE164Number.length === 10) cleanE164Number = `0${cleanE164Number}`;
+        if (cleanFromNumber.length === 10) cleanFromNumber = `0${cleanFromNumber}`;
+
+        const exotelUrl = `https://api.exotel.com/v1/Accounts/${sid}/Calls/connect.json`;
+        const params = new URLSearchParams({
+          From: cleanE164Number,
+          CallerId: cleanFromNumber,
+          Url: webhookUrl,
+          StatusCallback: statusCallbackUrl,
+          CallType: 'trans',
+        });
+
+        const authHeader = 'Basic ' + Buffer.from(`${apiKey}:${apiToken}`).toString('base64');
+        const exoRes = await fetch(exotelUrl, {
+          method: 'POST',
+          headers: { 'Authorization': authHeader, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+
+        const exoText = await exoRes.text();
+        if (!exoRes.ok) {
+          throw new Error(`Exotel API Error (${exoRes.status}): ${exoText}`);
+        }
+        let exoData; try { exoData = JSON.parse(exoText); } catch (_) { exoData = {}; }
+        callSid = exoData?.Call?.Sid || exoData?.sid || `exo_${Date.now()}`;
+      } else if (platform === 'plivo') {
+        const authId = credentials.authId || credentials.accountSid || process.env.PLIVO_AUTH_ID;
+        const authToken = credentials.authToken || credentials.apiToken || process.env.PLIVO_AUTH_TOKEN;
+
+        if (!authId || !authToken) {
+          return res.status(400).json({ message: 'Plivo credentials incomplete. Auth ID and Auth Token are required.' });
+        }
+
+        const plivoUrl = `https://api.plivo.com/v1/Account/${authId}/Call/`;
+        const authHeader = 'Basic ' + Buffer.from(`${authId}:${authToken}`).toString('base64');
+        const plivoRes = await fetch(plivoUrl, {
+          method: 'POST',
+          headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: fromNumber, to: e164Number, answer_url: webhookUrl, callback_url: statusCallbackUrl })
+        });
+
+        const plivoText = await plivoRes.text();
+        if (!plivoRes.ok) {
+          throw new Error(`Plivo API Error (${plivoRes.status}): ${plivoText}`);
+        }
+        let plivoData; try { plivoData = JSON.parse(plivoText); } catch (_) { plivoData = {}; }
+        callSid = plivoData?.request_uuid || `plivo_${Date.now()}`;
+      } else if (platform === 'ozonetel') {
+        const apiKey = credentials.apiKey || process.env.OZONETEL_API_KEY;
+        const customerName = credentials.customerName || process.env.OZONETEL_CUSTOMER_NAME;
+        if (!apiKey || !customerName) {
+          return res.status(400).json({ message: 'Ozonetel credentials incomplete. API Key and Customer Name are required.' });
+        }
+        let cleanFromNumber = fromNumber.replace(/\D/g, '');
+        let cleanE164Number = e164Number.replace(/\D/g, '');
+        const ozUrl = `https://in1-ccc.ozonetel.com/api/v1/Campaigns/ManualDial`;
+        const params = new URLSearchParams({
+          apiKey,
+          customerName,
+          phoneNumber: cleanE164Number,
+          did: cleanFromNumber,
+          url: webhookUrl,
+        });
+        const ozRes = await fetch(`${ozUrl}?${params.toString()}`, { method: 'POST' });
+        const ozText = await ozRes.text();
+        if (!ozRes.ok) throw new Error(`Ozonetel API Error (${ozRes.status}): ${ozText}`);
+        let ozData; try { ozData = JSON.parse(ozText); } catch (_) { ozData = {}; }
+        callSid = ozData?.id || ozData?.callId || `oz_${Date.now()}`;
+      } else if (platform === 'mcube') {
+        const apiKey = credentials.apiKey || process.env.MCUBE_API_KEY;
+        if (!apiKey) return res.status(400).json({ message: 'MCUBE credentials incomplete. API Key is required.' });
+        let cleanFromNumber = fromNumber.replace(/\D/g, '');
+        let cleanE164Number = e164Number.replace(/\D/g, '');
+        const mcRes = await fetch('https://mcube.vmpl.co.in/api/outbound', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apikey: apiKey, exphone: cleanFromNumber, callto: cleanE164Number, url: webhookUrl })
+        });
+        const mcText = await mcRes.text();
+        if (!mcRes.ok) throw new Error(`MCUBE API Error (${mcRes.status}): ${mcText}`);
+        let mcData; try { mcData = JSON.parse(mcText); } catch (_) { mcData = {}; }
+        callSid = mcData?.callid || mcData?.id || `mc_${Date.now()}`;
+      } else if (platform === 'tatatele') {
+        const authKey = credentials.authKey || process.env.TATATELE_AUTH_KEY;
+        if (!authKey) return res.status(400).json({ message: 'Tata Tele credentials incomplete. Auth Key is required.' });
+        const tataRes = await fetch('https://tatathr.in/api/v1/outbound', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: fromNumber, to: e164Number, url: webhookUrl })
+        });
+        const tataText = await tataRes.text();
+        if (!tataRes.ok) throw new Error(`Tata Tele API Error (${tataRes.status}): ${tataText}`);
+        let tataData; try { tataData = JSON.parse(tataText); } catch (_) { tataData = {}; }
+        callSid = tataData?.id || tataData?.call_id || `tata_${Date.now()}`;
+      } else if (platform === 'maqsam') {
+        const accessKey = credentials.accessKey || process.env.MAQSAM_ACCESS_KEY;
+        const secretKey = credentials.secretKey || process.env.MAQSAM_SECRET_KEY;
+        if (!accessKey || !secretKey) return res.status(400).json({ message: 'Maqsam credentials incomplete. Access Key and Secret Key are required.' });
+        const authHeader = 'Basic ' + Buffer.from(`${accessKey}:${secretKey}`).toString('base64');
+        const maqRes = await fetch('https://api.maqsam.com/v1/calls', {
+          method: 'POST',
+          headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: fromNumber, to: e164Number, url: webhookUrl })
+        });
+        const maqText = await maqRes.text();
+        if (!maqRes.ok) throw new Error(`Maqsam API Error (${maqRes.status}): ${maqText}`);
+        let maqData; try { maqData = JSON.parse(maqText); } catch (_) { maqData = {}; }
+        callSid = maqData?.id || `maq_${Date.now()}`;
+      } else if (platform === 'vobiz') {
+        const apiKey = credentials.apiKey || process.env.VOBIZ_API_KEY;
+        if (!apiKey) return res.status(400).json({ message: 'Vobiz credentials incomplete. API Key is required.' });
+        const vobRes = await fetch('https://api.vobiz.io/v1/Calls', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: fromNumber, to: e164Number, answer_url: webhookUrl })
+        });
+        const vobText = await vobRes.text();
+        if (!vobRes.ok) throw new Error(`Vobiz API Error (${vobRes.status}): ${vobText}`);
+        let vobData; try { vobData = JSON.parse(vobText); } catch (_) { vobData = {}; }
+        callSid = vobData?.id || `vob_${Date.now()}`;
+      } else if (platform === 'voicelink') {
+        const apiKey = credentials.apiKey || process.env.VOICELINK_API_KEY;
+        if (!apiKey) return res.status(400).json({ message: 'VoiceLink credentials incomplete. API Key is required.' });
+        const vlRes = await fetch('https://api.voicelink.com/v1/calls', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: fromNumber, to: e164Number, url: webhookUrl })
+        });
+        const vlText = await vlRes.text();
+        if (!vlRes.ok) throw new Error(`VoiceLink API Error (${vlRes.status}): ${vlText}`);
+        let vlData; try { vlData = JSON.parse(vlText); } catch (_) { vlData = {}; }
+        callSid = vlData?.id || `vl_${Date.now()}`;
+      } else if (platform === 'signalwire') {
+        const projectId = credentials.projectId || process.env.SIGNALWIRE_PROJECT_ID;
+        const apiToken = credentials.apiToken || process.env.SIGNALWIRE_API_TOKEN;
+        const spaceUrl = credentials.spaceUrl || process.env.SIGNALWIRE_SPACE_URL;
+        if (!projectId || !apiToken || !spaceUrl) {
+          return res.status(400).json({ message: 'SignalWire credentials incomplete. Project ID, API Token, and Space URL are required.' });
+        }
+        const cleanSpaceUrl = spaceUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        const swUrl = `https://${cleanSpaceUrl}/api/laml/2010-04-01/Accounts/${projectId}/Calls.json`;
+        const bodyParams = new URLSearchParams({ To: e164Number, From: fromNumber, Url: webhookUrl, StatusCallback: statusCallbackUrl });
+        const basicAuth = Buffer.from(`${projectId}:${apiToken}`).toString('base64');
+        const swRes = await fetch(swUrl, {
+          method: 'POST',
+          headers: { 'Authorization': `Basic ${basicAuth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: bodyParams.toString()
+        });
+        const swText = await swRes.text();
+        if (!swRes.ok) throw new Error(`SignalWire API Error (${swRes.status}): ${swText}`);
+        let swData; try { swData = JSON.parse(swText); } catch (_) { swData = {}; }
+        callSid = swData?.sid || `sw_${Date.now()}`;
+      } else if (platform === 'retell') {
+        const apiKey = credentials.apiKey || process.env.RETELL_API_KEY;
+        const phoneId = credentials.phoneNumberId || agent.phoneNumberId;
+        if (!apiKey) return res.status(400).json({ message: 'Retell AI credentials incomplete. API Key is required.' });
+        const retRes = await fetch('https://api.retellai.com/v2/create-phone-call', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from_number: fromNumber, to_number: e164Number, override_agent_id: agent.vapiId || undefined })
+        });
+        const retText = await retRes.text();
+        if (!retRes.ok) throw new Error(`Retell AI Error (${retRes.status}): ${retText}`);
+        let retData; try { retData = JSON.parse(retText); } catch (_) { retData = {}; }
+        callSid = retData?.call_id || `ret_${Date.now()}`;
+      } else if (platform === 'custom') {
+        const endpoint = credentials.sipEndpoint || credentials.webhookUrl;
+        const apiKey = credentials.apiKey;
+        if (!endpoint) return res.status(400).json({ message: 'Custom / SIP credentials incomplete. SIP Endpoint or Webhook URL is required.' });
+        const headers = { 'Content-Type': 'application/json' };
+        if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+        const custRes = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ from: fromNumber, to: e164Number, webhookUrl })
+        });
+        const custText = await custRes.text();
+        if (!custRes.ok) throw new Error(`Custom SIP API Error (${custRes.status}): ${custText}`);
+        let custData; try { custData = JSON.parse(custText); } catch (_) { custData = {}; }
+        callSid = custData?.id || custData?.callSid || `cust_${Date.now()}`;
+      } else {
+        // Default Twilio platform
+        let accountSid = agent.twilioAccountSid ? decrypt(agent.twilioAccountSid) : (credentials.accountSid || credentials.accountSidKey || credentials.apiKey || process.env.TWILIO_ACCOUNT_SID);
+        let authToken = agent.twilioAuthToken ? decrypt(agent.twilioAuthToken) : (credentials.authToken || credentials.apiSecret || credentials.apiToken || process.env.TWILIO_AUTH_TOKEN);
+
+        if (!accountSid || !authToken) {
+          return res.status(400).json({
+            message: `To make calls with ${platform.toUpperCase()}, please configure account credentials in Phone Numbers settings or environment variables.`
+          });
+        }
+
+        const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json`;
+        const bodyParams = new URLSearchParams({
+          To: e164Number,
+          From: fromNumber,
+          Url: webhookUrl,
+          StatusCallback: statusCallbackUrl,
+          StatusCallbackMethod: 'POST',
+        });
+
+        const basicAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+        const twilioRes = await fetch(twilioUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${basicAuth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: bodyParams.toString(),
+        });
+
+        if (!twilioRes.ok) {
+          const responseText = await twilioRes.text();
+          throw new Error(`Twilio API Error (${twilioRes.status}): ${responseText}`);
+        }
+
+        const twilioCall = await twilioRes.json();
+        callSid = twilioCall.sid;
       }
-
-      const twilioCall = await twilioRes.json();
 
       // Create a local Call record to track the outbound call
       await Call.create({
         agentId: agent._id,
         userId: agent.userId,
-        vapiCallId: twilioCall.sid,
+        vapiCallId: callSid,
         callerNumber: e164Number,
         status: 'in-progress',
         startedAt: new Date(),
       });
 
-      log.info('twilio_outbound_call_initiated', {
+      log.info('outbound_call_initiated', {
         userId: req.user.userId,
         agentId,
         phoneNumber: e164Number,
-        callSid: twilioCall.sid,
+        callSid: callSid,
       });
 
-      return res.json({ message: 'Twilio outbound call initiated', callId: twilioCall.sid });
+      return res.json({ message: 'Outbound call initiated', callId: callSid });
     }
 
     const vapiCall = await createVapiOutboundCall({
-      assistantId: agent.vapiId,
+      assistantId: currentVapiId,
       phoneNumberId: agent.phoneNumberId,
       customer: { number: e164Number, name: req.user.userId },
     });

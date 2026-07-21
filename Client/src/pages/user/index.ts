@@ -6,3 +6,4 @@ export { UserBilling } from './UserBilling';
 export { MyAppointments } from './MyAppointments';
 export { CustomWebCall } from './CustomWebCall';
 export { CustomerSupport } from './CustomerSupport';
+export { MyPhoneNumbers } from './MyPhoneNumbers';

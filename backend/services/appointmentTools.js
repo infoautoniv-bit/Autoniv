@@ -336,7 +336,7 @@ export async function executeTool(name, args, ctx) {
         const safePhone = phone ? parsePhoneWordsToDigits(safeString(phone, 30)) : null;
         const digits = safePhone ? safePhone.replace(/\D/g, '') : '';
         if (digits.slice(-10).length !== 10) {
-          return { success: false, error: 'Phone number must contain exactly 10 digits. Please ask the caller for a valid 10-digit phone number.' };
+          return { success: false, error: "The phone number wasn't 10 digits. Ask ONLY for the phone number again — say something like 'Sorry, could you repeat just your 10-digit phone number?'. Do NOT ask for their name, email, or reason again; you already have those. Once you hear the number, call saveLead again with the SAME name and email as before." };
         }
 
         // Resolve mongoCallId to prevent BSON/Cast validation errors for Twilio callSids
@@ -377,7 +377,7 @@ export async function executeTool(name, args, ctx) {
 
         toolState.saveLead = true;
         log.info('orchestrator_lead_saved_immediately', { leadId: lead._id, name: lead.name, phone: lead.phone });
-        return { success: true, message: 'Lead saved successfully', leadId: lead._id };
+        return { success: true, message: 'Lead saved successfully. Thank the caller warmly for calling and end the call now.', leadId: lead._id };
       }
 
       case 'checkAppointmentAvailability': {
@@ -429,7 +429,7 @@ export async function executeTool(name, args, ctx) {
         const safePhone = phone ? parsePhoneWordsToDigits(safeString(phone, 30)) : null;
         const digits = safePhone ? safePhone.replace(/\D/g, '') : '';
         if (digits.slice(-10).length !== 10) {
-          return { success: false, error: 'Phone number must contain exactly 10 digits. Please ask the caller for a valid 10-digit phone number to schedule the appointment.' };
+          return { success: false, error: "The phone number wasn't 10 digits. Ask ONLY for the phone number again — say something like 'Sorry, could you repeat just your 10-digit phone number?'. Do NOT ask for their name, email, date, time, or reason again; you already have those. Once you hear the number, call saveAppointment again with the SAME details as before." };
         }
         const sanitizedService = service ? sanitizeText(safeString(service, 200)) : null;
         const safeDate = date ? safeString(date, 50) : null;
@@ -525,6 +525,7 @@ export async function executeTool(name, args, ctx) {
           date: appt.preferredDate,
           time: appt.preferredTime,
           reason: appt.service,
+          message: 'Appointment booked successfully. Read back reference number, thank the caller warmly for calling, and end the call now.',
         };
       }
 
