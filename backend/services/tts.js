@@ -222,11 +222,53 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
   const elevenlabsKey = process.env.ELEVENLABS_API_KEY;
   const deepgramKey = process.env.DEEPGRAM_API_KEY;
 
-  const isElevenLabsMissing = provider === 'elevenlabs' && (!elevenlabsKey || elevenlabsKey.startsWith('your-') || elevenlabsKey.includes('placeholder'));
+  const isElevenLabsMissing = (!elevenlabsKey || elevenlabsKey.startsWith('your-') || elevenlabsKey.includes('placeholder'));
   const isDeepgramMissing = !deepgramKey || deepgramKey.startsWith('your-');
 
+  if (provider === 'vapi') {
+    const VAPI_11LABS = {
+      Elliot: 'cjVigY5qzO86Huf0OWal',
+      Savannah: 'hpp4J3VqNfWAUOO0d1Us',
+      Rohan: 'TX3LPaxmHKxFdv7VOQHJ',
+      Emma: 'cgSgspJ2msm6clMCkdW9',
+      Clara: 'EXAVITQu4vr4xnSDxMaL',
+      Nico: 'pNInz6obpgDQGcFmaJgB',
+      Kai: 'bIHbv24MWmeRgasZH58o',
+      Sagar: 'onwK4e9ZLuTAKqWW03F9',
+      Godfrey: 'N2lVS1w4EtoT3dr4eOWO',
+      Neil: 'iP95p4xoKVk53GoZ742B',
+      Layla: 'Xb7hH8MSUJpSbSDYk0k2',
+      Sid: 'nPczCjzI2devNBz1zQrb',
+      Naina: 'XrExE9yKIg1WjnnlVkGX',
+    };
+    const VAPI_DEEPGRAM = {
+      Elliot: 'aura-orion-en',
+      Savannah: 'aura-asteria-en',
+      Rohan: 'aura-zeus-en',
+      Emma: 'aura-stella-en',
+      Clara: 'aura-luna-en',
+      Nico: 'aura-arcas-en',
+      Kai: 'aura-helios-en',
+      Sagar: 'aura-perseus-en',
+      Godfrey: 'aura-angus-en',
+      Neil: 'aura-orion-en',
+      Layla: 'aura-athena-en',
+      Sid: 'aura-zeus-en',
+      Naina: 'aura-hera-en',
+    };
+
+    const vName = voiceModelOrId || 'Elliot';
+    if (!isElevenLabsMissing && VAPI_11LABS[vName]) {
+      provider = 'elevenlabs';
+      voiceModelOrId = VAPI_11LABS[vName];
+    } else {
+      provider = 'deepgram';
+      voiceModelOrId = VAPI_DEEPGRAM[vName] || 'aura-orion-en';
+    }
+  }
+
   if (provider === 'deepgram' && !isDeepgramMissing) {
-    const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
+    const fallbackVoice = (voiceModelOrId && (voiceModelOrId.includes('male') || voiceModelOrId.includes('orion') || voiceModelOrId.includes('zeus') || voiceModelOrId.includes('arcas'))) ? 'aura-orion-en' : (voiceModelOrId && voiceModelOrId.startsWith('aura-') ? voiceModelOrId : 'aura-asteria-en');
     return synthesizeSpeechDirectDeepgram(text, isTwilio, fallbackVoice);
   }
 

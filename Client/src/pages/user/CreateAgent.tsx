@@ -2,14 +2,16 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppDispatch, useAppSelector } from '../../hooks/useStore';
 import { createAgent, fetchMyAgents } from '../../store/slices/agentsSlice';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
 import { AgentCard } from '../../components/AgentCard';
 import { VOICE_OPTIONS } from '../../config/voices';
+
+const VAPI_VOICE_OPTIONS = VOICE_OPTIONS;
 import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
-import type { Agent } from '../../types';
+import type { Agent, PhoneNumber } from '../../types';
 import { createPortal } from 'react-dom';
-import { agentService } from '../../services/api';
+import { agentService, phoneNumberService } from '../../services/api';
 import { logger } from '../../utils/logger';
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -74,7 +76,7 @@ const AGENT_TYPES = [
 ];
 
 const DEFAULT_FORM_DATA = {
-  name: '', type: 'receptionist', prompt: '', language: 'en', voiceId: VOICE_OPTIONS[0].value,
+  name: '', type: 'receptionist', prompt: '', language: 'en', voiceId: VAPI_VOICE_OPTIONS[0].value,
   phoneNumberId: '',
   phoneNumber: '',
   twilioAccountSid: '',
@@ -293,15 +295,21 @@ export function CreateAgent() {
   const [error, setError]           = useState<string | null>(null);
 
   const [phoneNumbers, setPhoneNumbers] = useState<any[]>([]);
+  const [savedPhoneNumbers, setSavedPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [phoneLoading, setPhoneLoading] = useState(false);
-  const [isDirectPhone, setIsDirectPhone] = useState(false);
+  const [phoneMode, setPhoneMode] = useState<'saved' | 'vapi' | 'direct'>('saved');
+  const [selectedProvider, setSelectedProvider] = useState<string>('twilio');
 
   useEffect(() => {
     const fetchPhoneNumbers = async () => {
       setPhoneLoading(true);
       try {
-        const res = await agentService.getPhoneNumbers();
-        setPhoneNumbers(res.data.phoneNumbers || []);
+        const [vapiRes, savedRes] = await Promise.all([
+          agentService.getPhoneNumbers().catch(() => ({ data: { phoneNumbers: [] } })),
+          phoneNumberService.getAll().catch(() => ({ data: { phoneNumbers: [] } })),
+        ]);
+        setPhoneNumbers(vapiRes.data.phoneNumbers || []);
+        setSavedPhoneNumbers(savedRes.data.phoneNumbers || []);
       } catch (err) {
         logger.error('Failed to fetch phone numbers:', err);
       } finally {
@@ -311,8 +319,8 @@ export function CreateAgent() {
     fetchPhoneNumbers();
   }, []);
 
-  const filteredVoices = VOICE_OPTIONS;
-  const voiceOpt  = VOICE_OPTIONS.find(v => v.value === formData.voiceId);
+  const filteredVoices = VAPI_VOICE_OPTIONS;
+  const voiceOpt  = VAPI_VOICE_OPTIONS.find(v => v.value === formData.voiceId);
   let voiceName = 'Default';
   if (voiceOpt) {
     const firstPart = voiceOpt.label.split(' - ')[0];
@@ -332,13 +340,22 @@ export function CreateAgent() {
     setSubmitting(true);
     setError(null);
     try {
+      let phoneNumberVal = '';
+      if (phoneMode === 'saved') {
+        const found = savedPhoneNumbers.find(p => p.id === formData.phoneNumberId || p.phoneNumber === formData.phoneNumberId);
+        phoneNumberVal = found ? found.phoneNumber : formData.phoneNumberId;
+      } else if (phoneMode === 'vapi') {
+        phoneNumberVal = phoneNumbers.find(p => p.id === formData.phoneNumberId)?.number || '';
+      } else {
+        phoneNumberVal = formData.phoneNumberId;
+      }
+
       const submitData = {
         ...formData,
-        phoneNumber: isDirectPhone
-          ? formData.phoneNumberId
-          : (phoneNumbers.find(p => p.id === formData.phoneNumberId)?.number || ''),
-        twilioAccountSid: isDirectPhone ? formData.twilioAccountSid : '',
-        twilioAuthToken: isDirectPhone ? formData.twilioAuthToken : '',
+        phoneNumber: phoneNumberVal,
+        phoneNumberId: phoneMode === 'vapi' ? formData.phoneNumberId : undefined,
+        twilioAccountSid: phoneMode === 'direct' ? formData.twilioAccountSid : '',
+        twilioAuthToken: phoneMode === 'direct' ? formData.twilioAuthToken : '',
       };
       await dispatch(createAgent(submitData)).unwrap();
       await dispatch(fetchMyAgents({ page: 1, limit: 20 }));
@@ -348,7 +365,7 @@ export function CreateAgent() {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, dispatch, formData, navigate, isDirectPhone, phoneNumbers]);
+  }, [submitting, dispatch, formData, navigate, phoneMode, savedPhoneNumbers, phoneNumbers]);
 
   const previewAgent: Agent = {
     id: 'preview', userId: 'preview',
@@ -560,7 +577,7 @@ export function CreateAgent() {
                 <SelectInput
                   value={formData.voiceId}
                   onChange={v => patch({ voiceId: v })}
-                  options={VOICE_OPTIONS}
+                  options={VAPI_VOICE_OPTIONS}
                 />
 
                 {/* Voice indicator */}
@@ -633,15 +650,25 @@ export function CreateAgent() {
             </SectionCard>
 
             {/* 4 — Phone configuration */}
-            <SectionCard step={4} title="Phone Configuration" subtitle="Assign Vapi or Twilio phone number (Optional)">
+            <SectionCard step={4} title="Phone Configuration" subtitle="Assign phone number from 14+ providers (Optional)">
               <div className="space-y-4">
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-3">
                   <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] cursor-pointer">
                     <input
                       type="radio"
                       name="phoneMode"
-                      checked={!isDirectPhone}
-                      onChange={() => setIsDirectPhone(false)}
+                      checked={phoneMode === 'saved'}
+                      onChange={() => setPhoneMode('saved')}
+                      className="text-[var(--primary-blue)] focus:ring-0 focus:ring-offset-0"
+                    />
+                    Saved Phone Numbers ({savedPhoneNumbers.length})
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] cursor-pointer">
+                    <input
+                      type="radio"
+                      name="phoneMode"
+                      checked={phoneMode === 'vapi'}
+                      onChange={() => setPhoneMode('vapi')}
                       className="text-[var(--primary-blue)] focus:ring-0 focus:ring-offset-0"
                     />
                     Vapi Number
@@ -650,15 +677,55 @@ export function CreateAgent() {
                     <input
                       type="radio"
                       name="phoneMode"
-                      checked={isDirectPhone}
-                      onChange={() => setIsDirectPhone(true)}
+                      checked={phoneMode === 'direct'}
+                      onChange={() => setPhoneMode('direct')}
                       className="text-[var(--primary-blue)] focus:ring-0 focus:ring-offset-0"
                     />
-                    Custom Twilio Number
+                    Custom Direct Number
                   </label>
                 </div>
 
-                {!isDirectPhone ? (
+                {phoneMode === 'saved' && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label style={fieldLabel}>Select Saved Phone Number</label>
+                      <Link
+                        to="/dashboard/phone-numbers"
+                        className="text-[10px] font-bold text-[var(--primary-blue)] hover:underline"
+                      >
+                        Manage Numbers ↗
+                      </Link>
+                    </div>
+                    <div className="relative">
+                      <select
+                        value={formData.phoneNumberId}
+                        onChange={e => patch({ phoneNumberId: e.target.value })}
+                        style={inputBase}
+                        className="appearance-none cursor-pointer focus:outline-none focus:border-[var(--primary-blue)]/50 focus:ring-1 focus:ring-[var(--primary-blue)]/10"
+                      >
+                        <option value="">— No phone number —</option>
+                        {savedPhoneNumbers.map((pn) => (
+                          <option key={pn.id} value={pn.phoneNumber}>
+                            {pn.phoneNumber} ({pn.platform.toUpperCase()}){pn.friendlyName ? ` — ${pn.friendlyName}` : ''}{pn.assignedToAgent ? ' (Assigned)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    </div>
+                    {savedPhoneNumbers.length === 0 && !phoneLoading && (
+                      <p className="text-[11px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                        No saved phone numbers found.{' '}
+                        <Link to="/dashboard/phone-numbers" className="text-[var(--primary-blue)] font-bold hover:underline">
+                          Add numbers from Exotel, Plivo, Twilio, Ozonetel, etc.
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {phoneMode === 'vapi' && (
                   <div>
                     <label style={fieldLabel}>Select Vapi number</label>
                     <div className="relative">
@@ -685,72 +752,71 @@ export function CreateAgent() {
                       </p>
                     )}
                   </div>
-                ) : (
+                )}
+
+                {phoneMode === 'direct' && (
                   <div className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <span style={{ ...fieldLabel, marginBottom: 0 }}>Twilio Phone Number</span>
-                        <a
-                          href="https://console.twilio.com/us1/develop/phone-numbers/manage/search"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150"
-                          style={{
-                            background: 'rgba(37,99,235,0.08)',
-                            border: '1px solid rgba(37,99,235,0.2)',
-                            color: 'var(--primary-blue)',
-                            textDecoration: 'none',
-                          }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.background = 'rgba(37,99,235,0.14)';
-                            e.currentTarget.style.borderColor = 'var(--primary-blue)';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.background = 'rgba(37,99,235,0.08)';
-                            e.currentTarget.style.borderColor = 'rgba(37,99,235,0.2)';
-                            e.currentTarget.style.transform = 'none';
-                          }}
+                        <span style={{ ...fieldLabel, marginBottom: 0 }}>Direct Phone Number</span>
+                        <select
+                          value={selectedProvider}
+                          onChange={(e) => setSelectedProvider(e.target.value)}
+                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--s1)] border border-[var(--border)] text-[var(--text)]"
                         >
-                          Buy Number ↗
-                        </a>
+                          <option value="twilio">Twilio</option>
+                          <option value="exotel">Exotel</option>
+                          <option value="plivo">Plivo</option>
+                          <option value="ozonetel">Ozonetel</option>
+                          <option value="mcube">MCUBE</option>
+                          <option value="tatatele">Tata Tele</option>
+                          <option value="maqsam">Maqsam</option>
+                          <option value="vobiz">Vobiz</option>
+                          <option value="voicelink">VoiceLink</option>
+                          <option value="retell">Retell AI</option>
+                          <option value="telnyx">Telnyx</option>
+                          <option value="signalwire">SignalWire</option>
+                          <option value="custom">Custom / SIP</option>
+                        </select>
                       </div>
                       <input
                         type="text"
                         value={formData.phoneNumberId}
                         onChange={e => patch({ phoneNumberId: e.target.value })}
-                        placeholder="e.g. +1845541210"
+                        placeholder="e.g. +919876543210 or +1845541210"
                         style={inputBase}
                         onFocus={focusStyle}
                         onBlur={blurStyle}
                       />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label style={fieldLabel}>Twilio Account SID</label>
-                        <input
-                          type="text"
-                          value={formData.twilioAccountSid}
-                          onChange={e => patch({ twilioAccountSid: e.target.value })}
-                          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          style={inputBase}
-                          onFocus={focusStyle}
-                          onBlur={blurStyle}
-                        />
+                    {selectedProvider === 'twilio' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label style={fieldLabel}>Twilio Account SID</label>
+                          <input
+                            type="text"
+                            value={formData.twilioAccountSid}
+                            onChange={e => patch({ twilioAccountSid: e.target.value })}
+                            placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                            style={inputBase}
+                            onFocus={focusStyle}
+                            onBlur={blurStyle}
+                          />
+                        </div>
+                        <div>
+                          <label style={fieldLabel}>Twilio Auth Token</label>
+                          <input
+                            type="password"
+                            value={formData.twilioAuthToken}
+                            onChange={e => patch({ twilioAuthToken: e.target.value })}
+                            placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                            style={inputBase}
+                            onFocus={focusStyle}
+                            onBlur={blurStyle}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label style={fieldLabel}>Twilio Auth Token</label>
-                        <input
-                          type="password"
-                          value={formData.twilioAuthToken}
-                          onChange={e => patch({ twilioAuthToken: e.target.value })}
-                          placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          style={inputBase}
-                          onFocus={focusStyle}
-                          onBlur={blurStyle}
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 )}
                 <p className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>

@@ -680,13 +680,13 @@ export interface ChatSessionDetail {
 }
 
 export const chatHistoryService = {
-  list: () => api.get<{ sessions: ChatSessionSummary[] }>('/chat-history'),
+  list: () => api.get<{ sessions: ChatSessionSummary[]; chatUsed?: number }>('/chat-history'),
   get: (id: string) => api.get<ChatSessionDetail>(`/chat-history/${id}`),
   create: (data: { title?: string; messages?: ChatMessage[] }) =>
-    api.post<ChatSessionDetail>('/chat-history', data),
+    api.post<ChatSessionDetail & { chatUsed?: number }>('/chat-history', data),
   update: (id: string, data: { title?: string; messages?: ChatMessage[] }) =>
     api.put<ChatSessionDetail>(`/chat-history/${id}`, data),
-  delete: (id: string) => api.delete(`/chat-history/${id}`),
+  delete: (id: string) => api.delete<{ message: string; chatUsed?: number }>(`/chat-history/${id}`),
 };
 
 // ── Public Demo Agent (no auth) ─────────────────────────────────────────────
@@ -707,6 +707,34 @@ export const apiKeyService = {
 export const ttsService = {
   preview: (voiceId: string, language: string, text?: string, raw?: boolean) =>
     api.post('/tts/preview', { voiceId, language, text, raw }, { responseType: 'blob' }),
+};
+
+// ── Phone Numbers ───────────────────────────────────────────────────────────
+export const phoneNumberService = {
+  getAll: () => api.get<{ phoneNumbers: import('../types').PhoneNumber[] }>('/phone-numbers'),
+  getUsersList: () => api.get<{ users: import('../types').AssignableUser[] }>('/phone-numbers/users-list'),
+  getAgentsList: () => api.get<{ agents: import('../types').AssignableAgent[] }>('/phone-numbers/agents-list'),
+  create: (data: {
+    phoneNumber: string;
+    friendlyName?: string;
+    platform: string;
+    credentials?: Record<string, any>;
+    assignedToAgent?: string | null;
+    assignedToUser?: string | null;
+    capabilities?: string[];
+  }) => api.post<{ phoneNumber: import('../types').PhoneNumber }>('/phone-numbers', data),
+  update: (id: string, data: {
+    friendlyName?: string;
+    platform?: string;
+    credentials?: Record<string, any>;
+    capabilities?: string[];
+    status?: string;
+  }) => api.put<{ phoneNumber: import('../types').PhoneNumber }>(`/phone-numbers/${id}`, data),
+  assign: (id: string, data: {
+    assignedToAgent?: string | null;
+    assignedToUser?: string | null;
+  }) => api.put<{ phoneNumber: import('../types').PhoneNumber }>(`/phone-numbers/${id}/assign`, data),
+  delete: (id: string) => api.delete<{ message: string }>(`/phone-numbers/${id}`),
 };
 
 export default api;

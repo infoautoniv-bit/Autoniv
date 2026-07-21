@@ -377,7 +377,7 @@ export async function executeTool(name, args, ctx) {
 
         toolState.saveLead = true;
         log.info('orchestrator_lead_saved_immediately', { leadId: lead._id, name: lead.name, phone: lead.phone });
-        return { success: true, message: 'Lead saved successfully', leadId: lead._id };
+        return { success: true, message: 'Lead saved successfully. Thank the caller warmly for calling and end the call now.', leadId: lead._id };
       }
 
       case 'checkAppointmentAvailability': {
@@ -523,6 +523,7 @@ export async function executeTool(name, args, ctx) {
           date: appt.preferredDate,
           time: appt.preferredTime,
           reason: appt.service,
+          message: 'Appointment booked successfully. Read back reference number, thank the caller warmly for calling, and end the call now.',
         };
       }
 

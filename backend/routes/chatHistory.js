@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import ChatSession from '../db/models/ChatSession.js';
+import User from '../db/models/User.js';
 import { authenticate, requireFeature } from '../middleware/auth.js';
 import { log } from '../services/logger.js';
 
@@ -12,10 +13,10 @@ router.use(requireFeature('chat'));
 router.get('/', async (req, res) => {
   try {
     const oid = new mongoose.Types.ObjectId(req.user.userId);
-    const sessions = await ChatSession.find({ userId: oid })
-      .select('title createdAt updatedAt messages')
-      .sort({ updatedAt: -1 })
-      .lean();
+    const [sessions, user] = await Promise.all([
+      ChatSession.find({ userId: oid }).select('title createdAt updatedAt messages').sort({ updatedAt: -1 }).lean(),
+      User.findById(oid).select('chatUsed chatLimit').lean()
+    ]);
 
     const summary = sessions.map(s => ({
       id: s._id.toString(),
@@ -26,7 +27,7 @@ router.get('/', async (req, res) => {
       updatedAt: s.updatedAt,
     }));
 
-    res.json({ sessions: summary });
+    res.json({ sessions: summary, chatUsed: user?.chatUsed || 0, chatLimit: user?.chatLimit || 0 });
   } catch (err) {
     log.error('fetch_chat_sessions_error', { error: err.message, userId: req.user?.userId });
     res.status(500).json({ message: 'Failed to fetch chat history' });
@@ -68,11 +69,14 @@ router.post('/', async (req, res) => {
       messages: messages || [],
     });
 
+    const user = await User.findById(oid).select('chatUsed chatLimit').lean();
+
     res.status(201).json({
       id: session._id.toString(),
       title: session.title,
       messages: session.messages,
       createdAt: session.createdAt,
+      chatUsed: user?.chatUsed || 0,
     });
   } catch (err) {
     log.error('create_chat_session_error', { error: err.message, userId: req.user?.userId });
@@ -116,7 +120,10 @@ router.delete('/:id', async (req, res) => {
     const oid = new mongoose.Types.ObjectId(req.user.userId);
     const result = await ChatSession.deleteOne({ _id: req.params.id, userId: oid });
     if (result.deletedCount === 0) return res.status(404).json({ message: 'Session not found' });
-    res.json({ message: 'Deleted' });
+
+    const user = await User.findById(oid).select('chatUsed chatLimit').lean();
+
+    res.json({ message: 'Deleted', chatUsed: user?.chatUsed || 0 });
   } catch (err) {
     log.error('delete_chat_session_error', { error: err.message, userId: req.user?.userId });
     res.status(500).json({ message: 'Failed to delete session' });

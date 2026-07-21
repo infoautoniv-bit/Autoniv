@@ -115,6 +115,9 @@ NEVER ask: OTP, CVV, PIN, Aadhaar, PAN, passwords, full card numbers
 - Never answer anything outside the current context
 - Never use knowledge from outside the provided input
 - If user asks about other sellers, categories, etc., apologize and disconnect
+
+### CRITICAL CALL COMPLETION RULE:
+Once the lead or appointment is saved (after calling saveLead or saveAppointment), say: "Thank you for sharing your details! Our team will follow up with you shortly. Have a great day!" and immediately end the call / hang up. Do NOT ask any further questions once details are saved.
 `;
 
 function buildSystemPrompt(type, customPrompt) {
@@ -235,9 +238,18 @@ async function buildAssistantConfig({ name, type, prompt, language, voiceId, use
   // Register all tools inline (avoids persistent account-wide tool collisions)
   modelConfig.tools = buildVapiTools(type, serverUrl);
 
-  const voice = voiceId
-    ? { provider: '11labs', voiceId }
-    : { provider: '11labs', voiceId: 'hpp4J3VqNfWAUOO0d1Us' };
+  let voice;
+  if (voiceId && voiceId.startsWith('vapi:')) {
+    // Vapi native voice (lowest latency, optimized)
+    const vapiVoiceName = voiceId.replace('vapi:', '');
+    voice = { provider: 'vapi', voiceId: vapiVoiceName, version: 2 };
+  } else if (voiceId) {
+    // ElevenLabs voice
+    voice = { provider: '11labs', voiceId };
+  } else {
+    // Default to Bella (ElevenLabs)
+    voice = { provider: '11labs', voiceId: 'hpp4J3VqNfWAUOO0d1Us' };
+  }
 
   const transcriber = language && language !== 'en'
     ? { provider: 'deepgram', model: 'nova-2', language }
@@ -251,8 +263,8 @@ async function buildAssistantConfig({ name, type, prompt, language, voiceId, use
     ...(transcriber ? { transcriber } : {}),
     ...(serverUrl ? { server: { url: getWebhookUrl(serverUrl) } } : {}),
     recordingEnabled: true,
-    silenceTimeoutSeconds: 30,
-    maxDurationSeconds: 600,
+    silenceTimeoutSeconds: 60,
+    maxDurationSeconds: 3600,
     backgroundSound: 'off',
     backchannelingEnabled: true,
     metadata: {
@@ -371,14 +383,14 @@ export async function getVapiCall(callId) {
 
 export async function createVapiOutboundCall({ assistantId, phoneNumberId, customer, serverUrl }) {
   if (!assistantId)      throw new Error('[vapi] createVapiOutboundCall: assistantId required');
-  if (!phoneNumberId)    throw new Error('[vapi] createVapiOutboundCall: phoneNumberId required');
   if (!customer?.number) throw new Error('[vapi] createVapiOutboundCall: customer.number required');
-  return vapiRequest('/call/phone', 'POST', {
+  const payload = {
     assistantId,
-    phoneNumberId,
     customer: { number: customer.number, name: customer.name || 'Customer' },
+    ...(phoneNumberId ? { phoneNumberId } : {}),
     ...(serverUrl ? { serverUrl: `${serverUrl}/api/webhooks/vapi` } : {}),
-  });
+  };
+  return vapiRequest('/call/phone', 'POST', payload);
 }
 
 export function extractVapiCallData(vapiCall) {

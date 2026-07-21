@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { VoicePreviewButton } from './VoicePreviewButton';
 import { VOICE_OPTIONS } from '../config/voices';
 import { PROMPT_TEMPLATES } from '../config/agentPrompts';
-import { agentService } from '../services/api';
+import { agentService, phoneNumberService } from '../services/api';
 import { logger } from '../utils/logger';
-import type { Agent } from '../types';
+import type { Agent, PhoneNumber as SavedPhoneNumber } from '../types';
 
 interface PhoneNumber {
   id: string;
@@ -249,7 +250,7 @@ export function AgentPanel({
   open, onClose, editing, formData, setFormData, onSubmit, submitting,
   onAssignPhone, onUnlinkPhone,
 }: AgentPanelProps) {
-  const filteredVoices = VOICE_OPTIONS;
+  const filteredVoices = formData.useCustomEngine ? VOICE_OPTIONS : VOICE_OPTIONS.filter(v => !v.value.startsWith('sarvam:'));
   const agentTypeMeta = AGENT_TYPES.find((t) => t.value === formData.type) || AGENT_TYPES[0];
   const showConnectTab = !!(editing && onAssignPhone);
 
@@ -257,11 +258,12 @@ export function AgentPanel({
   const [voiceHover, setVoiceHover] = useState(false);
 
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
+  const [savedPhoneNumbers, setSavedPhoneNumbers] = useState<SavedPhoneNumber[]>([]);
   const [selectedPhoneId, setSelectedPhoneId] = useState('');
   const [phoneLoading, setPhoneLoading] = useState(false);
   const [phoneSaving, setPhoneSaving] = useState(false);
 
-  const [isDirectPhone, setIsDirectPhone] = useState(false);
+  const [phoneSourceMode, setPhoneSourceMode] = useState<'saved' | 'vapi' | 'direct'>('saved');
   const [directPhoneNum, setDirectPhoneNum] = useState('');
   const [twilioSid, setTwilioSid] = useState('');
   const [twilioToken, setTwilioToken] = useState('');
@@ -269,14 +271,39 @@ export function AgentPanel({
   const fetchPhoneNumbers = useCallback(async () => {
     setPhoneLoading(true);
     try {
-      const res = await agentService.getPhoneNumbers();
-      setPhoneNumbers(res.data.phoneNumbers || []);
+      const [vapiRes, savedRes] = await Promise.all([
+        agentService.getPhoneNumbers().catch(() => ({ data: { phoneNumbers: [] } })),
+        phoneNumberService.getAll().catch(() => ({ data: { phoneNumbers: [] } })),
+      ]);
+      const vapiNums = vapiRes.data.phoneNumbers || [];
+      const savedNums = savedRes.data.phoneNumbers || [];
+      setPhoneNumbers(vapiNums);
+      setSavedPhoneNumbers(savedNums);
+
+      if (editing) {
+        const linkedNumber = editing.phoneNumber || editing.phoneNumberId;
+        if (editing.useCustomEngine || formData.useCustomEngine || editing.twilioAccountSid) {
+          setPhoneSourceMode('direct');
+          setDirectPhoneNum(editing.phoneNumber || '');
+          setTwilioSid(editing.twilioAccountSid || '');
+          setTwilioToken(editing.twilioAuthToken || '');
+        } else if (linkedNumber && savedNums.some((p: any) => p.phoneNumber === linkedNumber || p.id === linkedNumber)) {
+          setPhoneSourceMode('saved');
+          setSelectedPhoneId(linkedNumber);
+        } else if (linkedNumber && vapiNums.some((p: any) => p.id === linkedNumber || p.number === linkedNumber)) {
+          setPhoneSourceMode('vapi');
+          setSelectedPhoneId(linkedNumber);
+        } else if (linkedNumber) {
+          setPhoneSourceMode('saved');
+          setSelectedPhoneId(linkedNumber);
+        }
+      }
     } catch (err) {
       logger.error('Failed to fetch phone numbers:', err);
     } finally {
       setPhoneLoading(false);
     }
-  }, []);
+  }, [editing, formData.useCustomEngine]);
 
   useEffect(() => {
     if (open) setTab('identity');
@@ -285,18 +312,6 @@ export function AgentPanel({
   useEffect(() => {
     if (open && editing && onAssignPhone) {
       fetchPhoneNumbers();
-      if ((editing.phoneNumber && !editing.phoneNumberId) || editing.useCustomEngine || formData.useCustomEngine) {
-        setIsDirectPhone(true);
-        setDirectPhoneNum(editing.phoneNumber || '');
-        setTwilioSid(editing.twilioAccountSid || '');
-        setTwilioToken(editing.twilioAuthToken || '');
-      } else {
-        setIsDirectPhone(false);
-        setDirectPhoneNum('');
-        setTwilioSid('');
-        setTwilioToken('');
-      }
-      setSelectedPhoneId(editing.phoneNumberId || '');
     }
   }, [open, editing, fetchPhoneNumbers, onAssignPhone]);
 
@@ -306,23 +321,24 @@ export function AgentPanel({
     }
   }, [formData.language]);
 
-  useEffect(() => {
-    if (formData.useCustomEngine) {
-      setIsDirectPhone(true);
-    }
-  }, [formData.useCustomEngine]);
+
 
   const handleAssignPhone = async () => {
     if (!onAssignPhone) return;
     setPhoneSaving(true);
     try {
-      if (isDirectPhone) {
-        if (!directPhoneNum.trim()) return;
-        await onAssignPhone(directPhoneNum.trim(), directPhoneNum.trim(), twilioSid.trim(), twilioToken.trim());
-      } else {
+      if (phoneSourceMode === 'saved') {
+        if (!selectedPhoneId) return;
+        const found = savedPhoneNumbers.find(p => p.id === selectedPhoneId || p.phoneNumber === selectedPhoneId);
+        const numberStr = found ? found.phoneNumber : selectedPhoneId;
+        await onAssignPhone(numberStr, numberStr);
+      } else if (phoneSourceMode === 'vapi') {
         if (!selectedPhoneId) return;
         const selectedNumber = phoneNumbers.find(p => p.id === selectedPhoneId);
         await onAssignPhone(selectedPhoneId, selectedNumber?.number);
+      } else {
+        if (!directPhoneNum.trim()) return;
+        await onAssignPhone(directPhoneNum.trim(), directPhoneNum.trim(), twilioSid.trim(), twilioToken.trim());
       }
     } finally {
       setPhoneSaving(false);
@@ -344,8 +360,8 @@ export function AgentPanel({
   };
 
   const hasPhoneLinked = !!(editing?.phoneNumberId || editing?.phoneNumber);
-  const phoneDirty = (!isDirectPhone && selectedPhoneId && selectedPhoneId !== (editing?.phoneNumberId || '')) ||
-    (isDirectPhone && directPhoneNum.trim() && (directPhoneNum.trim() !== (editing?.phoneNumber || '') || twilioSid.trim() !== (editing?.twilioAccountSid || '') || twilioToken.trim() !== (editing?.twilioAuthToken || '')));
+  const phoneDirty = (phoneSourceMode !== 'direct' && selectedPhoneId && selectedPhoneId !== (editing?.phoneNumberId || editing?.phoneNumber || '')) ||
+    (phoneSourceMode === 'direct' && directPhoneNum.trim() && (directPhoneNum.trim() !== (editing?.phoneNumber || '') || twilioSid.trim() !== (editing?.twilioAccountSid || '') || twilioToken.trim() !== (editing?.twilioAuthToken || '')));
 
   const completion: Record<TabId, boolean> = {
     identity: !!formData.name.trim(),
@@ -537,9 +553,8 @@ export function AgentPanel({
 
                     <div className="space-y-4">
                       {([
-                        { key: 'elevenlabs', title: 'ElevenLabs', desc: 'Premium natural voices', filter: (v: any) => v.value.startsWith('hpp4') || v.value.startsWith('cgSg') || v.value.startsWith('pFZP') || v.value.startsWith('onwK') || v.value.startsWith('cjVi') || v.value.startsWith('iP95') || v.value.startsWith('nPcz') || v.value.startsWith('pNIn') || v.value.startsWith('pqHf') },
-                        { key: 'deepgram', title: 'Deepgram Aura', desc: 'Ultra low latency', filter: (v: any) => v.value.startsWith('deepgram:') },
-                        { key: 'openai', title: 'OpenAI TTS', desc: 'Simple & natural', filter: (v: any) => v.value.startsWith('openai:') },
+                        { key: 'vapi', title: 'Vapi Native', desc: 'Lowest latency, optimized', filter: (v: any) => v.value.startsWith('vapi:') },
+                        { key: 'elevenlabs', title: 'ElevenLabs', desc: 'Premium natural voices', filter: (v: any) => !v.value.startsWith('vapi:') && !v.value.startsWith('sarvam:') },
                         { key: 'sarvam', title: 'Sarvam AI', desc: 'Indian-native voices', filter: (v: any) => v.value.startsWith('sarvam:') },
                       ] as const).map(section => {
                         const voices = filteredVoices.filter(section.filter);
@@ -700,31 +715,76 @@ export function AgentPanel({
                           </div>
                         )}
 
-                        {!formData.useCustomEngine ? (
-                          <div className="inline-flex p-0.5 rounded-lg bg-[var(--s1)] border border-[var(--border)]">
-                            <button
-                              type="button"
-                              onClick={() => setIsDirectPhone(false)}
-                              className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${!isDirectPhone ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
-                            >
-                              Vapi Number
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setIsDirectPhone(true)}
-                              className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${isDirectPhone ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
-                            >
-                              Custom Twilio
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>
-                            Forced custom Twilio (custom LLM engine active)
-                          </span>
+                        <div className="inline-flex p-0.5 rounded-lg bg-[var(--s1)] border border-[var(--border)]">
+                          <button
+                            type="button"
+                            onClick={() => setPhoneSourceMode('saved')}
+                            className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${phoneSourceMode === 'saved' ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                          >
+                            Saved Numbers ({savedPhoneNumbers.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPhoneSourceMode('vapi')}
+                            className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${phoneSourceMode === 'vapi' ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                          >
+                            Vapi Number
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPhoneSourceMode('direct')}
+                            className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${phoneSourceMode === 'direct' ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                          >
+                            Direct Entry
+                          </button>
+                        </div>
+
+                        {phoneSourceMode === 'saved' && (
+                          <>
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70">
+                                  Select saved phone number
+                                </p>
+                                <Link
+                                  to="/dashboard/phone-numbers"
+                                  onClick={() => onClose()}
+                                  className="text-[10px] font-bold text-[var(--primary-blue)] hover:underline"
+                                >
+                                  Manage Numbers ↗
+                                </Link>
+                              </div>
+                              <div className="relative">
+                                <select
+                                  value={selectedPhoneId}
+                                  onChange={(e) => setSelectedPhoneId(e.target.value)}
+                                  className="w-full px-4 py-2.5 text-sm bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] appearance-none cursor-pointer outline-none focus:border-[var(--primary-blue)] focus:ring-4 focus:ring-[var(--primary-blue)]/10 transition-all"
+                                >
+                                  <option value="">— Select saved number —</option>
+                                  {savedPhoneNumbers.map((pn) => (
+                                    <option key={pn.id} value={pn.phoneNumber}>
+                                      {pn.phoneNumber} ({pn.platform.toUpperCase()}){pn.friendlyName ? ` — ${pn.friendlyName}` : ''}{pn.assignedToAgent ? ' (Assigned)' : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                                </svg>
+                              </div>
+                            </div>
+
+                            {savedPhoneNumbers.length === 0 && (
+                              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                                No saved phone numbers found.{' '}
+                                <Link to="/dashboard/phone-numbers" className="text-[var(--primary-blue)] font-bold hover:underline">
+                                  Add numbers from Exotel, Plivo, Twilio, Ozonetel, etc.
+                                </Link>
+                              </p>
+                            )}
+                          </>
                         )}
 
-                        {!isDirectPhone ? (
+                        {phoneSourceMode === 'vapi' && (
                           <>
                             <div>
                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">
@@ -755,28 +815,22 @@ export function AgentPanel({
                               </p>
                             )}
                           </>
-                        ) : (
+                        )}
+
+                        {phoneSourceMode === 'direct' && (
                           <div className="space-y-3 p-4 rounded-xl bg-[var(--s1)] border border-[var(--border)]">
                             <div>
                               <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]/70">Twilio phone number</span>
-                                <a
-                                  href="https://console.twilio.com/us1/develop/phone-numbers/manage/search"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 bg-[var(--primary-blue)]/10 border border-[var(--primary-blue)]/25 text-[var(--primary-blue)] hover:bg-[var(--primary-blue)]/20 no-underline"
-                                >
-                                  Buy number ↗
-                                </a>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]/70">Direct phone number</span>
                               </div>
-                              <TextInput value={directPhoneNum} onChange={setDirectPhoneNum} placeholder="e.g. +1845541210" mono />
+                              <TextInput value={directPhoneNum} onChange={setDirectPhoneNum} placeholder="e.g. +919876543210 or +1845541210" mono />
                             </div>
                             <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">Twilio account SID</p>
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">Twilio account SID (Optional)</p>
                               <TextInput value={twilioSid} onChange={setTwilioSid} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" mono />
                             </div>
                             <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">Twilio auth token</p>
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]/70 mb-1.5">Twilio auth token (Optional)</p>
                               <input
                                 type="password"
                                 value={twilioToken}
@@ -796,7 +850,7 @@ export function AgentPanel({
                               exit={{ opacity: 0, height: 0 }}
                               type="button"
                               onClick={handleAssignPhone}
-                              disabled={phoneSaving || (isDirectPhone && !directPhoneNum.trim())}
+                              disabled={phoneSaving || (phoneSourceMode === 'direct' && !directPhoneNum.trim())}
                               className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[var(--primary-blue)] text-white hover:opacity-90 transition-all cursor-pointer border-none disabled:opacity-40 flex items-center justify-center gap-1.5"
                             >
                               {phoneSaving ? (
@@ -807,7 +861,7 @@ export function AgentPanel({
                               ) : (
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
                               )}
-                              {isDirectPhone ? 'Save phone & credentials' : 'Assign phone number'}
+                              {phoneSourceMode === 'direct' ? 'Save phone & credentials' : 'Assign phone number'}
                             </motion.button>
                           )}
                         </AnimatePresence>

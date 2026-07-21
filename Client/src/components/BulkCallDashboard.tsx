@@ -275,9 +275,9 @@ function BulkCallCreator({
       return;
     }
     const selectedAgent = agents.find(a => a.id === agentId);
-    const agentHasTwilio = !!(selectedAgent?.twilioAccountSid && selectedAgent?.twilioAuthToken && selectedAgent?.phoneNumber);
-    if (!agentHasTwilio && (!twilioAccountSid.trim() || !twilioAuthToken.trim() || !twilioPhoneNumber.trim())) {
-      setError('Twilio Phone Number, Account SID, and Auth Token are required (agent has no Twilio configured)');
+    const agentHasPhone = !!(selectedAgent?.phoneNumber || selectedAgent?.phoneNumberId || (selectedAgent?.twilioAccountSid && selectedAgent?.twilioAuthToken));
+    if (!agentHasPhone && (!twilioAccountSid.trim() || !twilioAuthToken.trim() || !twilioPhoneNumber.trim())) {
+      setError('Phone Number, Account SID, and Auth Token are required (agent has no phone number configured)');
       return;
     }
     setSubmitting(true);
@@ -290,7 +290,7 @@ function BulkCallCreator({
         concurrency,
         delayMs,
       };
-      if (!agentHasTwilio) {
+      if (!agentHasPhone) {
         payload.twilioPhoneNumber = twilioPhoneNumber.trim();
         payload.twilioAccountSid = twilioAccountSid.trim();
         payload.twilioAuthToken = twilioAuthToken.trim();
@@ -393,15 +393,15 @@ function BulkCallCreator({
             </div>
           </div>
 
-          {/* Twilio Credentials — only if agent doesn't have them */}
+          {/* Phone Credentials Banner */}
           {(() => {
             const sel = agents.find(a => a.id === agentId);
-            const hasTwilio = !!(sel?.twilioAccountSid && sel?.twilioAuthToken && sel?.phoneNumber);
-            if (hasTwilio) {
+            const hasPhone = !!(sel?.phoneNumber || sel?.phoneNumberId || (sel?.twilioAccountSid && sel?.twilioAuthToken));
+            if (hasPhone) {
               return (
                 <div className="p-3 rounded-xl bg-[var(--primary-soft)] border border-[var(--primary)]/20">
                   <p className="text-[10px] font-bold text-[var(--primary)]">
-                    Using Twilio credentials from agent: <span className="font-black">{sel?.name}</span> ({sel?.phoneNumber})
+                    Using phone credentials from agent: <span className="font-black">{sel?.name}</span> ({sel?.phoneNumber || 'Assigned Phone'})
                   </p>
                 </div>
               );

@@ -213,7 +213,7 @@ router.post('/:id/cancel', async (req, res) => {
   }
 });
 
-// DELETE /bulk-calls/:id — delete a campaign
+// DELETE /bulk-calls/:id — delete a campaign instantly
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -226,9 +226,9 @@ router.delete('/:id', async (req, res) => {
     if (campaign.userId.toString() !== req.user.userId && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
-    if (campaign.status === 'running') {
-      return res.status(400).json({ message: 'Cannot delete a running campaign. Pause or cancel it first.' });
-    }
+
+    // Stop active in-memory background worker immediately if running
+    cancelCampaign(id);
 
     await BulkCampaign.findByIdAndDelete(id);
     res.json({ message: 'Campaign deleted' });

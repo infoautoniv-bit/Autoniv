@@ -462,10 +462,13 @@ You MUST respond in valid JSON only:
       }
     }
 
-    // Increment chatUsed before sending response
-    try {
-      await User.findByIdAndUpdate(user._id, { $inc: { chatUsed: 1 } });
-    } catch (_) {}
+    // Increment chatUsed only for new conversations (first message of a session)
+    const isNewConversation = !Array.isArray(history) || history.length === 0;
+    if (isNewConversation) {
+      try {
+        await User.findByIdAndUpdate(user._id, { $inc: { chatUsed: 1 } });
+      } catch (_) {}
+    }
 
     res.json({ response: reply, step: nextStep });
   } catch (error) {

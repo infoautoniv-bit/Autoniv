@@ -214,3 +214,57 @@ export interface BulkCampaign {
   createdAt: string;
   updatedAt?: string;
 }
+
+export type PhoneNumberPlatform =
+  | 'twilio'
+  | 'exotel'
+  | 'plivo'
+  | 'ozonetel'
+  | 'mcube'
+  | 'tatatele'
+  | 'maqsam'
+  | 'vobiz'
+  | 'voicelink'
+  | 'vapi'
+  | 'retell'
+  | 'telnyx'
+  | 'signalwire'
+  | 'custom';
+
+export interface PhoneNumber {
+  id: string;
+  userId: string;
+  phoneNumber: string;
+  friendlyName?: string;
+  platform: PhoneNumberPlatform;
+  credentials?: Record<string, any>;
+  assignedToAgent?: {
+    id: string;
+    name: string;
+    type?: string;
+  } | null;
+  assignedToUser?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  status: 'active' | 'inactive' | 'unassigned';
+  capabilities: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AssignableUser {
+  id: string;
+  name: string;
+  email: string;
+  role?: string;
+}
+
+export interface AssignableAgent {
+  id: string;
+  name: string;
+  type: string;
+  phoneNumber?: string | null;
+}
+

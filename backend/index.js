@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import 'dotenv/config'; // reload env
 
 import express from 'express';
 import compression from 'compression';
@@ -30,6 +30,7 @@ import chatHistoryRoutes from './routes/chatHistory.js';
 import widgetRoutes from './routes/widget.js';
 import ttsRoutes from './routes/tts.js';
 import bulkCallRoutes from './routes/bulkCalls.js';
+import phoneNumberRoutes from './routes/phoneNumbers.js';
 import { initOrchestrator } from './services/orchestrator.js';
 import { syncWebhookUrls } from './services/vapi.js';
 
@@ -157,6 +158,7 @@ app.use('/api/chat-history', chatHistoryRoutes);
 app.use('/api/widget', widgetRoutes);
 app.use('/api/tts', ttsRoutes);
 app.use('/api/bulk-calls', bulkCallRoutes);
+app.use('/api/phone-numbers', phoneNumberRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
