@@ -344,9 +344,12 @@ export async function syncWebhookUrls() {
         });
       }
 
-      delete updatedConfig.id;
-      delete updatedConfig.createdAt;
-      delete updatedConfig.updatedAt;
+      // Vapi's GET returns server-managed, read-only fields that its update
+      // endpoint rejects with 400 ("property X should not exist"). Strip every
+      // known read-only/computed field before sending the config back.
+      for (const roField of ['id', 'orgId', 'createdAt', 'updatedAt', 'isServerUrlSecretSet']) {
+        delete updatedConfig[roField];
+      }
 
       await vapiRequest(`/assistant/${agent.vapiId}`, 'PUT', updatedConfig);
       updated++;
