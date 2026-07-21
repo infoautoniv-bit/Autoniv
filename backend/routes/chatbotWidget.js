@@ -13,6 +13,9 @@ router.get('/widget.js', (req, res) => {
 (function() {
   var CHATBOT_ID = '${chatbotId}';
   var API_BASE = window.location.origin;
+  // Fresh id per page load = one conversation. Lets the server count each
+  // chatbox session as a distinct conversation instead of collapsing by IP.
+  var SESSION_ID = 'w_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 
   if (!CHATBOT_ID) {
     var s = document.currentScript;
@@ -84,7 +87,7 @@ router.get('/widget.js', (req, res) => {
     fetch(API_BASE + '/api/chatbot-widget/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatbotId: CHATBOT_ID, message: text, history: messages.slice(-10) })
+      body: JSON.stringify({ chatbotId: CHATBOT_ID, sessionId: SESSION_ID, message: text, history: messages.slice(-10) })
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -143,7 +146,7 @@ router.get('/config/:id', async (req, res) => {
 // Handle chat message
 router.post('/chat', async (req, res) => {
   try {
-    const { chatbotId, message, history } = req.body;
+    const { chatbotId, sessionId, message, history } = req.body;
     if (!chatbotId || !message?.trim()) {
       return res.status(400).json({ message: 'chatbotId and message are required' });
     }
@@ -156,7 +159,10 @@ router.post('/chat', async (req, res) => {
     const reply = await handleChatbotMessage({
       chatbotId,
       channel: 'widget',
-      customerIdentifier: req.ip || 'web',
+      // Per-session id makes each new chatbox conversation its own record, so
+      // conversationCount increments per conversation. Falls back to IP for
+      // older embeds that predate sessionId.
+      customerIdentifier: (typeof sessionId === 'string' && sessionId.trim()) || req.ip || 'web',
       message: message.trim(),
     });
 

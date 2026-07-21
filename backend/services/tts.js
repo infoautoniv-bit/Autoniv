@@ -137,18 +137,18 @@ export function detectLanguageOfText(text, agentLanguage = 'en') {
 }
 
 function getBestMultilingualProvider(detectedLang, gender) {
-  const deepgramKey = process.env.DEEPGRAM_API_KEY;
   const elevenlabsKey = process.env.ELEVENLABS_API_KEY;
+  const deepgramKey = process.env.DEEPGRAM_API_KEY;
   const sarvamKey = process.env.SARVAM_API_KEY;
-
-  if (detectedLang === 'en' && deepgramKey && !deepgramKey.startsWith('your-')) {
-    const voiceId = gender === 'male' ? 'aura-orion-en' : 'aura-asteria-en';
-    return { provider: 'deepgram', voiceModelOrId: voiceId };
-  }
 
   if (elevenlabsKey && !elevenlabsKey.startsWith('your-') && !elevenlabsKey.includes('placeholder')) {
     const voiceId = gender === 'male' ? 'cjVigY5qzO86Huf0OWal' : 'hpp4J3VqNfWAUOO0d1Us';
     return { provider: 'elevenlabs', voiceModelOrId: voiceId };
+  }
+
+  if (detectedLang === 'en' && deepgramKey && !deepgramKey.startsWith('your-')) {
+    const voiceId = gender === 'male' ? 'aura-orion-en' : 'aura-asteria-en';
+    return { provider: 'deepgram', voiceModelOrId: voiceId };
   }
 
   const sarvamSupported = ['en', 'hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa', 'or'];
@@ -162,7 +162,24 @@ function getBestMultilingualProvider(detectedLang, gender) {
   return { provider: 'deepgram', voiceModelOrId: voiceId };
 }
 
-export async function synthesizeSpeech(text, isTwilio = true, language = 'en', voiceId = null) {
+// Normalize the telephony/format argument. Historically this was a boolean
+// `isTwilio` (true => mulaw/8000 telephony output, false => linear16/24000 web
+// output). To let per-provider transport adapters declare their own audio
+// format, the second argument now also accepts a descriptor
+// `{ encoding, sampleRate }`. Today both telephony adapters (Twilio, SignalWire)
+// use mulaw/8000, so any mulaw/ulaw or 8kHz format maps to the existing
+// telephony profile — keeping current behavior byte-for-byte identical.
+function normalizeTelephonyFormat(fmt) {
+  if (typeof fmt === 'boolean') return fmt;
+  if (fmt && typeof fmt === 'object') {
+    const enc = String(fmt.encoding || '').toLowerCase();
+    return enc === 'mulaw' || enc === 'ulaw' || fmt.sampleRate === 8000;
+  }
+  return true;
+}
+
+export async function synthesizeSpeech(text, telephonyOrFormat = true, language = 'en', voiceId = null) {
+  const isTwilio = normalizeTelephonyFormat(telephonyOrFormat);
   let provider = null;
   let voiceModelOrId = voiceId;
 
@@ -183,7 +200,11 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
       provider = 'elevenlabs';
     }
   } else {
-    provider = 'deepgram';
+    // No voiceId set — use best available provider with default female voice
+    const detectedLang = detectLanguageOfText(text, language);
+    const best = getBestMultilingualProvider(detectedLang, 'female');
+    provider = best.provider;
+    voiceModelOrId = best.voiceModelOrId;
   }
 
   const detectedLang = detectLanguageOfText(text, language);
@@ -218,11 +239,53 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
   const elevenlabsKey = process.env.ELEVENLABS_API_KEY;
   const deepgramKey = process.env.DEEPGRAM_API_KEY;
 
-  const isElevenLabsMissing = provider === 'elevenlabs' && (!elevenlabsKey || elevenlabsKey.startsWith('your-') || elevenlabsKey.includes('placeholder'));
+  const isElevenLabsMissing = (!elevenlabsKey || elevenlabsKey.startsWith('your-') || elevenlabsKey.includes('placeholder'));
   const isDeepgramMissing = !deepgramKey || deepgramKey.startsWith('your-');
 
+  if (provider === 'vapi') {
+    const VAPI_11LABS = {
+      Elliot: 'cjVigY5qzO86Huf0OWal',
+      Savannah: 'hpp4J3VqNfWAUOO0d1Us',
+      Rohan: 'TX3LPaxmHKxFdv7VOQHJ',
+      Emma: 'cgSgspJ2msm6clMCkdW9',
+      Clara: 'EXAVITQu4vr4xnSDxMaL',
+      Nico: 'pNInz6obpgDQGcFmaJgB',
+      Kai: 'bIHbv24MWmeRgasZH58o',
+      Sagar: 'onwK4e9ZLuTAKqWW03F9',
+      Godfrey: 'N2lVS1w4EtoT3dr4eOWO',
+      Neil: 'iP95p4xoKVk53GoZ742B',
+      Layla: 'Xb7hH8MSUJpSbSDYk0k2',
+      Sid: 'nPczCjzI2devNBz1zQrb',
+      Naina: 'XrExE9yKIg1WjnnlVkGX',
+    };
+    const VAPI_DEEPGRAM = {
+      Elliot: 'aura-orion-en',
+      Savannah: 'aura-asteria-en',
+      Rohan: 'aura-zeus-en',
+      Emma: 'aura-stella-en',
+      Clara: 'aura-luna-en',
+      Nico: 'aura-arcas-en',
+      Kai: 'aura-helios-en',
+      Sagar: 'aura-perseus-en',
+      Godfrey: 'aura-angus-en',
+      Neil: 'aura-orion-en',
+      Layla: 'aura-athena-en',
+      Sid: 'aura-zeus-en',
+      Naina: 'aura-hera-en',
+    };
+
+    const vName = voiceModelOrId || 'Elliot';
+    if (!isElevenLabsMissing && VAPI_11LABS[vName]) {
+      provider = 'elevenlabs';
+      voiceModelOrId = VAPI_11LABS[vName];
+    } else {
+      provider = 'deepgram';
+      voiceModelOrId = VAPI_DEEPGRAM[vName] || 'aura-orion-en';
+    }
+  }
+
   if (provider === 'deepgram' && !isDeepgramMissing) {
-    const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
+    const fallbackVoice = (voiceModelOrId && (voiceModelOrId.includes('male') || voiceModelOrId.includes('orion') || voiceModelOrId.includes('zeus') || voiceModelOrId.includes('arcas'))) ? 'aura-orion-en' : (voiceModelOrId && voiceModelOrId.startsWith('aura-') ? voiceModelOrId : 'aura-asteria-en');
     return synthesizeSpeechDirectDeepgram(text, isTwilio, fallbackVoice);
   }
 
@@ -241,9 +304,9 @@ export async function synthesizeSpeech(text, isTwilio = true, language = 'en', v
           text,
           model_id: 'eleven_turbo_v2_5',
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.0,
+            stability: 0.65,
+            similarity_boost: 0.80,
+            style: 0.15,
             use_speaker_boost: true,
           },
         }),

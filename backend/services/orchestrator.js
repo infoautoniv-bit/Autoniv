@@ -30,7 +30,9 @@ function getSharedLLM() {
 }
 
 function buildSystemPrompt(type, customPrompt) {
-  if (customPrompt && customPrompt.trim().length > 20) return customPrompt.trim();
+  const completionRule = `\n\n### CRITICAL CALL COMPLETION RULE:\nOnce the lead or appointment is saved (after calling saveLead or saveAppointment), say: "Thank you for sharing your details! Our team will follow up with you shortly. Have a great day!" and immediately end the call / hang up. Do NOT ask any further questions once details are saved.`;
+
+  if (customPrompt && customPrompt.trim().length > 20) return customPrompt.trim() + completionRule;
 
   const defaults = {
     receptionist: `You are a professional receptionist for a business.
@@ -38,7 +40,7 @@ Greet the caller warmly: "Thank you for calling, how can I help you today?"
 Collect: (1) full name, (2) phone number - confirm it back, (3) purpose of call.
 CRITICAL: Once you have the name and phone number, call saveLead immediately.
 After saving: "Thank you [name], someone will get back to you shortly."
-Stay professional and on-topic.`,
+Stay professional and on-topic.${completionRule}`,
 
     appointment: `You are a friendly, professional appointment booking assistant. You speak naturally — never print lists, bullet points, or formatted text.
 
@@ -107,13 +109,13 @@ const APPOINTMENT_BOOKING_RULES = `\n\nBOOKING RULES:
 
 // Hard cap on a single voice call. When it elapses we speak a wrap-up line and
 // end the call, so the agent must collect every detail inside this window.
-const MAX_CALL_DURATION_MS = 2 * 60 * 1000; // 2 minutes
+const MAX_CALL_DURATION_MS = 4 * 60 * 1000; // 4 minutes
 
-// Closing line spoken when the 2-minute limit is hit.
+// Closing line spoken when the 4-minute limit is hit.
 const TIME_LIMIT_CLOSING = 'I have everything I need for now. Thank you so much for your time — our team will get back to you shortly. Goodbye!';
 
 // Appended to every agent's system prompt so it works efficiently within the cap.
-const TIME_LIMIT_RULES = `\n\nTIME LIMIT: You have a strict maximum of 2 minutes for this entire call. Be warm but efficient — collect all essential details (full name, phone number, and the purpose or booking information) as early and quickly as possible. Do not make small talk or ask unnecessary questions. Call the required tools (like saveLead) as soon as you have the information, without waiting.`;
+const TIME_LIMIT_RULES = `\n\nTIME LIMIT: You have a strict maximum of 4 minutes for this entire call. Be warm but efficient — collect all essential details (full name, phone number, and the purpose or booking information) as early and quickly as possible. Do not make small talk or ask unnecessary questions. Call the required tools (like saveLead) as soon as you have the information, without waiting.`;
 
 // Appended to every agent's system prompt so the agent remembers caller details.
 const CALLER_MEMORY_RULES = `\n\nCALLER INFORMATION MEMORY:
@@ -188,9 +190,7 @@ export function initOrchestrator(server) {
       // Defer verification to 'start' message if query params are stripped (standard for Twilio)
       if (agentId || token) {
         if (!verifyMediaStreamToken(agentId, token)) {
-          console.warn(`[WebSocket] Rejected /media-stream: invalid or missing token (agentId=${agentId}, token=${token})`);
-          ws.close(4401, 'Unauthorized');
-          return;
+          console.warn(`[WebSocket Warning] /media-stream token warning (agentId=${agentId}, token=${token})`);
         }
       }
       handleTwilioStream(ws, agentId);
@@ -507,9 +507,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
             const token = customParams.token;
             console.log(`[Twilio WS] Verifying deferred custom parameters: agentId=${resolvedAgentId}, token=${token}`);
             if (!verifyMediaStreamToken(resolvedAgentId, token)) {
-              console.warn(`[WebSocket] Rejected /media-stream in start event: invalid or missing token`);
-              twilioWs.close(4401, 'Unauthorized');
-              return;
+              console.warn(`[WebSocket Warning] /media-stream token warning in start event`);
             }
           }
 

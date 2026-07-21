@@ -25,4 +25,36 @@ router.post('/preview', async (req, res) => {
   }
 });
 
+import mongoose from 'mongoose';
+import Agent from '../db/models/Agent.js';
+
+// GET /api/tts/speak — public audio streaming endpoint for Twilio/Exotel TwiML <Play>
+router.get('/speak', async (req, res) => {
+  try {
+    const { text, agentId, voiceId, language } = req.query;
+    if (!text) return res.status(400).send('Text is required');
+
+    let effectiveVoiceId = voiceId;
+    let effectiveLang = language || 'en';
+
+    if (agentId && mongoose.Types.ObjectId.isValid(agentId)) {
+      const agent = await Agent.findById(agentId).lean();
+      if (agent) {
+        effectiveVoiceId = agent.voiceId || effectiveVoiceId;
+        effectiveLang = agent.language || effectiveLang;
+      }
+    }
+
+    const base64Audio = await synthesizeSpeech(text, true, effectiveLang, effectiveVoiceId);
+    const audioBuffer = Buffer.from(base64Audio, 'base64');
+
+    res.set('Content-Type', 'audio/wav');
+    res.set('Content-Length', audioBuffer.length);
+    return res.send(audioBuffer);
+  } catch (err) {
+    console.error('[TTS Speak Route Error]', err.message);
+    res.status(500).send('TTS synthesis error');
+  }
+});
+
 export default router;

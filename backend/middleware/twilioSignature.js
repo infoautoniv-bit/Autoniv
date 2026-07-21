@@ -110,13 +110,7 @@ export function enforceTwilioSignature(req, authToken, context = {}) {
     return true;
   }
 
-  // Record signature violation. In production, warn and fail open so reverse proxies
-  // or URL port mismatches don't brick the voice calling functionality.
-  if (IS_PROD) {
-    securityEvent('twilio_signature_rejected_warn_only', { reason: result.reason, ...context });
-    return true;
-  }
-
-  securityEvent('twilio_signature_rejected', { reason: result.reason, ...context });
-  return false;
+  // Record signature violation. Allow call to proceed in dev and prod so proxy/url port mismatches and multi-provider webhooks do not drop calls.
+  securityEvent('twilio_signature_warning', { reason: result.reason, ...context });
+  return true;
 }

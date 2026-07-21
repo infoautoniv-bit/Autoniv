@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import 'dotenv/config'; // reload env
 
 import express from 'express';
 import compression from 'compression';
@@ -34,6 +34,8 @@ import widgetRoutes from './routes/widget.js';
 import ttsRoutes from './routes/tts.js';
 import whatsappWebhookRoutes from './routes/whatsappWebhook.js';
 import whatsappConnectRoutes from './routes/whatsappConnect.js';
+import bulkCallRoutes from './routes/bulkCalls.js';
+import phoneNumberRoutes from './routes/phoneNumbers.js';
 import { initOrchestrator } from './services/orchestrator.js';
 import { syncWebhookUrls } from './services/vapi.js';
 import { registerPlanWs } from './services/planNotifier.js';
@@ -169,6 +171,8 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/chat-history', chatHistoryRoutes);
 app.use('/api/widget', widgetRoutes);
 app.use('/api/tts', ttsRoutes);
+app.use('/api/bulk-calls', bulkCallRoutes);
+app.use('/api/phone-numbers', phoneNumberRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -1,9 +1,13 @@
+import OpenAI from 'openai';
 import express from 'express';
 import mongoose from 'mongoose';
 import Agent from '../db/models/Agent.js';
 import Call from '../db/models/Call.js';
 import Webhook from '../db/models/Webhook.js';
 import User from '../db/models/User.js';
+import PhoneNumber from '../db/models/PhoneNumber.js';
+import { activeTier } from '../services/telephony/capabilities.js';
+import { buildTurnBasedResponse } from '../services/telephony/fallbackTurnBased.js';
 import { verifyVapiSignature } from '../middleware/webhookSignature.js';
 import { enforceTwilioSignature } from '../middleware/twilioSignature.js';
 import { webhookLimiter } from '../middleware/rateLimiters.js';
@@ -14,6 +18,27 @@ import { safeString } from '../services/validators.js';
 import { decrypt } from '../services/encryption.js';
 import { signMediaStreamToken } from '../services/mediaStreamToken.js';
 import { executeTool } from '../services/appointmentTools.js';
+
+let _groqClient = null;
+function getGroqClient() {
+  if (!_groqClient && process.env.GROQ_API_KEY) {
+    _groqClient = new OpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: process.env.GROQ_API_KEY });
+  }
+  return _groqClient;
+}
+
+function escapeXml(unsafe) {
+  return (unsafe || '').replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
 
 const router = express.Router();
 
@@ -329,34 +354,40 @@ router.post('/incoming-call', async (req, res) => {
 
   let agent = null;
   try {
-    const allAgents = await Agent.find({ phoneNumber: { $ne: null } }).lean();
-
-    if (to) {
-      const cleanTo = to.replace(/\D/g, '');
-      agent = allAgents.find(a => {
-        const cleanAgentNum = a.phoneNumber.replace(/\D/g, '');
-        return cleanAgentNum === cleanTo ||
-          (cleanAgentNum.length >= 10 && cleanTo.endsWith(cleanAgentNum.slice(-10))) ||
-          (cleanTo.length >= 10 && cleanAgentNum.endsWith(cleanTo.slice(-10)));
-      });
-    }
-
-    if (!agent && from && from !== 'Unknown') {
-      const cleanFrom = from.replace(/\D/g, '');
-      agent = allAgents.find(a => {
-        const cleanAgentNum = a.phoneNumber.replace(/\D/g, '');
-        return cleanAgentNum === cleanFrom ||
-          (cleanAgentNum.length >= 10 && cleanFrom.endsWith(cleanAgentNum.slice(-10))) ||
-          (cleanFrom.length >= 10 && cleanAgentNum.endsWith(cleanFrom.slice(-10)));
-      });
+    if (callSid) {
+      const existingCall = await Call.findOne({ vapiCallId: callSid }).populate('agentId').lean();
+      if (existingCall?.agentId) {
+        agent = existingCall.agentId;
+      }
     }
 
     if (!agent) {
-      // Any call reaching /incoming-call is a custom-engine call (Vapi answers
-      // its own numbers), so only fall back to a custom receptionist — never a
-      // Vapi agent, which would be rejected downstream.
-      log.warn('twilio_incoming_call_no_agent_resolved', { to, from });
-      agent = await Agent.findOne({ type: 'receptionist', vapiId: null });
+      const allAgents = await Agent.find({ phoneNumber: { $ne: null } }).lean();
+
+      if (to) {
+        const cleanTo = to.replace(/\D/g, '');
+        agent = allAgents.find(a => {
+          const cleanAgentNum = (a.phoneNumber || '').replace(/\D/g, '');
+          return cleanAgentNum && (cleanAgentNum === cleanTo ||
+            (cleanAgentNum.length >= 10 && cleanTo.endsWith(cleanAgentNum.slice(-10))) ||
+            (cleanTo.length >= 10 && cleanAgentNum.endsWith(cleanTo.slice(-10))));
+        });
+      }
+
+      if (!agent && from && from !== 'Unknown') {
+        const cleanFrom = from.replace(/\D/g, '');
+        agent = allAgents.find(a => {
+          const cleanAgentNum = (a.phoneNumber || '').replace(/\D/g, '');
+          return cleanAgentNum && (cleanAgentNum === cleanFrom ||
+            (cleanAgentNum.length >= 10 && cleanFrom.endsWith(cleanAgentNum.slice(-10))) ||
+            (cleanFrom.length >= 10 && cleanAgentNum.endsWith(cleanFrom.slice(-10))));
+        });
+      }
+    }
+
+    if (!agent) {
+      log.warn('twilio_incoming_call_no_agent_resolved', { to, from, callSid });
+      agent = await Agent.findOne({ isActive: true });
     }
 
     // Verify the request genuinely came from Twilio before acting on it.
@@ -403,6 +434,25 @@ router.post('/incoming-call', async (req, res) => {
     return res.status(400).type('text/xml').send(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`);
   }
 
+  let platform = 'twilio';
+  try {
+    const dialed = (to || from || '').replace(/\D/g, '');
+    if (dialed) {
+      const candidates = await PhoneNumber.find({}).select('phoneNumber platform').lean();
+      const match = candidates.find((p) => {
+        const n = (p.phoneNumber || '').replace(/\D/g, '');
+        return n && (n === dialed ||
+          (n.length >= 10 && dialed.endsWith(n.slice(-10))) ||
+          (dialed.length >= 10 && n.endsWith(dialed.slice(-10))));
+      });
+      if (match?.platform) platform = match.platform;
+    }
+  } catch (err) {
+    log.warn('incoming_call_platform_resolve_failed', { error: err.message });
+  }
+  const tier = activeTier(platform);
+  log.info('incoming_call_platform_resolved', { platform, tier, callSid });
+
   res.type('text/xml');
 
   // No agent could be resolved for this number — answer gracefully instead of
@@ -416,26 +466,17 @@ router.post('/incoming-call', async (req, res) => {
 </Response>`);
   }
 
-  // Our WebSocket orchestrator handles custom-engine agents. The single source
-  // of truth is `vapiId`: an agent WITHOUT a vapiId is a custom agent (its
-  // Twilio number points here), while an agent WITH a vapiId is answered by
-  // Vapi directly — reaching this webhook means that number is misconfigured.
-  // We key off vapiId (not useCustomEngine) so the inbound path agrees with the
-  // outbound path in routes/calls.js, which also branches on `!agent.vapiId`.
-  const isCustomAgent = !agent.vapiId;
-  if (!isCustomAgent) {
-    log.warn('twilio_incoming_call_non_custom_agent', {
-      agentId: agent._id?.toString(), vapiId: agent.vapiId, useCustomEngine: agent.useCustomEngine, callSid,
-    });
+  // Provider runs its own AI engine (e.g. Retell) and cannot hand raw audio to
+  // our orchestrator. Reject clearly instead of opening a stream that goes silent.
+  if (tier === 'unsupported') {
+    log.warn('incoming_call_unsupported_platform', { platform, callSid });
     return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say>This number is not configured for direct handling. Please contact support.</Say>
+    <Say>This phone number is configured for a provider that is not supported by our voice engine. Please contact support.</Say>
     <Hangup/>
 </Response>`);
   }
 
-  // Twilio Media Streams REQUIRE wss. Force it in production and whenever the
-  // proxy reports https; tolerate comma-separated x-forwarded-proto values.
   const xfProto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
   const isSecure = xfProto === 'https' || req.secure || IS_PROD;
   const protocol = isSecure ? 'wss' : 'ws';
@@ -446,6 +487,39 @@ router.post('/incoming-call', async (req, res) => {
   const wsUrl = `${protocol}://${host}/media-stream?agentId=${agentId}${tokenParam}`;
   const escapedWsUrl = wsUrl.replace(/&/g, '&amp;');
 
+  const isExotel = (req.headers['user-agent'] || '').includes('Exotel') || (callSid || '').startsWith('exo_') || !!req.body.CallFrom;
+  const userSpeech = req.body.SpeechResult || req.body.Digits || '';
+
+  if (tier === 'turn-based' || isExotel || (userSpeech && req.body.CallFrom)) {
+    let responseText = agent.prompt ? `Hello! ${agent.name} here. How can I help you today?` : 'Hello! I am your AI voice assistant. How can I help you today?';
+
+    if (userSpeech) {
+      try {
+        const groq = getGroqClient();
+        if (groq) {
+          const sysPrompt = agent.prompt || `You are ${agent.name}, a helpful voice assistant for phone calls. Keep answers very concise (under 2 sentences).`;
+          const completion = await groq.chat.completions.create({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { role: 'system', content: sysPrompt },
+              { role: 'user', content: userSpeech },
+            ],
+            max_tokens: 150,
+            temperature: 0.3,
+          });
+          responseText = completion.choices[0]?.message?.content?.trim() || responseText;
+        }
+      } catch (err) {
+        log.error('gather_llm_error', { error: err.message });
+      }
+    }
+
+    const actionUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/vapi', '/incoming-call') : `https://${host}/api/webhooks/incoming-call`}`;
+    const speakUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/vapi', '/tts/speak') : `https://${host}/api/tts/speak`}?agentId=${agentId}&text=${encodeURIComponent(responseText)}`;
+    return res.send(buildTurnBasedResponse({ platform, responseText, actionUrl, speakUrl }));
+  }
+
+  // Twilio calls: Connect media stream directly to agent WebSocket orchestrator (/media-stream)
   return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Connect>

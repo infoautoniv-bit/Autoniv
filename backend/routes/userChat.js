@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import OpenAI from 'openai';
 import { authenticate, requireFeature, checkChatLimit } from '../middleware/auth.js';
 import { containsAbuse } from '../services/contentModeration.js';
@@ -6,6 +7,7 @@ import { log } from '../services/logger.js';
 import User from '../db/models/User.js';
 import Lead from '../db/models/Lead.js';
 import Appointment from '../db/models/Appointment.js';
+import ChatSession from '../db/models/ChatSession.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -225,13 +227,20 @@ router.post('/', checkChatLimit(), async (req, res) => {
       }
     }
 
-    // Increment chatUsed before sending response
-    try {
-      await User.findByIdAndUpdate(userId, { $inc: { chatUsed: 1 } });
-    } catch (_) {}
+    // Increment chatUsed on every conversation exchange
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $inc: { chatUsed: 1 } },
+      { new: true }
+    ).lean();
 
-    const updatedUser = await User.findById(userId).lean();
-    res.json({ response: reply, step: nextStep, data: {}, chatUsed: updatedUser?.chatUsed || 0, chatLimit: updatedUser?.chatLimit || 0 });
+    res.json({
+      response: reply,
+      step: nextStep,
+      data: {},
+      chatUsed: updatedUser?.chatUsed || 0,
+      chatLimit: updatedUser?.chatLimit || 0,
+    });
   } catch (error) {
     log.error('user_chat_ai_error', { error: error.message, userId: req.user?.userId });
     res.status(500).json({ response: 'Sorry, something went wrong. Please try again.', step: 'idle', data: {} });
