@@ -8,6 +8,7 @@ import analyticsReducer from './slices/analyticsSlice';
 import upgradeRequestsReducer from './slices/upgradeRequestsSlice';
 import appointmentsReducer from './slices/appointmentsSlice';
 import addOnsReducer from './slices/addOnsSlice';
+import bulkCallsReducer from './slices/bulkCallsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
     upgradeRequests: upgradeRequestsReducer,
     appointments: appointmentsReducer,
     addOns: addOnsReducer,
+    bulkCalls: bulkCallsReducer,
   },
 });
 

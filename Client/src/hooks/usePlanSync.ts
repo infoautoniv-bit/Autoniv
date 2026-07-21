@@ -1,91 +1,52 @@
-import { useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import type { RootState } from '../store';
+import { useEffect, useRef, useCallback } from 'react';
+import { useAppDispatch, useAppSelector } from './useStore';
 import { updatePlan } from '../store/slices/authSlice';
 import { authService } from '../services/api';
-import { getCookie } from '../services/cookies';
 
-const POLL_INTERVAL_MS = 60_000;
+const POLL_INTERVAL_MS = 10_000;
 
 export function usePlanSync() {
-  const dispatch = useDispatch();
-  const user = useSelector((s: RootState) => s.auth.user);
-  const wsRef = useRef<WebSocket | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastPlanRef = useRef<string | null>(null);
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((s) => s.auth.user);
+  const token = useAppSelector((s) => s.auth.token);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const poll = useCallback(async () => {
+    try {
+      const { data } = await authService.planStatus();
+      if (data) {
+        dispatch(updatePlan(data));
+      }
+    } catch {
+      // Silent — will retry next interval
+    }
+  }, [dispatch]);
 
   useEffect(() => {
-    if (!user) return;
-
-    lastPlanRef.current = user.plan ?? null;
-
-    function handlePlanChange(data: any) {
-      const prev = lastPlanRef.current;
-      const next = data.plan;
-
-      if (prev && next && prev !== next) {
-        import('react-hot-toast').then(({ default: toast }) => {
-          toast.success(`Your plan has been updated to ${data.chatPlan || data.voicePlan || next}`, {
-            duration: 6000,
-            icon: '\u2B50',
-          });
-        });
+    if (!token || !user) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
-
-      dispatch(updatePlan(data));
-      lastPlanRef.current = next;
+      return;
     }
 
-    // WebSocket connection
-    function connectWs() {
-      const token = getCookie('accessToken');
-      if (!token) return;
+    poll();
+    intervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
 
-      const base = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '');
-      const wsUrl = base.replace(/^http/, 'ws') + `/ws/plan?token=${token}`;
+    const onFocus = () => poll();
+    const onVisibility = () => { if (document.visibilityState === 'visible') poll(); };
 
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'planChanged') {
-            handlePlanChange(msg);
-          }
-        } catch { /* ignore malformed */ }
-      };
-
-      ws.onclose = () => {
-        wsRef.current = null;
-        setTimeout(connectWs, 5000);
-      };
-
-      ws.onerror = () => {
-        ws.close();
-      };
-    }
-
-    connectWs();
-
-    // Polling fallback
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await authService.planStatus();
-        handlePlanChange(res.data);
-      } catch { /* silent */ }
-    }, POLL_INTERVAL_MS);
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-        wsRef.current = null;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [user?.plan]);
+  }, [token, user?.id, poll]);
 }

@@ -5,7 +5,6 @@ import {
   fetchAllUpgradeRequests,
   processUpgradeRequest,
 } from '../../store/slices/upgradeRequestsSlice';
-import { checkAuth } from '../../store/slices/authSlice';
 import { DataTable } from '../../components/DataTable';
 import type { Column } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
@@ -137,7 +136,6 @@ export function AdminUpgradeRequests() {
     setProcessing(id);
     try {
       await dispatch(processUpgradeRequest({ id, status })).unwrap();
-      dispatch(checkAuth());
     } catch (err: any) {
       alert(err?.response?.data?.message || err?.message || 'Failed to process request');
     } finally {

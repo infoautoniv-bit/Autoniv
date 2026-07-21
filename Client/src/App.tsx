@@ -33,6 +33,8 @@ const CustomWebCall = lazy(() => import('./pages/user/CustomWebCall').then(m => 
 const CreateAgent = lazy(() => import('./pages/user/CreateAgent').then(m => ({ default: m.CreateAgent })));
 const CreateCustomAgent = lazy(() => import('./pages/user/CreateCustomAgent').then(m => ({ default: m.CreateCustomAgent })));
 const MyCalls = lazy(() => import('./pages/user/MyCalls').then(m => ({ default: m.MyCalls })));
+const BulkCallDashboard = lazy(() => import('./components/BulkCallDashboard').then(m => ({ default: m.BulkCallDashboard })));
+const MyPhoneNumbers = lazy(() => import('./pages/user/MyPhoneNumbers').then(m => ({ default: m.MyPhoneNumbers })));
 const MyLeads = lazy(() => import('./pages/user/MyLeads').then(m => ({ default: m.MyLeads })));
 const UserBilling = lazy(() => import('./pages/user/UserBilling').then(m => ({ default: m.UserBilling })));
 const MyAddOns = lazy(() => import('./pages/user/MyAddOns').then(m => ({ default: m.MyAddOns })));
@@ -448,6 +450,8 @@ function AppRoutes() {
         <Route path="/dashboard/ai-voice-agent/new" element={<ProtectedRoute feature="voice"><CreateAgent /></ProtectedRoute>} />
         <Route path="/dashboard/ai-voice-agent/new-custom" element={<ProtectedRoute feature="voice"><CreateCustomAgent /></ProtectedRoute>} />
         <Route path="/dashboard/calls" element={<ProtectedRoute feature="voice"><MyCalls /></ProtectedRoute>} />
+        <Route path="/dashboard/bulk-calls" element={<ProtectedRoute feature="voice"><BulkCallDashboard /></ProtectedRoute>} />
+        <Route path="/dashboard/phone-numbers" element={<ProtectedRoute feature="voice"><MyPhoneNumbers /></ProtectedRoute>} />
         <Route path="/dashboard/leads" element={<ProtectedRoute><MyLeads /></ProtectedRoute>} />
         <Route path="/dashboard/appointment-booking" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
         <Route path="/dashboard/ai-chatbot" element={<ProtectedRoute feature="chat"><MyChat /></ProtectedRoute>} />

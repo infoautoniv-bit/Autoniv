@@ -182,3 +182,89 @@ export interface UserAddOn {
   createdAt: string;
   updatedAt?: string;
 }
+
+export interface BulkCampaignNumber {
+  _id?: string;
+  phone: string;
+  name?: string | null;
+  status: 'pending' | 'calling' | 'completed' | 'failed' | 'no-answer' | 'busy' | 'skipped';
+  callId?: string | null;
+  error?: string | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
+}
+
+export interface BulkCampaign {
+  id: string;
+  userId: string;
+  agentId: string;
+  agentName?: string | null;
+  name: string;
+  status: 'draft' | 'running' | 'paused' | 'completed' | 'cancelled';
+  numbers: BulkCampaignNumber[];
+  concurrency: number;
+  delayMs: number;
+  totalCount: number;
+  completedCount: number;
+  failedCount: number;
+  activeNumbers?: number;
+  pendingNumbers?: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type PhoneNumberPlatform =
+  | 'twilio'
+  | 'exotel'
+  | 'plivo'
+  | 'ozonetel'
+  | 'mcube'
+  | 'tatatele'
+  | 'maqsam'
+  | 'vobiz'
+  | 'voicelink'
+  | 'vapi'
+  | 'retell'
+  | 'telnyx'
+  | 'signalwire'
+  | 'custom';
+
+export interface PhoneNumber {
+  id: string;
+  userId: string;
+  phoneNumber: string;
+  friendlyName?: string;
+  platform: PhoneNumberPlatform;
+  credentials?: Record<string, any>;
+  assignedToAgent?: {
+    id: string;
+    name: string;
+    type?: string;
+  } | null;
+  assignedToUser?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  status: 'active' | 'inactive' | 'unassigned';
+  capabilities: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AssignableUser {
+  id: string;
+  name: string;
+  email: string;
+  role?: string;
+}
+
+export interface AssignableAgent {
+  id: string;
+  name: string;
+  type: string;
+  phoneNumber?: string | null;
+}
+
