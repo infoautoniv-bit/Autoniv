@@ -37,6 +37,8 @@ function buildMessages(systemPrompt, welcomeMessage, history, userMessage) {
 }
 
 export async function handleChatbotMessage({ chatbotId, channel, customerIdentifier, message }) {
+  log.info('chatbot_message_handler_start', { chatbotId, channel, customerIdentifier: customerIdentifier.substring(0, 10) + '...', messageLength: message.length });
+
   if (!groq) {
     log.error('chatbot_groq_not_configured');
     return 'Sorry, the AI service is not configured. Please try again later.';
@@ -44,24 +46,93 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
 
   const chatbot = await Chatbot.findById(chatbotId);
   if (!chatbot || !chatbot.isActive) {
-    log.warn('chatbot_inactive_or_missing', { chatbotId });
+    log.warn('chatbot_inactive_or_missing', { chatbotId, exists: !!chatbot, isActive: chatbot?.isActive });
     return 'This chatbot is currently unavailable.';
   }
 
+  log.info('chatbot_found', { chatbotId, name: chatbot.name });
+
+  // Look for existing conversation
   let conversation = await ChatbotConversation.findOne({
     chatbotId,
     channel,
     customerIdentifier,
   });
 
+  let isNewConversation = false;
   if (!conversation) {
-    conversation = await ChatbotConversation.create({
-      chatbotId,
-      channel,
+    log.info('creating_new_conversation', { chatbotId, channel, customerIdentifier });
+    
+    try {
+      conversation = await ChatbotConversation.create({
+        chatbotId,
+        channel,
+        customerIdentifier,
+        messages: [],
+      });
+      isNewConversation = true;
+      log.info('chatbot_new_conversation_created', { 
+        chatbotId, 
+        channel, 
+        customerIdentifier,
+        conversationId: conversation._id 
+      });
+    } catch (err) {
+      // Handle duplicate key error (race condition)
+      if (err.code === 11000) {
+        log.info('chatbot_conversation_race_condition_handled', { chatbotId, channel, customerIdentifier });
+        conversation = await ChatbotConversation.findOne({
+          chatbotId,
+          channel,
+          customerIdentifier,
+        });
+        if (!conversation) {
+          log.error('chatbot_conversation_still_not_found_after_race_condition', { chatbotId, channel, customerIdentifier });
+          throw new Error('Failed to find or create conversation');
+        }
+      } else {
+        log.error('chatbot_conversation_creation_error', { 
+          error: err.message, 
+          code: err.code, 
+          chatbotId, 
+          channel, 
+          customerIdentifier 
+        });
+        throw err;
+      }
+    }
+    
+    // Only increment count for truly new conversations
+    if (isNewConversation) {
+      try {
+        const updateResult = await Chatbot.findByIdAndUpdate(
+          chatbotId, 
+          { $inc: { conversationCount: 1 } },
+          { new: true }
+        );
+        log.info('chatbot_conversation_count_incremented', { 
+          chatbotId, 
+          channel, 
+          oldCount: updateResult.conversationCount - 1,
+          newCount: updateResult.conversationCount 
+        });
+      } catch (err) {
+        log.error('chatbot_conversation_count_increment_failed', { 
+          error: err.message, 
+          chatbotId, 
+          channel 
+        });
+        // Don't fail the entire request if count update fails
+      }
+    }
+  } else {
+    log.info('chatbot_existing_conversation_found', { 
+      chatbotId, 
+      channel, 
       customerIdentifier,
-      messages: [],
+      conversationId: conversation._id,
+      messageCount: conversation.messages.length 
     });
-    await Chatbot.findByIdAndUpdate(chatbotId, { $inc: { conversationCount: 1 } });
   }
 
   const crmJsonInstructions = `\n\nYou MUST respond with a JSON object in this exact format:
@@ -159,9 +230,18 @@ Flow Rules:
 
     await conversation.save();
 
+    log.info('chatbot_message_handler_complete', { 
+      chatbotId, 
+      channel, 
+      customerIdentifier: customerIdentifier.substring(0, 10) + '...', 
+      replyLength: reply.length,
+      totalMessages: conversation.messages.length,
+      wasNewConversation: isNewConversation
+    });
+
     return reply;
   } catch (err) {
-    log.error('chatbot_ai_error', { chatbotId, error: err.message });
+    log.error('chatbot_ai_error', { chatbotId, channel, error: err.message, stack: err.stack });
     return 'Sorry, something went wrong. Please try again.';
   }
 }

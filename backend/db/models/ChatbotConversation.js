@@ -14,7 +14,8 @@ const chatbotConversationSchema = new mongoose.Schema({
   lastActive: { type: Date, default: Date.now },
 }, { timestamps: true });
 
-chatbotConversationSchema.index({ chatbotId: 1, channel: 1, customerIdentifier: 1 });
+// Ensure unique conversations per chatbot, channel, and customer
+chatbotConversationSchema.index({ chatbotId: 1, channel: 1, customerIdentifier: 1 }, { unique: true });
 chatbotConversationSchema.index({ chatbotId: 1, lastActive: -1 });
 
 const ChatbotConversation = mongoose.model('ChatbotConversation', chatbotConversationSchema);

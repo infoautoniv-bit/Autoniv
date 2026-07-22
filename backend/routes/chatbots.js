@@ -283,6 +283,7 @@ router.get('/:id/analytics', authenticate, async (req, res) => {
 
     const totalConversations = await ChatbotConversation.countDocuments({ chatbotId: chatbot._id });
     const whatsappConversations = await ChatbotConversation.countDocuments({ chatbotId: chatbot._id, channel: 'whatsapp' });
+    const telegramConversations = await ChatbotConversation.countDocuments({ chatbotId: chatbot._id, channel: 'telegram' });
     const widgetConversations = await ChatbotConversation.countDocuments({ chatbotId: chatbot._id, channel: 'widget' });
 
     const today = new Date();
@@ -298,6 +299,7 @@ router.get('/:id/analytics', authenticate, async (req, res) => {
     return res.json({
       totalConversations,
       whatsappConversations,
+      telegramConversations,
       widgetConversations,
       todayConversations,
       totalMessages: totalMessages[0]?.total || 0,

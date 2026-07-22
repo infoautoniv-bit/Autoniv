@@ -82,6 +82,8 @@ router.post('/', async (req, res) => {
             continue;
           }
 
+          log.info('whatsapp_processing_message', { chatbotId: chatbot._id, from: customerPhone, phoneNumberId });
+
           // Get AI response
           const reply = await handleChatbotMessage({
             chatbotId: chatbot._id,
@@ -92,6 +94,8 @@ router.post('/', async (req, res) => {
 
           // Send reply back via Meta API using this chatbot's own token when present
           await sendWhatsAppReply(phoneNumberId, customerPhone, reply, chatbot);
+          
+          log.info('whatsapp_message_processed', { chatbotId: chatbot._id, from: customerPhone });
         }
       }
     }

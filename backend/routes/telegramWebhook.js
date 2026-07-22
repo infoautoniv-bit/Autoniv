@@ -11,6 +11,8 @@ router.post('/:chatbotId', async (req, res) => {
     const { chatbotId } = req.params;
     const { message } = req.body;
 
+    log.info('telegram_webhook_received', { chatbotId, messageType: message?.text ? 'text' : 'other' });
+
     if (!message || !message.text || !message.chat?.id) {
       // Return 200 to acknowledge receipt of other update types
       return res.sendStatus(200);
@@ -18,6 +20,8 @@ router.post('/:chatbotId', async (req, res) => {
 
     const chatId = message.chat.id;
     const text = message.text.trim();
+
+    log.info('telegram_webhook_processing_message', { chatbotId, chatId, textLength: text.length });
 
     const chatbot = await Chatbot.findById(chatbotId);
     if (!chatbot) {
@@ -54,6 +58,8 @@ router.post('/:chatbotId', async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       log.error('telegram_webhook_send_failed', { chatbotId, status: response.status, error: errorText });
+    } else {
+      log.info('telegram_webhook_reply_sent', { chatbotId, chatId });
     }
 
     return res.sendStatus(200);
