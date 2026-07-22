@@ -9,6 +9,8 @@ import Lead from '../db/models/Lead.js';
 import Appointment from '../db/models/Appointment.js';
 import ChatSession from '../db/models/ChatSession.js';
 
+import { parsePhoneWordsToDigits } from '../services/validators.js';
+
 const router = express.Router();
 router.use(authenticate);
 router.use(requireFeature('chat'));
@@ -184,23 +186,33 @@ router.post('/', checkChatLimit(), async (req, res) => {
     const reply = parsed.response || "I'm not sure how to respond to that.";
     const nextStep = parsed.step || 'idle';
 
-    // Save lead if AI returned one — require ALL 4 fields to prevent duplicates
-    if (parsed.lead && parsed.lead.name && parsed.lead.phone && parsed.lead.email && parsed.lead.purpose) {
+    // Save lead if AI returned one — require valid details to prevent duplicates
+    if (parsed.lead && parsed.lead.name && parsed.lead.phone) {
       try {
-        // Check for duplicate (same phone + same user within this session)
-        const existing = await Lead.findOne({ userId, phone: parsed.lead.phone }).sort({ createdAt: -1 }).lean();
-        if (!existing || (Date.now() - new Date(existing.createdAt).getTime() > 60000)) {
-          await Lead.create({
+        const isPlaceholder = (val) => !val || ['unknown', 'unknown name', 'unknown phone', 'null', 'undefined', 'web caller', 'none', ''].includes(String(val).trim().toLowerCase());
+        if (!isPlaceholder(parsed.lead.name) && !isPlaceholder(parsed.lead.phone)) {
+          const formattedPhone = parsePhoneWordsToDigits(parsed.lead.phone);
+          const existing = await Lead.findOne({
             userId,
-            name: parsed.lead.name,
-            phone: parsed.lead.phone,
-            email: parsed.lead.email,
-            purpose: parsed.lead.purpose,
-            status: 'new',
-            leadType: 'chat',
-          });
+            $or: [
+              { phone: formattedPhone },
+              { phone: parsed.lead.phone }
+            ]
+          }).sort({ createdAt: -1 }).lean();
+
+          if (!existing || (Date.now() - new Date(existing.createdAt).getTime() > 60000)) {
+            await Lead.create({
+              userId,
+              name: parsed.lead.name,
+              phone: formattedPhone,
+              email: isPlaceholder(parsed.lead.email) ? null : parsed.lead.email,
+              purpose: isPlaceholder(parsed.lead.purpose) ? 'General inquiry' : parsed.lead.purpose,
+              status: 'new',
+              leadType: 'chat',
+            });
+            log.info('ai_lead_saved', { userId, name: parsed.lead.name, phone: formattedPhone });
+          }
         }
-        log.info('ai_lead_saved', { userId, name: parsed.lead.name });
       } catch (error) {
         log.error('ai_save_lead_error', { error: error.message, userId });
       }
@@ -214,7 +226,7 @@ router.post('/', checkChatLimit(), async (req, res) => {
           await Appointment.create({
             userId,
             name: parsed.appointment.name,
-            phone: parsed.appointment.phone || null,
+            phone: parsed.appointment.phone ? parsePhoneWordsToDigits(parsed.appointment.phone) : null,
             service: parsed.appointment.service,
             preferredDate: parsed.appointment.preferredDate,
             preferredTime: parsed.appointment.preferredTime,

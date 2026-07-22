@@ -82,7 +82,7 @@ export function escapeRegex(value) {
 }
 
 export function parsePhoneWordsToDigits(phone) {
-  if (typeof phone !== 'string') return phone;
+  if (!phone || typeof phone !== 'string') return phone;
   
   const WORD_TO_DIGIT = {
     zero: '0',
@@ -110,16 +110,27 @@ export function parsePhoneWordsToDigits(phone) {
     for (const [word, digit] of Object.entries(WORD_TO_DIGIT)) {
       temp = temp.replace(new RegExp(word, 'g'), digit);
     }
-    temp = temp.replace(/\s+/g, '');
-    if (/^\+?\d+$/.test(temp)) {
-      return temp;
-    }
+    str = temp;
   }
-  
-  const tempClean = str.replace(/\s+/g, '');
-  if (/^\+?\d+$/.test(tempClean)) {
-    return tempClean;
+
+  const isInternationalPlus = str.trim().startsWith('+');
+  const rawDigits = str.replace(/\D/g, '');
+
+  if (rawDigits.length === 10) {
+    return `+91${rawDigits}`;
   }
-  
+  if (rawDigits.length === 12 && rawDigits.startsWith('91')) {
+    return `+${rawDigits}`;
+  }
+  if (rawDigits.length === 11 && rawDigits.startsWith('0')) {
+    return `+91${rawDigits.slice(1)}`;
+  }
+  if (isInternationalPlus && rawDigits.length >= 10) {
+    return `+${rawDigits}`;
+  }
+  if (rawDigits.length >= 10) {
+    return `+91${rawDigits.slice(-10)}`;
+  }
+
   return phone;
 }

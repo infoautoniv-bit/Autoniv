@@ -4,6 +4,7 @@ import ChatbotConversation from '../db/models/ChatbotConversation.js';
 import Lead from '../db/models/Lead.js';
 import Appointment from '../db/models/Appointment.js';
 import User from '../db/models/User.js';
+import { parsePhoneWordsToDigits } from './validators.js';
 import { log } from './logger.js';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -195,22 +196,33 @@ Flow Rules:
     }
 
     // Save lead if AI returned one
-    if (parsed && parsed.lead && parsed.lead.name && parsed.lead.phone && parsed.lead.email && parsed.lead.purpose) {
+    if (parsed && parsed.lead && parsed.lead.name && parsed.lead.phone) {
       try {
-        const existing = await Lead.findOne({ userId: chatbot.userId, phone: parsed.lead.phone }).sort({ createdAt: -1 }).lean();
-        if (!existing || (Date.now() - new Date(existing.createdAt).getTime() > 60000)) {
-          await Lead.create({
+        const isPlaceholder = (val) => !val || ['unknown', 'unknown name', 'unknown phone', 'null', 'undefined', 'web caller', 'none', ''].includes(String(val).trim().toLowerCase());
+        if (!isPlaceholder(parsed.lead.name) && !isPlaceholder(parsed.lead.phone)) {
+          const formattedPhone = parsePhoneWordsToDigits(parsed.lead.phone);
+          const existing = await Lead.findOne({
             userId: chatbot.userId,
-            chatbotId: chatbot._id,
-            name: parsed.lead.name,
-            phone: parsed.lead.phone,
-            email: parsed.lead.email,
-            purpose: parsed.lead.purpose,
-            status: 'new',
-            leadType: 'chat',
-          });
+            $or: [
+              { phone: formattedPhone },
+              { phone: parsed.lead.phone }
+            ]
+          }).sort({ createdAt: -1 }).lean();
+
+          if (!existing || (Date.now() - new Date(existing.createdAt).getTime() > 60000)) {
+            await Lead.create({
+              userId: chatbot.userId,
+              chatbotId: chatbot._id,
+              name: parsed.lead.name,
+              phone: formattedPhone,
+              email: isPlaceholder(parsed.lead.email) ? null : parsed.lead.email,
+              purpose: isPlaceholder(parsed.lead.purpose) ? 'General inquiry' : parsed.lead.purpose,
+              status: 'new',
+              leadType: 'chat',
+            });
+            log.info('chatbot_lead_saved', { chatbotId: chatbot._id, name: parsed.lead.name, phone: formattedPhone });
+          }
         }
-        log.info('chatbot_lead_saved', { chatbotId: chatbot._id, name: parsed.lead.name });
       } catch (err) {
         log.error('chatbot_lead_save_error', { error: err.message, chatbotId: chatbot._id });
       }

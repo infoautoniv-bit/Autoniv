@@ -7,6 +7,8 @@ import Appointment from '../db/models/Appointment.js';
 import { containsAbuse } from '../services/contentModeration.js';
 import { log } from '../services/logger.js';
 
+import { parsePhoneWordsToDigits } from '../services/validators.js';
+
 const router = express.Router();
 
 let _groq;
@@ -423,19 +425,31 @@ You MUST respond in valid JSON only:
     const nextStep = parsed.step || 'idle';
 
     // Save lead if AI returned one
-    if (parsed.lead && parsed.lead.name && parsed.lead.phone && parsed.lead.email && parsed.lead.purpose) {
+    if (parsed.lead && parsed.lead.name && parsed.lead.phone) {
       try {
-        const existing = await Lead.findOne({ userId: user._id, phone: parsed.lead.phone }).sort({ createdAt: -1 }).lean();
-        if (!existing || (Date.now() - new Date(existing.createdAt).getTime() > 60000)) {
-          await Lead.create({
+        const isPlaceholder = (val) => !val || ['unknown', 'unknown name', 'unknown phone', 'null', 'undefined', 'web caller', 'none', ''].includes(String(val).trim().toLowerCase());
+        if (!isPlaceholder(parsed.lead.name) && !isPlaceholder(parsed.lead.phone)) {
+          const formattedPhone = parsePhoneWordsToDigits(parsed.lead.phone);
+          const existing = await Lead.findOne({
             userId: user._id,
-            name: parsed.lead.name,
-            phone: parsed.lead.phone,
-            email: parsed.lead.email,
-            purpose: parsed.lead.purpose,
-            status: 'new',
-            leadType: 'chat',
-          });
+            $or: [
+              { phone: formattedPhone },
+              { phone: parsed.lead.phone }
+            ]
+          }).sort({ createdAt: -1 }).lean();
+
+          if (!existing || (Date.now() - new Date(existing.createdAt).getTime() > 60000)) {
+            await Lead.create({
+              userId: user._id,
+              name: parsed.lead.name,
+              phone: formattedPhone,
+              email: isPlaceholder(parsed.lead.email) ? null : parsed.lead.email,
+              purpose: isPlaceholder(parsed.lead.purpose) ? 'General inquiry' : parsed.lead.purpose,
+              status: 'new',
+              leadType: 'chat',
+            });
+            log.info('widget_lead_saved', { userId: user._id, name: parsed.lead.name, phone: formattedPhone });
+          }
         }
       } catch (error) {
         log.error('widget_lead_save_error', { error: error.message, userId: user._id });
