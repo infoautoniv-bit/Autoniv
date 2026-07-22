@@ -62,6 +62,8 @@ export function CreateChatbot() {
   const [brandColor, setBrandColor] = useState('#2563EB');
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [whatsappPhoneId, setWhatsappPhoneId] = useState('');
+  const [whatsappAccessToken, setWhatsappAccessToken] = useState('');
+  const [whatsappDisplayPhone, setWhatsappDisplayPhone] = useState('');
   const [widgetEnabled, setWidgetEnabled] = useState(true);
   const [telegramEnabled, setTelegramEnabled] = useState(false);
   const [telegramToken, setTelegramToken] = useState('');
@@ -106,6 +108,7 @@ export function CreateChatbot() {
         setBrandColor(c.brandColor || '#2563EB');
         setWhatsappEnabled(c.channels?.whatsapp?.enabled || false);
         setWhatsappPhoneId(c.channels?.whatsapp?.phoneNumberId || '');
+        setWhatsappDisplayPhone(c.channels?.whatsapp?.displayPhoneNumber || '');
         setWidgetEnabled(c.channels?.widget?.enabled !== false);
         setTelegramEnabled(c.channels?.telegram?.enabled || false);
         setTelegramToken(c.channels?.telegram?.token || '');
@@ -123,6 +126,7 @@ export function CreateChatbot() {
           setWaConnected(true);
           setWaDisplayPhone(c.channels.whatsapp.displayPhoneNumber || null);
           setWaVerifiedName(c.channels.whatsapp.verifiedName || null);
+          setWhatsappAccessToken('••••••••••••••••');
         }
       }).catch(() => setError('Failed to load chatbot')).finally(() => setFetching(false));
     }
@@ -189,7 +193,12 @@ export function CreateChatbot() {
         welcomeMessage: welcomeMessage.trim(),
         brandColor,
         channels: {
-          whatsapp: { enabled: whatsappEnabled, phoneNumberId: whatsappPhoneId || undefined },
+          whatsapp: {
+            enabled: whatsappEnabled,
+            phoneNumberId: whatsappPhoneId || null,
+            displayPhoneNumber: whatsappDisplayPhone || null,
+            accessToken: whatsappAccessToken === '••••••••••••••••' ? undefined : (whatsappAccessToken || null)
+          },
           widget: { enabled: widgetEnabled },
           telegram: { enabled: telegramEnabled, token: telegramToken || undefined, botUsername: telegramBotUsername || undefined },
           facebook: { enabled: facebookEnabled, pageId: facebookPageId || undefined, pageAccessToken: facebookPageAccessToken || undefined, instagramAccountId: instagramAccountId || undefined },
@@ -490,11 +499,23 @@ export function CreateChatbot() {
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.2, ease }}
                             className="overflow-hidden">
-                            <div className="pt-2">
+                            <div className="pt-2 space-y-3">
+                              <Field label="Phone Number"
+                                hint="Your WhatsApp Business Phone Number (e.g. +1 555-666-8582)">
+                                <input type="text" value={whatsappDisplayPhone} onChange={e => setWhatsappDisplayPhone(e.target.value)}
+                                  placeholder="e.g. +1 555-666-8582"
+                                  className="form-input" />
+                              </Field>
                               <Field label="Phone Number ID"
                                 hint="Find this in Meta Business Manager → WhatsApp → Phone Numbers">
                                 <input type="text" value={whatsappPhoneId} onChange={e => setWhatsappPhoneId(e.target.value)}
                                   placeholder="Meta WhatsApp Phone Number ID"
+                                  className="form-input" />
+                              </Field>
+                              <Field label="Access Token"
+                                hint="Your Custom System User Access Token. Leave blank to use server default key.">
+                                <input type="password" value={whatsappAccessToken} onChange={e => setWhatsappAccessToken(e.target.value)}
+                                  placeholder="e.g. EAAS..."
                                   className="form-input" />
                               </Field>
                             </div>

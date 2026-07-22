@@ -6,6 +6,7 @@ import { authenticate } from '../middleware/auth.js';
 import { resolvePlans, PLAN_CONFIG } from '../services/planResolver.js';
 import { contentFilter } from '../services/contentModeration.js';
 import { log } from '../services/logger.js';
+import { encrypt } from '../services/encryption.js';
 
 const router = express.Router();
 
@@ -35,7 +36,12 @@ router.get('/', authenticate, async (req, res) => {
       resolveChatbotLimit(req.user.userId, req.user.role),
     ]);
 
-    return res.json({ chatbots, total, page, pages: Math.ceil(total / limit), limit: chatLimit });
+    const sanitized = chatbots.map(c => {
+      if (c.channels?.whatsapp) delete c.channels.whatsapp.accessToken;
+      return c;
+    });
+
+    return res.json({ chatbots: sanitized, total, page, pages: Math.ceil(total / limit), limit: chatLimit });
   } catch (err) {
     log.error('chatbot_list_error', { error: err.message, userId: req.user?.userId });
     return res.status(500).json({ message: 'Failed to fetch chatbots' });
@@ -47,6 +53,11 @@ router.get('/:id', authenticate, async (req, res) => {
   try {
     const chatbot = await Chatbot.findOne({ _id: req.params.id, userId: req.user.userId }).lean();
     if (!chatbot) return res.status(404).json({ message: 'Chatbot not found' });
+    
+    if (chatbot.channels?.whatsapp) {
+      delete chatbot.channels.whatsapp.accessToken;
+    }
+    
     return res.json({ chatbot });
   } catch (err) {
     log.error('chatbot_get_error', { error: err.message });
@@ -90,7 +101,13 @@ router.post('/', authenticate, contentFilter('name', 'systemPrompt'), async (req
       welcomeMessage: welcomeMessage?.trim() || 'Hi! How can I help you today?',
       brandColor: brandColor || '#0077ff',
       channels: {
-        whatsapp: { enabled: channels?.whatsapp?.enabled || false, phoneNumberId: channels?.whatsapp?.phoneNumberId || null },
+        whatsapp: {
+          enabled: channels?.whatsapp?.enabled || false,
+          phoneNumberId: channels?.whatsapp?.phoneNumberId || null,
+          displayPhoneNumber: channels?.whatsapp?.displayPhoneNumber || null,
+          accessToken: channels?.whatsapp?.accessToken ? encrypt(channels.whatsapp.accessToken) : null,
+          connectedAt: channels?.whatsapp?.accessToken ? new Date() : null,
+        },
         widget: { enabled: channels?.widget?.enabled !== false },
       },
     });
@@ -121,6 +138,14 @@ router.put('/:id', authenticate, contentFilter('name', 'systemPrompt'), async (r
     if (channels?.whatsapp) {
       chatbot.channels.whatsapp.enabled = channels.whatsapp.enabled ?? chatbot.channels.whatsapp.enabled;
       chatbot.channels.whatsapp.phoneNumberId = channels.whatsapp.phoneNumberId ?? chatbot.channels.whatsapp.phoneNumberId;
+      chatbot.channels.whatsapp.displayPhoneNumber = channels.whatsapp.displayPhoneNumber ?? chatbot.channels.whatsapp.displayPhoneNumber;
+      if (channels.whatsapp.accessToken) {
+        chatbot.channels.whatsapp.accessToken = encrypt(channels.whatsapp.accessToken);
+        chatbot.channels.whatsapp.connectedAt = new Date();
+      } else if (channels.whatsapp.accessToken === null || channels.whatsapp.accessToken === '') {
+        chatbot.channels.whatsapp.accessToken = null;
+        chatbot.channels.whatsapp.connectedAt = null;
+      }
     }
     if (channels?.widget) {
       chatbot.channels.widget.enabled = channels.widget.enabled ?? chatbot.channels.widget.enabled;
