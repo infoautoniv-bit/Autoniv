@@ -679,6 +679,8 @@ export const userChatService = {
 export interface ChatSessionSummary {
   id: string;
   title: string;
+  channel?: string;
+  isExternal?: boolean;
   messageCount: number;
   lastMessage: string;
   createdAt: string;
@@ -694,6 +696,8 @@ export interface ChatMessage {
 export interface ChatSessionDetail {
   id: string;
   title: string;
+  channel?: string;
+  isExternal?: boolean;
   messages: ChatMessage[];
   createdAt: string;
   updatedAt: string;

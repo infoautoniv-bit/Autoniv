@@ -3,6 +3,7 @@ import Chatbot from '../db/models/Chatbot.js';
 import ChatbotConversation from '../db/models/ChatbotConversation.js';
 import Lead from '../db/models/Lead.js';
 import Appointment from '../db/models/Appointment.js';
+import User from '../db/models/User.js';
 import { log } from './logger.js';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -48,6 +49,15 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
   if (!chatbot || !chatbot.isActive) {
     log.warn('chatbot_inactive_or_missing', { chatbotId, exists: !!chatbot, isActive: chatbot?.isActive });
     return 'This chatbot is currently unavailable.';
+  }
+
+  // Check user limits
+  if (chatbot.userId) {
+    const user = await User.findById(chatbot.userId);
+    if (user && user.hasExceededConversations()) {
+      log.warn('chatbot_user_chat_limit_exceeded', { chatbotId, userId: chatbot.userId, channel });
+      return 'Sorry, this service has reached its conversation limit for the current billing period.';
+    }
   }
 
   log.info('chatbot_found', { chatbotId, name: chatbot.name });
@@ -102,7 +112,7 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
       }
     }
     
-    // Only increment count for truly new conversations
+    // Increment count for new conversations on both Chatbot and User model
     if (isNewConversation) {
       try {
         const updateResult = await Chatbot.findByIdAndUpdate(
@@ -110,6 +120,12 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
           { $inc: { conversationCount: 1 } },
           { new: true }
         );
+        if (chatbot.userId) {
+          await User.findByIdAndUpdate(
+            chatbot.userId,
+            { $inc: { chatUsed: 1 } }
+          );
+        }
         log.info('chatbot_conversation_count_incremented', { 
           chatbotId, 
           channel, 

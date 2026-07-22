@@ -227,12 +227,18 @@ router.post('/', checkChatLimit(), async (req, res) => {
       }
     }
 
-    // Increment chatUsed on every conversation exchange
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $inc: { chatUsed: 1 } },
-      { new: true }
-    ).lean();
+    // Increment chatUsed only for new conversations (first message of a session)
+    const isNewSession = !Array.isArray(history) || history.length === 0;
+    let updatedUser;
+    if (isNewSession) {
+      updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $inc: { chatUsed: 1 } },
+        { new: true }
+      ).lean();
+    } else {
+      updatedUser = await User.findById(userId).select('chatUsed chatLimit').lean();
+    }
 
     res.json({
       response: reply,

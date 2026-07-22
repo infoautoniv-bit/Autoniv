@@ -16,18 +16,25 @@ const MAX_SUGGESTIONS = 3;
 
 // ---------- time helpers ----------
 
-// Parse "10:00 AM", "5 pm", "17:00", "1700", "9.30am" -> minutes since midnight, or null
+// Parse "10:00 AM", "5 pm", "17:00", "1700", "9.30am", "2:30" -> minutes since midnight, or null
 function parseTimeToMinutes(raw) {
   if (!raw) return null;
   const s = String(raw).trim().toLowerCase();
-  const m = s.match(/^(\d{1,2})\s*[:.]?\s*(\d{2})?\s*(am|pm)?/);
+  // Anchored match to prevent matching dates like "2026-08-15"
+  const m = s.match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?$/);
   if (!m) return null;
   let hour = parseInt(m[1], 10);
   const min = m[2] ? parseInt(m[2], 10) : 0;
   const mer = m[3];
   if (Number.isNaN(hour) || Number.isNaN(min) || hour > 23 || min > 59) return null;
+
   if (mer === 'pm' && hour < 12) hour += 12;
-  if (mer === 'am' && hour === 12) hour = 0;
+  else if (mer === 'am' && hour === 12) hour = 0;
+  else if (!mer && hour < OPEN_HOUR && hour >= 1 && hour <= 6) {
+    // Default 12-hour afternoon fallback during business hours: "2:00" -> 14:00 (2:00 PM)
+    hour += 12;
+  }
+
   return hour * 60 + min;
 }
 
@@ -48,6 +55,26 @@ function generateDaySlots() {
   return slots;
 }
 
+function normalizeDate(raw) {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  const ymdMatch = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (ymdMatch) {
+    const y = ymdMatch[1];
+    const m = String(parseInt(ymdMatch[2], 10)).padStart(2, '0');
+    const d = String(parseInt(ymdMatch[3], 10)).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    if (y >= 2000 && y <= 2100) return `${y}-${m}-${d}`;
+  }
+  return s;
+}
+
 // short, human-friendly reference (last 6 hex of the ObjectId)
 function shortRef(id) {
   return String(id).slice(-6).toUpperCase();
@@ -56,17 +83,20 @@ function shortRef(id) {
 // ---------- availability ----------
 
 async function getBookedMinutes(userId, dateStr, provider) {
+  if (!dateStr) return new Set();
+  const targetNorm = normalizeDate(dateStr);
   const query = {
     userId,
-    preferredDate: dateStr || null,
     status: { $nin: ['cancelled'] },
   };
   if (provider) query.provider = provider;
-  const rows = await Appointment.find(query).select('preferredTime').lean();
+  const rows = await Appointment.find(query).select('preferredDate preferredTime').lean();
   const taken = new Set();
   for (const r of rows) {
-    const mins = parseTimeToMinutes(r.preferredTime);
-    if (mins != null) taken.add(mins);
+    if (r.preferredDate && normalizeDate(r.preferredDate) === targetNorm) {
+      const mins = parseTimeToMinutes(r.preferredTime);
+      if (mins != null) taken.add(mins);
+    }
   }
   return taken;
 }
@@ -74,10 +104,18 @@ async function getBookedMinutes(userId, dateStr, provider) {
 async function computeAvailability(userId, dateStr, timeStr, provider) {
   const taken = await getBookedMinutes(userId, dateStr, provider);
   const all = generateDaySlots();
-  const free = all.filter(m => !taken.has(m));
+
+  const isSlotFree = (m) => {
+    for (const b of taken) {
+      if (Math.abs(m - b) < SLOT_MINUTES) return false;
+    }
+    return true;
+  };
+
+  const free = all.filter(isSlotFree);
   const requested = parseTimeToMinutes(timeStr);
 
-  const available = requested != null && free.includes(requested);
+  const available = requested != null ? isSlotFree(requested) : free.length > 0;
 
   let suggestions;
   if (requested != null) {
@@ -213,12 +251,6 @@ const APPOINTMENT_TOOLS = [
     },
   },
 ];
-
-// LLMs routinely emit `null` for optional params they choose not to fill (e.g.
-// `provider: null`). Strict schemas ("type": "string") make the provider-side
-// validator reject the whole tool call. Widen every non-required property to
-// also accept null so those calls validate; the dispatcher already treats null
-// as "not provided".
 function allowNullableOptionals(tools) {
   return tools.map((tool) => {
     const params = tool.function?.parameters;
@@ -257,16 +289,20 @@ function pick(args, ...keys) {
 function isPastDate(dateStr) {
   if (!dateStr) return false;
   try {
-    const parsedDate = new Date(dateStr);
-    if (isNaN(parsedDate.getTime())) return false;
+    const norm = normalizeDate(dateStr);
+    if (!norm) return false;
+    const parts = norm.split('-');
+    if (parts.length !== 3) return false;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
 
-    // Set time to midnight for comparison
-    parsedDate.setHours(0, 0, 0, 0);
-
+    const targetDate = new Date(year, month, day, 0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    return parsedDate < today;
+    return targetDate < today;
   } catch {
     return false;
   }
