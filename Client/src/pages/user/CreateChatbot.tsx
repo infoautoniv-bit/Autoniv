@@ -10,26 +10,6 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease } },
 };
 
-// ── WhatsApp Embedded Signup (Meta) ──────────────────────────────────────────
-const FB_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID as string | undefined;
-const FB_CONFIG_ID = import.meta.env.VITE_FACEBOOK_CONFIG_ID as string | undefined;
-const FB_GRAPH_VERSION = 'v20.0';
-
-interface FBLoginResponse {
-  authResponse?: { code?: string } | null;
-  status?: string;
-}
-interface FacebookSDK {
-  init(params: Record<string, unknown>): void;
-  login(cb: (response: FBLoginResponse) => void, params: Record<string, unknown>): void;
-}
-declare global {
-  interface Window {
-    FB?: FacebookSDK;
-    fbAsyncInit?: () => void;
-  }
-}
-
 
 const PROMPT_SUGGESTIONS = [
   { label: 'Customer Support', icon: '🎧', prompt: 'You are a warm, professional customer support agent for our company. Your goal is to resolve customer issues quickly and make every person feel heard. Greet the customer politely and ask clarifying questions before answering. Troubleshoot problems step by step, confirm the issue is resolved, and summarize the solution at the end. If you cannot solve a problem or the customer is frustrated, apologize sincerely and offer to escalate to a human agent, collecting their name, email, and a short description of the issue first. Never make up information — if you are unsure, say so honestly. Keep your tone patient, empathetic, and solution-focused at all times.' },
@@ -86,10 +66,6 @@ export function CreateChatbot() {
   const [waConnected, setWaConnected] = useState(false);
   const [waDisplayPhone, setWaDisplayPhone] = useState<string | null>(null);
   const [waVerifiedName, setWaVerifiedName] = useState<string | null>(null);
-  const [showManual, setShowManual] = useState(false);
-  const fbReady = useRef(false);
-  // Captures wabaId/phoneNumberId that Meta posts back via the window "message" event.
-  const waSignupData = useRef<{ wabaId?: string; phoneNumberId?: string }>({});
 
   const pushToast = useCallback((text: string, kind: Toast['kind'] = 'success') => {
     const tid = ++toastId.current;
@@ -131,51 +107,6 @@ export function CreateChatbot() {
       }).catch(() => setError('Failed to load chatbot')).finally(() => setFetching(false));
     }
   }, [id, isEdit]);
-
-  // Load the Facebook JS SDK once (mirrors the Google GSI dedupe-loader pattern).
-  useEffect(() => {
-    if (!FB_APP_ID) return; // Embedded Signup not configured — manual fallback still works.
-
-    function initFb() {
-      if (window.FB) {
-        window.FB.init({ appId: FB_APP_ID, autoLogAppEvents: true, xfbml: false, version: FB_GRAPH_VERSION });
-        fbReady.current = true;
-      }
-    }
-
-    if (window.FB) { initFb(); return; }
-
-    window.fbAsyncInit = initFb;
-    let script = document.querySelector('script[src="https://connect.facebook.net/en_US/sdk.js"]') as HTMLScriptElement | null;
-    if (!script) {
-      script = document.createElement('script');
-      script.src = 'https://connect.facebook.net/en_US/sdk.js';
-      script.async = true;
-      script.defer = true;
-      script.crossOrigin = 'anonymous';
-      document.body.appendChild(script);
-    }
-  }, []);
-
-  // Capture the wabaId / phoneNumberId that the Embedded Signup popup posts back.
-  useEffect(() => {
-    function onMessage(event: MessageEvent) {
-      if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return;
-      try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        if (data?.type === 'WA_EMBEDDED_SIGNUP' && data.event === 'FINISH') {
-          waSignupData.current = {
-            wabaId: data.data?.waba_id,
-            phoneNumberId: data.data?.phone_number_id,
-          };
-        }
-      } catch {
-        // Non-JSON messages from the SDK are expected; ignore them.
-      }
-    }
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -222,54 +153,6 @@ export function CreateChatbot() {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function handleConnectWhatsapp() {
-    if (!isEdit || !id) {
-      pushToast('Save the chatbot first, then connect WhatsApp.', 'error');
-      return;
-    }
-    if (!FB_APP_ID || !FB_CONFIG_ID) {
-      pushToast('WhatsApp connect is not configured. Use "Connect manually" below.', 'error');
-      setShowManual(true);
-      return;
-    }
-    if (!window.FB || !fbReady.current) {
-      pushToast('WhatsApp SDK is still loading — try again in a moment.', 'error');
-      return;
-    }
-
-    waSignupData.current = {};
-    setWaConnecting(true);
-    window.FB.login(async (response) => {
-      const code = response?.authResponse?.code;
-      if (!code) {
-        setWaConnecting(false);
-        pushToast('WhatsApp connection was cancelled.', 'error');
-        return;
-      }
-      try {
-        const { wabaId, phoneNumberId } = waSignupData.current;
-        if (!wabaId) throw new Error('Could not read your WhatsApp Business account. Please retry.');
-        const { data } = await chatbotService.connectWhatsapp(id, { code, wabaId, phoneNumberId });
-        const wa = data.chatbot?.channels?.whatsapp;
-        setWaConnected(true);
-        setWhatsappEnabled(true);
-        setWaDisplayPhone(wa?.displayPhoneNumber || null);
-        setWaVerifiedName(wa?.verifiedName || null);
-        if (wa?.phoneNumberId) setWhatsappPhoneId(wa.phoneNumberId);
-        pushToast('WhatsApp connected 🎉', 'success');
-      } catch (err: any) {
-        pushToast(err?.response?.data?.message || err?.message || 'Failed to connect WhatsApp', 'error');
-      } finally {
-        setWaConnecting(false);
-      }
-    }, {
-      config_id: FB_CONFIG_ID,
-      response_type: 'code',
-      override_default_response_type: true,
-      extras: { setup: {}, featureType: '', sessionInfoVersion: '2' },
-    });
   }
 
   async function handleDisconnectWhatsapp() {
@@ -435,8 +318,7 @@ export function CreateChatbot() {
                   transition={{ duration: 0.25, ease }}
                   className="overflow-hidden">
                   <div className="ml-1 pt-1 space-y-3">
-                    {waConnected ? (
-                      /* Connected state — show the verified number + disconnect */
+                    {waConnected && (
                       <div className="flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50">
                         <span className="text-lg shrink-0">✅</span>
                         <div className="flex-1 min-w-0">
@@ -452,76 +334,31 @@ export function CreateChatbot() {
                           Disconnect
                         </button>
                       </div>
-                    ) : (
-                      /* Primary path — Meta Embedded Signup */
-                      <div className="p-3 rounded-xl border border-[var(--slate-border)] bg-white">
-                        <p className="text-[11px] text-[var(--text-muted)] font-semibold mb-2.5">
-                          Connect your own WhatsApp Business account — no API keys to copy.
-                        </p>
-                        <button type="button" onClick={handleConnectWhatsapp}
-                          disabled={waConnecting || !isEdit}
-                          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl text-white shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-60 disabled:pointer-events-none border-none"
-                          style={{ background: '#25D366' }}>
-                          {waConnecting ? (
-                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <circle className="opacity-75" fill="currentColor" cx="12" cy="12" r="10" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2z" />
-                            </svg>
-                          )}
-                          {waConnecting ? 'Connecting…' : 'Connect WhatsApp'}
-                        </button>
-                        {!isEdit && (
-                          <p className="text-[10px] text-amber-600 font-semibold mt-2">
-                            Save the chatbot first, then reopen it to connect WhatsApp.
-                          </p>
-                        )}
-                      </div>
                     )}
 
-                    {/* Advanced / manual fallback — paste a Phone Number ID directly */}
-                    <div>
-                      <button type="button" onClick={() => setShowManual(v => !v)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--primary-blue)] transition-colors cursor-pointer bg-transparent border-none">
-                        <svg className={`w-3 h-3 transition-transform ${showManual ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                        Advanced · connect manually
-                      </button>
-                      <AnimatePresence initial={false}>
-                        {showManual && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2, ease }}
-                            className="overflow-hidden">
-                            <div className="pt-2 space-y-3">
-                              <Field label="Phone Number"
-                                hint="Your WhatsApp Business Phone Number (e.g. +1 555-666-8582)">
-                                <input type="text" value={whatsappDisplayPhone} onChange={e => setWhatsappDisplayPhone(e.target.value)}
-                                  placeholder="e.g. +1 555-666-8582"
-                                  className="form-input" />
-                              </Field>
-                              <Field label="Phone Number ID"
-                                hint="Find this in Meta Business Manager → WhatsApp → Phone Numbers">
-                                <input type="text" value={whatsappPhoneId} onChange={e => setWhatsappPhoneId(e.target.value)}
-                                  placeholder="Meta WhatsApp Phone Number ID"
-                                  className="form-input" />
-                              </Field>
-                              <Field label="Access Token"
-                                hint="Your Custom System User Access Token. Leave blank to use server default key.">
-                                <input type="password" value={whatsappAccessToken} onChange={e => setWhatsappAccessToken(e.target.value)}
-                                  placeholder="e.g. EAAS..."
-                                  className="form-input" />
-                              </Field>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                    {/* Manual WhatsApp config — paste credentials directly */}
+                    <div className="p-3 rounded-xl border border-[var(--slate-border)] bg-white space-y-3">
+                      <p className="text-[11px] text-[var(--text-muted)] font-semibold">
+                        Enter your WhatsApp Business credentials manually.
+                      </p>
+                      <Field label="Phone Number"
+                        hint="Your WhatsApp Business Phone Number (e.g. +1 555-666-8582)">
+                        <input type="text" value={whatsappDisplayPhone} onChange={e => setWhatsappDisplayPhone(e.target.value)}
+                          placeholder="e.g. +1 555-666-8582"
+                          className="form-input" />
+                      </Field>
+                      <Field label="Phone Number ID"
+                        hint="Find this in Meta Business Manager → WhatsApp → Phone Numbers">
+                        <input type="text" value={whatsappPhoneId} onChange={e => setWhatsappPhoneId(e.target.value)}
+                          placeholder="Meta WhatsApp Phone Number ID"
+                          className="form-input" />
+                      </Field>
+                      <Field label="Access Token"
+                        hint="Your Custom System User Access Token. Leave blank to use server default key.">
+                        <input type="password" value={whatsappAccessToken} onChange={e => setWhatsappAccessToken(e.target.value)}
+                          placeholder="e.g. EAAS..."
+                          className="form-input" />
+                      </Field>
                     </div>
                   </div>
                 </motion.div>
