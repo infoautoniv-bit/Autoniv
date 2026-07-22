@@ -6,7 +6,7 @@ import { authenticate } from '../middleware/auth.js';
 import { resolvePlans, PLAN_CONFIG } from '../services/planResolver.js';
 import { contentFilter } from '../services/contentModeration.js';
 import { log } from '../services/logger.js';
-import { encrypt } from '../services/encryption.js';
+import { encrypt, decrypt } from '../services/encryption.js';
 
 const router = express.Router();
 
@@ -38,6 +38,9 @@ router.get('/', authenticate, async (req, res) => {
 
     const sanitized = chatbots.map(c => {
       if (c.channels?.whatsapp) delete c.channels.whatsapp.accessToken;
+      if (c.channels?.telegram?.token) {
+        c.channels.telegram.token = '••••••••••••••••';
+      }
       return c;
     });
 
@@ -56,6 +59,9 @@ router.get('/:id', authenticate, async (req, res) => {
     
     if (chatbot.channels?.whatsapp) {
       delete chatbot.channels.whatsapp.accessToken;
+    }
+    if (chatbot.channels?.telegram?.token) {
+      chatbot.channels.telegram.token = '••••••••••••••••';
     }
     
     return res.json({ chatbot });
@@ -109,6 +115,11 @@ router.post('/', authenticate, contentFilter('name', 'systemPrompt'), async (req
           connectedAt: channels?.whatsapp?.accessToken ? new Date() : null,
         },
         widget: { enabled: channels?.widget?.enabled !== false },
+        telegram: {
+          enabled: channels?.telegram?.enabled || false,
+          token: channels?.telegram?.token ? encrypt(channels.telegram.token) : null,
+          botUsername: channels?.telegram?.botUsername || null,
+        },
       },
     });
 
@@ -151,13 +162,24 @@ router.put('/:id', authenticate, contentFilter('name', 'systemPrompt'), async (r
       chatbot.channels.widget.enabled = channels.widget.enabled ?? chatbot.channels.widget.enabled;
     }
     if (channels?.telegram) {
-      const oldToken = chatbot.channels?.telegram?.token;
+      const oldTokenEncrypted = chatbot.channels?.telegram?.token;
+      const oldToken = oldTokenEncrypted ? decrypt(oldTokenEncrypted) : null;
       chatbot.channels.telegram.enabled = channels.telegram.enabled ?? chatbot.channels.telegram.enabled;
-      chatbot.channels.telegram.token = channels.telegram.token ?? chatbot.channels.telegram.token;
+      
+      if (channels.telegram.token) {
+        if (channels.telegram.token === '••••••••••••••••') {
+          // Keep old token (no change)
+        } else {
+          chatbot.channels.telegram.token = encrypt(channels.telegram.token);
+        }
+      } else if (channels.telegram.token === null || channels.telegram.token === '') {
+        chatbot.channels.telegram.token = null;
+      }
+      
       chatbot.channels.telegram.botUsername = channels.telegram.botUsername ?? chatbot.channels.telegram.botUsername;
 
-      // Automatically register Telegram webhook if token changed
-      if (channels.telegram.token && channels.telegram.token !== oldToken) {
+      // Automatically register Telegram webhook if token changed and not placeholder
+      if (channels.telegram.token && channels.telegram.token !== oldToken && channels.telegram.token !== '••••••••••••••••') {
         const host = req.get('host');
         const protocol = req.protocol === 'http' && host.includes('localhost') ? 'http' : 'https';
         const webhookUrl = `${protocol}://${host}/api/webhooks/telegram/${chatbot._id}`;
@@ -295,13 +317,24 @@ router.put('/:id/integrations', authenticate, async (req, res) => {
     const { telegram, facebook, crm } = req.body;
 
     if (telegram) {
-      const oldToken = chatbot.channels?.telegram?.token;
+      const oldTokenEncrypted = chatbot.channels?.telegram?.token;
+      const oldToken = oldTokenEncrypted ? decrypt(oldTokenEncrypted) : null;
       chatbot.channels.telegram.enabled = !!telegram.enabled;
-      chatbot.channels.telegram.token = telegram.token || null;
+      
+      if (telegram.token) {
+        if (telegram.token === '••••••••••••••••') {
+          // Keep old token (no change)
+        } else {
+          chatbot.channels.telegram.token = encrypt(telegram.token);
+        }
+      } else if (telegram.token === null || telegram.token === '') {
+        chatbot.channels.telegram.token = null;
+      }
+      
       chatbot.channels.telegram.botUsername = telegram.botUsername || null;
 
-      // Automatically set webhook if token is provided & changed
-      if (telegram.token && telegram.token !== oldToken) {
+      // Automatically set webhook if token is provided & changed & not placeholder
+      if (telegram.token && telegram.token !== oldToken && telegram.token !== '••••••••••••••••') {
         const host = req.get('host');
         const protocol = req.protocol === 'http' && host.includes('localhost') ? 'http' : 'https';
         const webhookUrl = `${protocol}/api/webhooks/telegram/${chatbot._id}`;

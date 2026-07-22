@@ -2,6 +2,7 @@ import express from 'express';
 import Chatbot from '../db/models/Chatbot.js';
 import { handleChatbotMessage } from '../services/whatsappChatbot.js';
 import { log } from '../services/logger.js';
+import { decrypt } from '../services/encryption.js';
 
 const router = express.Router();
 
@@ -37,7 +38,8 @@ router.post('/:chatbotId', async (req, res) => {
     });
 
     // Send reply back to Telegram
-    const token = chatbot.channels.telegram.token;
+    const encryptedToken = chatbot.channels.telegram.token;
+    const token = decrypt(encryptedToken);
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
     const response = await fetch(url, {
