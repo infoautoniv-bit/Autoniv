@@ -471,25 +471,27 @@ export async function executeTool(name, args, ctx) {
           };
         }
 
-        const appt = await Appointment.create({
-          agentId: agentObj._id,
-          callId: mongoCallId,
-          userId,
-          name: customerName ? sanitizeText(safeString(customerName, 200)) : null,
-          phone: safePhone,
-          email: safeString(email, 254),
-          service: sanitizedService,
-          provider: provider ? sanitizeText(safeString(provider, 100)) : null,
-          patientType: patientType ? safeString(patientType, 50) : null,
-          preferredDate: safeDate,
-          preferredTime: time ? safeString(time, 30) : null,
-          status: 'pending',
-        });
-        toolState.saveAppointment = true;
-        log.info('orchestrator_appointment_saved', { appointmentId: appt._id });
-
-        // Also save as lead if not already saved
+        let appt;
         try {
+          appt = await Appointment.create({
+            agentId: agentObj._id,
+            callId: mongoCallId,
+            userId,
+            name: customerName ? sanitizeText(safeString(customerName, 200)) : null,
+            phone: safePhone,
+            email: safeString(email, 254),
+            service: sanitizedService,
+            provider: provider ? sanitizeText(safeString(provider, 100)) : null,
+            patientType: patientType ? safeString(patientType, 50) : null,
+            preferredDate: safeDate,
+            preferredTime: time ? safeString(time, 30) : null,
+            status: 'pending',
+          });
+          toolState.saveAppointment = true;
+          log.info('orchestrator_appointment_saved', { appointmentId: appt._id });
+        } catch (apptErr) {
+          log.error('orchestrator_appointment_save_failed', { error: apptErr.message });
+
           const existingLead = await Lead.findOne({
             agentId: agentObj._id,
             $or: [
@@ -505,14 +507,14 @@ export async function executeTool(name, args, ctx) {
               userId,
               name: customerName ? sanitizeText(safeString(customerName, 200)) : null,
               phone: safePhone,
-              email: pick(args, 'email') ? safeString(args.email, 254) : null,
+              email: safeString(email, 254),
               purpose: sanitizedService || 'Appointment booking',
               leadType: 'call',
             });
-            log.info('orchestrator_lead_auto_saved_from_appointment', { phone: safePhone, callId });
+            log.info('orchestrator_lead_fallback_from_appointment_failure', { phone: safePhone });
           }
-        } catch (leadErr) {
-          log.error('orchestrator_lead_auto_save_failed', { error: leadErr.message });
+
+          return { success: false, error: 'Failed to save appointment. A lead has been saved instead.' };
         }
 
         return {

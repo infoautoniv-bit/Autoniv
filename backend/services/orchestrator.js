@@ -107,6 +107,23 @@ const APPOINTMENT_BOOKING_RULES = `\n\nBOOKING RULES:
 2. Never invent the date or time. You may suggest slots, but only book what the caller confirms.
 3. Before booking, read back service, date, time, name, phone, and email, and get a clear "yes".`;
 
+// Hard cap on a single voice call. When it elapses we speak a wrap-up line and
+// end the call, so the agent must collect every detail inside this window.
+const MAX_CALL_DURATION_MS = 4 * 60 * 1000; // 4 minutes
+
+// Closing line spoken when the 4-minute limit is hit.
+const TIME_LIMIT_CLOSING = 'I have everything I need for now. Thank you so much for your time — our team will get back to you shortly. Goodbye!';
+
+// Appended to every agent's system prompt so it works efficiently within the cap.
+const TIME_LIMIT_RULES = `\n\nTIME LIMIT: You have a strict maximum of 4 minutes for this entire call. Be warm but efficient — collect all essential details (full name, phone number, and the purpose or booking information) as early and quickly as possible. Do not make small talk or ask unnecessary questions. Call the required tools (like saveLead) as soon as you have the information, without waiting.`;
+
+// Appended to every agent's system prompt so the agent remembers caller details.
+const CALLER_MEMORY_RULES = `\n\nCALLER INFORMATION MEMORY:
+- If the caller has already provided their name or phone number earlier in this conversation, you MUST remember it and NEVER ask for it again.
+- Before asking for any detail, check the conversation history to see if it was already shared.
+- If the caller says something like "I already told you my name is [X]" or "I just gave you my number", acknowledge it and do NOT ask again.
+- When you have all the required information from previous turns, proceed directly to the next step (e.g., saveLead, saveAppointment) without re-asking.`;
+
 function interpolatePrompt(prompt, user) {
   if (!prompt || !user) return prompt;
   let result = prompt;
@@ -201,12 +218,17 @@ function handleTwilioStream(twilioWs, urlAgentId) {
   let isInterrupted = false;
   let isProcessing = false;
   let toolAlreadyExecuted = { saveAppointment: false, saveLead: false };
+  let callerInfo = { name: null, phone: null };
   let cleanedUp = false;
   // Twilio stamps every inbound media frame with a monotonic `timestamp` (ms
   // since stream start). We anchor it to wall-clock once so caller audio is
   // placed in the recording by true capture time, not jittery arrival time —
   // otherwise bursts of queued frames overlap-add and sound like scratching.
   let mediaEpoch = null;
+  // Hard 2-minute call cap. Armed once the call starts; on expiry we speak a
+  // closing line and end the stream so no call can run past the limit.
+  let callTimeout = null;
+  let timeLimitReached = false;
   // While the agent is speaking, mu-law audio we send to Twilio echoes back on
   // the inbound leg and Deepgram transcribes it as caller speech (the agent
   // "hears itself" and answers its own greeting in a loop). We mute the STT
@@ -225,6 +247,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
   const runCleanup = async () => {
     if (cleanedUp) return;
     cleanedUp = true;
+    if (callTimeout) { clearTimeout(callTimeout); callTimeout = null; }
     await closeAndCleanup({
       callSid, agentObj, callStartTime, fullTranscript, deepgramWs,
       pendingLeadData: toolAlreadyExecuted.pendingLeadData, recorder,
@@ -244,9 +267,60 @@ function handleTwilioStream(twilioWs, urlAgentId) {
     }
   };
 
+  const extractCallerInfo = (text) => {
+    if (!text) return;
+
+    if (!callerInfo.name) {
+      const namePatterns = [
+        /(?:my name is|i'm|i am|this is|name's|name:)\s+([A-Za-z][A-Za-z\s]{1,30})/i,
+      ];
+      for (const pat of namePatterns) {
+        const m = text.match(pat);
+        if (m && m[1] && !/unknown|none|test|hello|hi|hey/i.test(m[1].trim())) {
+          callerInfo.name = m[1].trim();
+          break;
+        }
+      }
+    }
+
+    if (!callerInfo.phone) {
+      const phonePatterns = [
+        /(?:my (?:phone |number |cell )?(?:number|is|:))\s*([\d\s\-+()]{7,20})/i,
+        /(?:call me at|reach me at|number is)\s*([\d\s\-+()]{7,20})/i,
+        /\b(\d{10,15})\b/,
+      ];
+      for (const pat of phonePatterns) {
+        const m = text.match(pat);
+        if (m && m[1]) {
+          const digits = m[1].replace(/\D/g, '');
+          if (digits.length >= 7 && digits.length <= 15) {
+            callerInfo.phone = m[1].trim();
+            break;
+          }
+        }
+      }
+    }
+  };
+
+  const injectCallerContext = () => {
+    if (!callerInfo.name && !callerInfo.phone) return;
+    const sysIdx = conversationHistory.findIndex(m => m.role === 'system');
+    if (sysIdx === -1) return;
+
+    let ctx = '\n\nCALLER CONTEXT (already provided — do NOT ask again):';
+    if (callerInfo.name) ctx += `\n- Name: ${callerInfo.name}`;
+    if (callerInfo.phone) ctx += `\n- Phone: ${callerInfo.phone}`;
+    ctx += '\nUse this information directly. Never re-ask for details already listed above.';
+
+    const base = conversationHistory[sysIdx].content.replace(/\n\nCALLER CONTEXT \(already provided[^)]*\):[\s\S]*$/, '');
+    conversationHistory[sysIdx] = { role: 'system', content: base + ctx };
+  };
+
   const handleUserUtterance = async (userInputText) => {
     isInterrupted = false;
+    extractCallerInfo(userInputText);
     conversationHistory.push({ role: 'user', content: userInputText });
+    injectCallerContext();
     executeCompletionFlow();
   };
 
@@ -365,6 +439,8 @@ function handleTwilioStream(twilioWs, urlAgentId) {
     let systemInstructions = buildSystemPrompt(agentObj?.type || 'receptionist', agentObj?.prompt);
     if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser);
     if ((agentObj?.type || 'receptionist') === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
+    systemInstructions += TIME_LIMIT_RULES;
+    systemInstructions += CALLER_MEMORY_RULES;
 
     const agentLangName = LANGUAGE_NAMES[agentObj?.language || 'en'] || 'English';
     systemInstructions += `\n\nMULTILINGUAL & HUMAN SPEECH RULES:
@@ -388,6 +464,33 @@ function handleTwilioStream(twilioWs, urlAgentId) {
     } finally {
       isProcessing = false;
     }
+
+    // Arm the hard 2-minute cap. On expiry, wait for any in-flight turn to
+    // finish, speak the closing line, then end the call.
+    callTimeout = setTimeout(endCallOnTimeLimit, MAX_CALL_DURATION_MS);
+  };
+
+  // Ends the call once the 2-minute cap is reached: let any in-flight response
+  // settle, play a graceful closing line, then close the stream (which triggers
+  // runCleanup for billing + recording).
+  const endCallOnTimeLimit = async () => {
+    if (timeLimitReached || cleanedUp) return;
+    timeLimitReached = true;
+    console.log('[Twilio WS] 2-minute call limit reached — closing call.');
+    // Cut off any current agent turn so the closing line plays immediately.
+    isInterrupted = true;
+    if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
+      try { twilioWs.send(JSON.stringify({ event: 'clear', streamSid })); } catch (_) { /* gone */ }
+    }
+    isInterrupted = false;
+    try {
+      await processSentenceForPlay(TIME_LIMIT_CLOSING);
+    } catch (_) { /* best-effort */ }
+    // Give Twilio a moment to play out the closing audio before hanging up.
+    setTimeout(() => {
+      try { if (twilioWs.readyState === WebSocket.OPEN) twilioWs.close(1000, 'Time limit reached'); } catch (_) { /* gone */ }
+      runCleanup();
+    }, 4000);
   };
 
   twilioWs.on('message', async (message) => {
@@ -475,7 +578,12 @@ async function handleWebCall(clientWs, req) {
   let chunkCount = 0;
   let isProcessing = false;
   let toolAlreadyExecuted = { saveAppointment: false, saveLead: false };
+  let callerInfo = { name: null, phone: null };
   const recorder = new AudioRecorder(24000);
+  // Hard 2-minute call cap (see MAX_CALL_DURATION_MS).
+  let callTimeout = null;
+  let timeLimitReached = false;
+  let cleanedUp = false;
 
   const { groq, openaiClient, gemini } = getSharedLLM();
 
@@ -532,9 +640,60 @@ async function handleWebCall(clientWs, req) {
     }
   };
 
+  const extractCallerInfo = (text) => {
+    if (!text) return;
+
+    if (!callerInfo.name) {
+      const namePatterns = [
+        /(?:my name is|i'm|i am|this is|name's|name:)\s+([A-Za-z][A-Za-z\s]{1,30})/i,
+      ];
+      for (const pat of namePatterns) {
+        const m = text.match(pat);
+        if (m && m[1] && !/unknown|none|test|hello|hi|hey/i.test(m[1].trim())) {
+          callerInfo.name = m[1].trim();
+          break;
+        }
+      }
+    }
+
+    if (!callerInfo.phone) {
+      const phonePatterns = [
+        /(?:my (?:phone |number |cell )?(?:number|is|:))\s*([\d\s\-+()]{7,20})/i,
+        /(?:call me at|reach me at|number is)\s*([\d\s\-+()]{7,20})/i,
+        /\b(\d{10,15})\b/,
+      ];
+      for (const pat of phonePatterns) {
+        const m = text.match(pat);
+        if (m && m[1]) {
+          const digits = m[1].replace(/\D/g, '');
+          if (digits.length >= 7 && digits.length <= 15) {
+            callerInfo.phone = m[1].trim();
+            break;
+          }
+        }
+      }
+    }
+  };
+
+  const injectCallerContext = () => {
+    if (!callerInfo.name && !callerInfo.phone) return;
+    const sysIdx = conversationHistory.findIndex(m => m.role === 'system');
+    if (sysIdx === -1) return;
+
+    let ctx = '\n\nCALLER CONTEXT (already provided — do NOT ask again):';
+    if (callerInfo.name) ctx += `\n- Name: ${callerInfo.name}`;
+    if (callerInfo.phone) ctx += `\n- Phone: ${callerInfo.phone}`;
+    ctx += '\nUse this information directly. Never re-ask for details already listed above.';
+
+    const base = conversationHistory[sysIdx].content.replace(/\n\nCALLER CONTEXT \(already provided[^)]*\):[\s\S]*$/, '');
+    conversationHistory[sysIdx] = { role: 'system', content: base + ctx };
+  };
+
   const handleUserUtterance = async (userInputText) => {
     isInterrupted = false;
+    extractCallerInfo(userInputText);
     conversationHistory.push({ role: 'user', content: userInputText });
+    injectCallerContext();
     executeCompletionFlow();
   };
 
@@ -625,6 +784,8 @@ async function handleWebCall(clientWs, req) {
     let systemInstructions = buildSystemPrompt(agentObj.type, agentObj.prompt);
     if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser);
     if (agentObj.type === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
+    systemInstructions += TIME_LIMIT_RULES;
+    systemInstructions += CALLER_MEMORY_RULES;
 
     const agentLangName = LANGUAGE_NAMES[agentObj?.language || 'en'] || 'English';
     systemInstructions += `\n\nMULTILINGUAL & HUMAN SPEECH RULES:
@@ -652,6 +813,41 @@ async function handleWebCall(clientWs, req) {
     } finally {
       isProcessing = false;
     }
+
+    // Arm the hard 2-minute cap for the web call.
+    callTimeout = setTimeout(endCallOnTimeLimit, MAX_CALL_DURATION_MS);
+  };
+
+  // Guarded cleanup so the 2-minute timeout and the socket 'close' event don't
+  // double-run billing + recording.
+  const runCleanup = async () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    if (callTimeout) { clearTimeout(callTimeout); callTimeout = null; }
+    await closeAndCleanup({ callSid, agentObj, callStartTime, fullTranscript, deepgramWs, pendingLeadData: toolAlreadyExecuted.pendingLeadData, recorder });
+  };
+
+  // Ends the web call once the 2-minute cap is reached: interrupt any in-flight
+  // turn, play a closing line, notify the client, then clean up.
+  const endCallOnTimeLimit = async () => {
+    if (timeLimitReached || cleanedUp) return;
+    timeLimitReached = true;
+    console.log('[Web Call] 2-minute call limit reached — closing call.');
+    isInterrupted = true;
+    if (clientWs.readyState === WebSocket.OPEN) {
+      try { clientWs.send(JSON.stringify({ event: 'clear' })); } catch (_) { /* gone */ }
+    }
+    isInterrupted = false;
+    if (clientWs.readyState === WebSocket.OPEN) {
+      try { clientWs.send(JSON.stringify({ event: 'transcript', role: 'agent', text: TIME_LIMIT_CLOSING })); } catch (_) { /* gone */ }
+    }
+    try {
+      await processSentenceForPlay(TIME_LIMIT_CLOSING);
+    } catch (_) { /* best-effort */ }
+    setTimeout(() => {
+      try { if (clientWs.readyState === WebSocket.OPEN) clientWs.close(1000, 'Time limit reached'); } catch (_) { /* gone */ }
+      runCleanup();
+    }, 4000);
   };
 
   try {
@@ -694,6 +890,6 @@ async function handleWebCall(clientWs, req) {
 
   clientWs.on('close', async () => {
     console.log('[Web Call WS] Client closed.');
-    await closeAndCleanup({ callSid, agentObj, callStartTime, fullTranscript, deepgramWs, pendingLeadData: toolAlreadyExecuted.pendingLeadData, recorder });
+    await runCleanup();
   });
 }

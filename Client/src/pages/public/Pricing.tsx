@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Footer from './Footer';
 import { USPSlider } from './sections/USPSlider';
 import { PublicNavbar } from '../../components/PublicNavbar';
@@ -34,28 +34,28 @@ const chatPlans: Plan[] = [
     name: 'Free', icon: '💬', iconBg: 'rgba(100,116,139,0.12)',
     monthlyPrice: '$0', yearlyPrice: '$0', period: 'forever', badge: 'ALWAYS FREE',
     monthlyPriceINR: '₹0', yearlyPriceINR: '₹0',
-    desc: 'For individuals & small side projects.',
-    features: ['1 chatbot','100 conversations / month','Website embed','Basic FAQ & lead capture','No CRM integration','Branding visible'],
-    cta: 'Get started free', popular: false, checkColor: '#64748b',
+    desc: 'Test AI automation on your website at zero cost.',
+    features: ['Website chatbot','100 conversations / month','1 chatbot','Basic lead capture'],
+    cta: 'Get started free', popular: false, checkColor: '#2563EB',
     border: `1px solid ${HAIRLINE}`, bg: SURFACE,
     shadow: '0 4px 20px rgba(0,0,0,0.04)', hoverShadow: '0 8px 40px rgba(0,0,0,0.08)',
   },
   {
     name: 'Starter', icon: '🚀', iconBg: 'rgba(37,99,235,0.10)',
-    monthlyPrice: '$49', yearlyPrice: '$39', period: '/month', badge: null,
-    monthlyPriceINR: '₹3,499', yearlyPriceINR: '₹2,799',
-    desc: 'Freelancers & small businesses getting serious.',
-    features: ['3 chatbots','1,000 conversations / month','Website + email channel','Remove branding','Email & chat support','No CRM integration'],
+    monthlyPrice: '$29', yearlyPrice: '$23', period: '/month', badge: null,
+    monthlyPriceINR: '₹1,499', yearlyPriceINR: '₹1,199',
+    desc: 'Automate your two highest-traffic channels: Website and WhatsApp.',
+    features: ['Website + WhatsApp','1,500 conversations / month','2 chatbots','Branding removed','Email support'],
     cta: 'Get started', popular: false, checkColor: '#2563EB',
     border: `1px solid ${HAIRLINE}`, bg: SURFACE,
     shadow: '0 4px 20px rgba(0,0,0,0.04)', hoverShadow: '0 8px 40px rgba(0,0,0,0.08)',
   },
   {
     name: 'Growth', icon: '📈', iconBg: 'rgba(16,185,129,0.10)',
-    monthlyPrice: '$149', yearlyPrice: '$119', period: '/month', badge: 'MOST POPULAR',
-    monthlyPriceINR: '₹9,999', yearlyPriceINR: '₹7,999',
-    desc: 'SMBs and mid-market teams scaling fast.',
-    features: ['10 chatbots','5,000 conversations / month','All channels + multi-language','CRM & helpdesk integrations','Full analytics dashboard','Priority support'],
+    monthlyPrice: '$99', yearlyPrice: '$79', period: '/month', badge: 'MOST POPULAR',
+    monthlyPriceINR: '₹4,999', yearlyPriceINR: '₹3,999',
+    desc: 'Every channel your customers message you on, plus CRM sync and a team inbox.',
+    features: ['All 5 channels (Web, WhatsApp, Instagram, Messenger, Telegram)','6,000 conversations / month','Unlimited chatbots','CRM integration','Lead qualification + booking','5 team seats','Priority support'],
     cta: 'Get started', popular: true, checkColor: '#10B981',
     border: '2px solid #10B981', bg: SURFACE,
     shadow: '0 8px 30px rgba(16,185,129,0.15)', hoverShadow: '0 12px 48px rgba(16,185,129,0.25)',
@@ -64,8 +64,8 @@ const chatPlans: Plan[] = [
     name: 'Enterprise', icon: '🏢', iconBg: 'rgba(139,92,246,0.10)',
     monthlyPrice: 'Custom', yearlyPrice: 'Custom', period: '', badge: 'CUSTOM',
     monthlyPriceINR: 'Custom', yearlyPriceINR: 'Custom',
-    desc: 'Large orgs with custom AI, compliance & SLAs.',
-    features: ['Unlimited chatbots','Unlimited conversations','Custom AI model training','GDPR / HIPAA / SOC 2','SLA + 99.9% uptime','Dedicated account manager'],
+    desc: 'Compliance, SLAs, and a dedicated team for large or regulated organizations.',
+    features: ['Unlimited conversations','White-labeling included','SOC 2 / HIPAA-ready','99.9% uptime SLA','Dedicated account manager'],
     cta: 'Contact sales', popular: false, checkColor: '#8b5cf6',
     border: `1px solid ${HAIRLINE}`, bg: SURFACE,
     shadow: '0 4px 20px rgba(0,0,0,0.04)', hoverShadow: '0 8px 40px rgba(0,0,0,0.08)',
@@ -425,8 +425,11 @@ function ROIEstimator() {
 
 export function Pricing() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [pricingYearly, setPricingYearly] = useState(false);
-  const [pricingMode, setPricingMode] = useState<'chat' | 'voice'>('chat');
+  const [pricingMode, setPricingMode] = useState<'chat' | 'voice'>(
+    searchParams.get('mode') === 'voice' ? 'voice' : 'chat'
+  );
   const [currency, setCurrency] = useState<'usd' | 'inr'>('inr');
 
   const plans = pricingMode === 'chat' ? chatPlans : voicePlans;

@@ -1,0 +1,149 @@
+import express from 'express';
+import { handleChatbotMessage, findChatbotByPhoneId } from '../services/whatsappChatbot.js';
+import { decrypt } from '../services/encryption.js';
+import { generateWebhookSignature, timingSafeEqualHex } from '../services/crypto.js';
+import { log } from '../services/logger.js';
+
+const router = express.Router();
+
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'autoniv_chatbot_verify';
+
+// Verify Meta's X-Hub-Signature-256 header against the raw request body.
+// Meta signs with the App Secret; header format is "sha256=<hex>".
+// Returns true when no secret is configured (so local/manual testing still works).
+function verifyMetaSignature(req) {
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appSecret) return true; // signature enforcement is opt-in via META_APP_SECRET
+
+  const header = req.get('X-Hub-Signature-256') || '';
+  const provided = header.startsWith('sha256=') ? header.slice(7) : '';
+  if (!provided || !req.rawBody) return false;
+
+  const expected = generateWebhookSignature(req.rawBody.toString('utf8'), appSecret);
+  return timingSafeEqualHex(provided, expected);
+}
+
+// Meta webhook verification
+router.get('/', (req, res) => {
+  const mode = req.query['hub.mode'] || req.query['hub_mode'];
+  const token = req.query['hub.verify_token'] || req.query['hub_verify_token'];
+  const challenge = req.query['hub.challenge'] || req.query['hub_challenge'];
+
+  log.info('whatsapp_webhook_verify_request', { mode, token, expected: VERIFY_TOKEN, query: req.query });
+
+  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    log.info('whatsapp_webhook_verified');
+    return res.status(200).send(challenge);
+  }
+
+  log.warn('whatsapp_webhook_verification_failed', { mode, token });
+  return res.sendStatus(403);
+});
+
+// Incoming messages
+router.post('/', async (req, res) => {
+  try {
+    // Reject unsigned/forged payloads before doing any work (prevents Groq abuse).
+    if (!verifyMetaSignature(req)) {
+      log.warn('whatsapp_webhook_bad_signature');
+      return res.sendStatus(401);
+    }
+
+    // Always respond 200 immediately to prevent Meta retries
+    res.sendStatus(200);
+
+    const body = req.body;
+
+    if (body.object !== 'whatsapp_business_account') return;
+
+    const entries = body.entry || [];
+    for (const entry of entries) {
+      const changes = entry.changes || [];
+      for (const change of changes) {
+        if (change.field !== 'messages') continue;
+
+        const value = change.value || {};
+        const messages = value.metadata ? (value.messages || []) : [];
+        const phoneNumberId = value.metadata?.phone_number_id;
+
+        for (const msg of messages) {
+          if (msg.type !== 'text') continue;
+
+          const customerPhone = msg.from;
+          const text = msg.text?.body?.trim();
+          if (!text || !customerPhone || !phoneNumberId) continue;
+
+          log.info('whatsapp_incoming_message', { from: customerPhone, phoneNumberId, text: text.slice(0, 50) });
+
+          // Find the chatbot assigned to this phone number
+          const chatbot = await findChatbotByPhoneId(phoneNumberId);
+          if (!chatbot) {
+            log.warn('whatsapp_no_chatbot_for_phone', { phoneNumberId });
+            continue;
+          }
+
+          // Get AI response
+          const reply = await handleChatbotMessage({
+            chatbotId: chatbot._id,
+            channel: 'whatsapp',
+            customerIdentifier: customerPhone,
+            message: text,
+          });
+
+          // Send reply back via Meta API using this chatbot's own token when present
+          await sendWhatsAppReply(phoneNumberId, customerPhone, reply, chatbot);
+        }
+      }
+    }
+  } catch (err) {
+    log.error('whatsapp_webhook_error', { error: err.message });
+  }
+});
+
+// Resolve the token to use for a chatbot: its own Embedded-Signup token (decrypted),
+// falling back to the global env key for manually-configured bots.
+function resolveChatbotToken(chatbot) {
+  const stored = chatbot?.channels?.whatsapp?.accessToken;
+  if (stored) {
+    const token = decrypt(stored);
+    if (token) return token;
+  }
+  return process.env.WHATSAPP_API_KEY || null;
+}
+
+async function sendWhatsAppReply(phoneNumberId, toPhone, text, chatbot) {
+  const apiUrl = process.env.WHATSAPP_API_URL || 'https://graph.facebook.com/v20.0';
+  const apiKey = resolveChatbotToken(chatbot);
+
+  if (!apiKey || !phoneNumberId) {
+    log.warn('whatsapp_reply_no_config', { phoneNumberId });
+    return;
+  }
+
+  const url = `${apiUrl.replace(/\/$/, '')}/${phoneNumberId}/messages`;
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: toPhone,
+        type: 'text',
+        text: { body: text },
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      log.error('whatsapp_reply_failed', { status: res.status, body: body.slice(0, 200) });
+    }
+  } catch (err) {
+    log.error('whatsapp_reply_error', { error: err.message });
+  }
+}
+
+export default router;

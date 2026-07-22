@@ -411,6 +411,18 @@ router.put('/:id/plan', requireValidObjectId('id'), async (req, res) => {
       return res.status(500).json({ message: 'Failed to update plan' });
     }
 
+    const { notifyPlanChange } = await import('../services/planNotifier.js');
+    notifyPlanChange(id, {
+      plan: updates.plan || updated.plan,
+      chatPlan: updates.chatPlan || updated.chatPlan,
+      voicePlan: updates.voicePlan || updated.voicePlan,
+      chatEnabled: (updates.chatPlan || updated.chatPlan) !== 'none',
+      voiceEnabled: (updates.voicePlan || updated.voicePlan) !== 'none',
+      callsLimit: updated.callsLimit,
+      minutesLimit: updated.minutesLimit,
+      chatLimit: updated.chatLimit,
+    });
+
     res.json({
       user: {
         id: updated._id, email: updated.email, name: updated.name,

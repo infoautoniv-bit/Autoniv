@@ -126,8 +126,8 @@ function SelectInput({ value, onChange, options }: {
 
 const CHAT_PLAN_OPTIONS = [
   { value: 'chat_free', label: 'Chat Free (100 chats · ₹0)' },
-  { value: 'chat_starter', label: 'Chat Starter (1,000 chats · ₹3,499)' },
-  { value: 'chat_growth', label: 'Chat Growth (5,000 chats · ₹9,999)' },
+  { value: 'chat_starter', label: 'Chat Starter (1,500 chats · ₹1,499)' },
+  { value: 'chat_growth', label: 'Chat Growth (6,000 chats · ₹4,999)' },
   { value: 'chat_enterprise', label: 'Chat Enterprise (Unlimited chats)' },
   { value: 'none', label: 'None (Disabled)' },
 ];

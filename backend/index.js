@@ -4,6 +4,7 @@ import express from 'express';
 import compression from 'compression';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
+import { WebSocketServer } from 'ws';
 
 import { connectDb } from './db/connection.js';
 import authRoutes from './routes/auth.js';
@@ -25,14 +26,22 @@ import publicLeadRoutes from './routes/publicLead.js';
 import publicDemoRoutes from './routes/publicDemo.js';
 import contactRoutes from './routes/contact.js';
 import supportRoutes from './routes/support.js';
+import chatbotRoutes from './routes/chatbots.js';
+import chatbotWidgetRoutes from './routes/chatbotWidget.js';
 import reportRoutes from './routes/reports.js';
 import chatHistoryRoutes from './routes/chatHistory.js';
 import widgetRoutes from './routes/widget.js';
 import ttsRoutes from './routes/tts.js';
+import whatsappWebhookRoutes from './routes/whatsappWebhook.js';
+import telegramWebhookRoutes from './routes/telegramWebhook.js';
+import facebookWebhookRoutes from './routes/facebookWebhook.js';
+import whatsappConnectRoutes from './routes/whatsappConnect.js';
 import bulkCallRoutes from './routes/bulkCalls.js';
 import phoneNumberRoutes from './routes/phoneNumbers.js';
 import { initOrchestrator } from './services/orchestrator.js';
 import { syncWebhookUrls } from './services/vapi.js';
+import { registerPlanWs } from './services/planNotifier.js';
+import { verifyAccessToken } from './services/tokenService.js';
 
 import {
   buildCors,
@@ -84,8 +93,11 @@ app.use(buildHelmet());
 app.use(buildCors());
 app.options('*', buildCors());
 
+// Routes that need the raw request body (for provider signature verification).
+const RAW_BODY_PATHS = new Set(['/api/webhooks/vapi', '/api/webhooks/whatsapp']);
+
 app.use((req, res, next) => {
-  if (req.path === '/api/webhooks/vapi') {
+  if (RAW_BODY_PATHS.has(req.path)) {
     return express.text({ type: '*/*', limit: '1mb' })(req, res, () => {
       try {
         if (typeof req.body === 'string' && req.body.length > 0) {
@@ -144,6 +156,9 @@ app.use('/api/calls', callRoutes);
 app.use('/api/leads/public', publicLeadRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/webhooks/whatsapp', whatsappWebhookRoutes);
+app.use('/api/webhooks/telegram', telegramWebhookRoutes);
+app.use('/api/webhooks/facebook', facebookWebhookRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/upgrade-requests', upgradeRequestRoutes);
 app.use('/api/appointments', appointmentRoutes);
@@ -153,6 +168,9 @@ app.use('/api/agent-chat', agentChatRoutes);
 app.use('/api/user-chat', userChatRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/chatbots', chatbotRoutes);
+app.use('/api/whatsapp', whatsappConnectRoutes);
+app.use('/api/chatbot-widget', chatbotWidgetRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/chat-history', chatHistoryRoutes);
 app.use('/api/widget', widgetRoutes);
@@ -185,6 +203,34 @@ app.use(errorHandler);
       } catch (err) {
         log.warn('orchestrator_init_failed', { error: err.message });
       }
+
+      // Plan update WebSocket — /ws/plan?token=<jwt>
+      const planWss = new WebSocketServer({ noServer: true });
+      planWss.on('connection', (ws, req) => {
+        const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
+        const token = parsedUrl.searchParams.get('token');
+        try {
+          const decoded = verifyAccessToken(token);
+          if (!decoded || !decoded.userId) {
+            ws.close(4401, 'Unauthorized');
+            return;
+          }
+          registerPlanWs(ws, decoded.userId);
+        } catch {
+          ws.close(4401, 'Unauthorized');
+        }
+      });
+
+      server.on('upgrade', (request, socket, head) => {
+        const { pathname } = new URL(request.url, `http://${request.headers.host}`);
+        if (pathname === '/ws/plan') {
+          planWss.handleUpgrade(request, socket, head, (ws) => {
+            planWss.emit('connection', ws, request);
+          });
+        }
+      });
+
+      log.info('plan_ws_initialized', { endpoint: '/ws/plan' });
     });
 
     function shutdown(signal) {

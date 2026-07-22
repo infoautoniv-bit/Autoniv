@@ -69,12 +69,27 @@ export function PublicNavbar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navItems: { label: string; href: string; isHash?: boolean; badge?: string; hasDropdown?: boolean }[] = [
+  const navItems: {
+    label: string;
+    href: string;
+    isHash?: boolean;
+    badge?: string;
+    hasDropdown?: boolean;
+    dropdownItems?: { label: string; href: string }[];
+  }[] = [
     { label: 'How It Works', href: '#how-it-works', isHash: true },
     { label: 'Features', href: '#features', isHash: true },
     { label: 'Services', href: '/services' },
     { label: 'Case Studies', href: '/case-studies' },
-    { label: 'Pricing', href: '/pricing' },
+    {
+      label: 'Pricing',
+      href: '/pricing',
+      hasDropdown: true,
+      dropdownItems: [
+        { label: 'AI Voice Agents', href: '/pricing?mode=voice' },
+        { label: 'AI Chatbots', href: '/pricing/ai-chatbot' },
+      ],
+    },
     { label: 'News', href: '/news', badge: 'NEW' },
     { label: 'Contact', href: '#contact', isHash: true },
     { label: 'About Us', href: '/about' },
@@ -184,30 +199,58 @@ export function PublicNavbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden lg:flex items-center gap-1 xl:gap-2 flex-1 justify-center">
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                to={item.isHash ? `/${item.href}` : item.href}
-                onClick={(e) => handleNavClick(e, item)}
-                className="relative px-2 xl:px-3 py-1.5 text-xs xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center"
-                style={{ color: '#475569' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#0a0a0a'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
-              >
-                <span>{item.label}</span>
-                {item.badge && (
-                  <span className="ml-1.5 text-[8px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90 origin-left">
-                    {item.badge}
-                  </span>
-                )}
-                {item.hasDropdown && (
-                  <svg className="w-2.5 h-2.5 ml-1 inline text-slate-450" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                )}
-              </Link>
-            ))}
+          <div className="hidden lg:flex items-center gap-1 xl:gap-2 flex-1 justify-center h-full">
+            {navItems.map((item) => {
+              if (item.dropdownItems) {
+                return (
+                  <div key={item.label} className="relative group flex items-center h-full py-2">
+                    <Link
+                      to={item.href}
+                      onClick={(e) => handleNavClick(e, item)}
+                      className="relative px-2 xl:px-3 py-1.5 text-xs xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center gap-1"
+                      style={{ color: '#475569' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = '#0a0a0a'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
+                    >
+                      <span>{item.label}</span>
+                      <svg className="w-2.5 h-2.5 ml-1 inline text-slate-400 transition-transform duration-200 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </Link>
+                    {/* Dropdown Menu */}
+                    <div className="absolute top-[80%] left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block w-48 bg-white border border-slate-200/80 rounded-2xl shadow-xl py-2 z-50">
+                      {item.dropdownItems.map((subItem) => (
+                        <Link
+                          key={subItem.label}
+                          to={subItem.href}
+                          className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+                        >
+                          {subItem.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <Link
+                  key={item.label}
+                  to={item.isHash ? `/${item.href}` : item.href}
+                  onClick={(e) => handleNavClick(e, item)}
+                  className="relative px-2 xl:px-3 py-1.5 text-xs xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center"
+                  style={{ color: '#475569' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#0a0a0a'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
+                >
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-1.5 text-[8px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90 origin-left">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Desktop CTA buttons */}
@@ -337,23 +380,43 @@ export function PublicNavbar() {
 
         {/* Drawer nav items */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5" aria-label="Mobile navigation">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              to={item.isHash ? `/${item.href}` : item.href}
-              onClick={(e) => {
-                handleNavClick(e, item);
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center min-h-[48px] px-4 py-3 text-sm font-semibold rounded-xl transition-colors duration-150"
-              style={{
-                color: selectedLabel === item.label ? '#2563EB' : '#475569',
-                background: selectedLabel === item.label ? 'rgba(37,99,235,0.06)' : 'transparent',
-              }}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const hasSub = item.dropdownItems;
+            return (
+              <div key={item.label} className="flex flex-col">
+                <Link
+                  to={item.isHash ? `/${item.href}` : item.href}
+                  onClick={(e) => {
+                    if (!hasSub) {
+                      handleNavClick(e, item);
+                      setMobileMenuOpen(false);
+                    }
+                  }}
+                  className="flex items-center min-h-[48px] px-4 py-3 text-sm font-semibold rounded-xl transition-colors duration-150"
+                  style={{
+                    color: selectedLabel === item.label ? '#2563EB' : '#475569',
+                    background: selectedLabel === item.label ? 'rgba(37,99,235,0.06)' : 'transparent',
+                  }}
+                >
+                  {item.label}
+                </Link>
+                {hasSub && (
+                  <div className="pl-4 space-y-0.5 mt-0.5 border-l border-slate-100 ml-4 mb-2">
+                    {item.dropdownItems?.map((subItem) => (
+                      <Link
+                        key={subItem.label}
+                        to={subItem.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center min-h-[40px] px-4 py-2 text-xs font-semibold text-slate-500 rounded-lg hover:bg-slate-50 transition-colors"
+                      >
+                        {subItem.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Drawer footer CTAs */}

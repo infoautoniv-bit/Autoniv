@@ -57,8 +57,8 @@ const KB = {
   plans: {
     chat: [
       { name: 'Chat Free', price: '₹0/mo', features: ['1 chatbot', '100 chats/mo'] },
-      { name: 'Chat Starter', price: '₹3,499/mo', features: ['3 chatbots', '1,000 chats/mo', 'WhatsApp channel support'] },
-      { name: 'Chat Growth', price: '₹9,999/mo', features: ['10 chatbots', '5,000 chats/mo', 'CRM integrations'] },
+      { name: 'Chat Starter', price: '₹1,499/mo', features: ['2 chatbots', '1,500 chats/mo', 'Website + WhatsApp'] },
+      { name: 'Chat Growth', price: '₹4,999/mo', features: ['Unlimited chatbots', '6,000 chats/mo', 'All 5 channels', 'CRM integrations'] },
       { name: 'Chat Enterprise', price: 'Custom', features: ['Unlimited chatbots & chats', 'Dedicated support'] },
     ],
     voice: [
@@ -69,8 +69,8 @@ const KB = {
     ],
     combo: [
       { name: 'Combo Trial', price: '₹4,999/mo', features: ['1 chatbot / 100 chats/mo', '30 calls/mo (30 mins total)'] },
-      { name: 'Combo Foundation', price: '₹18,498/mo', setup: '₹14,999', features: ['1 chatbot / 1,000 chats/mo', '120 calls/mo (120 mins total)'] },
-      { name: 'Combo Scale', price: '₹39,998/mo', setup: '₹39,999', features: ['10 chatbots / 5,000 chats/mo', '400 calls/mo (400 mins total)'] },
+      { name: 'Combo Foundation', price: '₹16,498/mo', setup: '₹14,999', features: ['1 chatbot / 1,500 chats/mo', '120 calls/mo (120 mins total)'] },
+      { name: 'Combo Scale', price: '₹34,998/mo', setup: '₹39,999', features: ['Unlimited chatbots / 6,000 chats/mo', '400 calls/mo (400 mins total)'] },
       { name: 'Combo Dominate', price: '₹74,999/mo', setup: '₹89,999', features: ['Unlimited chatbots & chats', '1,200 calls/mo (unlimited mins)'] },
     ]
   },
@@ -255,8 +255,8 @@ function generateResponse(input: string): { text: string; triggerLead?: boolean 
 | Plan Tier | Chat Plan | Voice Plan | Combo Plan |
 |-----------|-----------|------------|------------|
 | **Trial/Free** | ₹0/mo | ₹4,999/mo | ₹4,999/mo |
-| **Foundation** | ₹3,499/mo | ₹14,999/mo | ₹18,498/mo |
-| **Scale** | ₹9,999/mo | ₹29,999/mo | ₹39,998/mo |
+| **Foundation** | ₹1,499/mo | ₹14,999/mo | ₹16,498/mo |
+| **Scale** | ₹4,999/mo | ₹29,999/mo | ₹34,998/mo |
 | **Dominate** | Custom | ₹74,999/mo | ₹74,999/mo |
 
 Interested in a plan? Share your details and we will help you get set up!`,
@@ -297,9 +297,9 @@ Would you like to start a free trial? Share your details!`,
     return {
       text: `**Starter & Foundation Plans**
 
-• **Chat Starter**: ₹3,499/mo (3 chatbots, 1,000 chats/mo, WhatsApp channel)
+• **Chat Starter**: ₹1,499/mo (2 chatbots, 1,500 chats/mo, Website + WhatsApp)
 • **Voice Foundation**: ₹14,999/mo + ₹14,999 setup (120 calls/mo, 120 total minutes)
-• **Combo Foundation**: ₹18,498/mo + ₹14,999 setup (1 chatbot, 1,000 chats/mo + 120 calls/mo)
+• **Combo Foundation**: ₹16,498/mo + ₹14,999 setup (1 chatbot, 1,500 chats/mo + 120 calls/mo)
 
 Ready to get started? Share your details and we will set you up!`,
       triggerLead: true
@@ -309,9 +309,9 @@ Ready to get started? Share your details and we will set you up!`,
     return {
       text: `**Growth & Scale Plans**
 
-• **Chat Growth**: ₹9,999/mo (10 chatbots, 5,000 chats/mo, CRM integrations)
+• **Chat Growth**: ₹4,999/mo (Unlimited chatbots, 6,000 chats/mo, CRM integrations)
 • **Voice Scale**: ₹29,999/mo + ₹39,999 setup (400 calls/mo, 400 total minutes)
-• **Combo Scale**: ₹39,998/mo + ₹39,999 setup (10 chatbots, 5,000 chats/mo + 400 calls/mo)
+• **Combo Scale**: ₹34,998/mo + ₹39,999 setup (Unlimited chatbots, 6,000 chats/mo + 400 calls/mo)
 
 This is our most popular tier for growing businesses. Share your details to sign up!`,
       triggerLead: true

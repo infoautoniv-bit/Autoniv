@@ -44,9 +44,9 @@ const KB = {
   ],
   plans: [
     { name: 'Free', price: 0, calls: 100, features: ['1 chatbot', '100 conversations/month', 'Website embed', 'Basic FAQ & lead capture'] },
-    { name: 'Starter', price: 3499, calls: 1000, features: ['3 chatbots', '1,000 conversations/month', 'WhatsApp + website', 'Hindi & Hinglish support'] },
-    { name: 'Growth', price: 9999, calls: 5000, features: ['10 chatbots', '5,000 conversations/month', 'All channels incl. Instagram', 'CRM & helpdesk integrations'], badge: 'Most Popular' },
-    { name: 'Enterprise', price: 0, calls: 99999, features: ['Unlimited chatbots', 'Unlimited conversations', 'Custom AI model training', 'DPDP Act 2023 compliance'] },
+    { name: 'Starter', price: 1499, calls: 1500, features: ['2 chatbots', '1,500 conversations/month', 'Website + WhatsApp', 'Branding removed', 'Email support'] },
+    { name: 'Growth', price: 4999, calls: 6000, features: ['Unlimited chatbots', '6,000 conversations/month', 'All channels incl. WhatsApp & Instagram', 'CRM & helpdesk integrations'], badge: 'Most Popular' },
+    { name: 'Enterprise', price: 0, calls: 99999, features: ['Unlimited chatbots', 'Unlimited conversations', 'Custom AI model training', 'SOC 2 / HIPAA-ready'] },
   ],
 };
 
@@ -222,16 +222,16 @@ function generateResponse(input: string): { text: string; triggerLead?: boolean 
 
   if (/pric|plan|cost|subscription|how much|charge/.test(q)) {
     if (/compare|vs|which|best|recommend/.test(q)) {
-      return { text: "**Plan Comparison**\n\n| Plan | Price | Conversations |\n|------|-------|-------|\n| Free | ₹0 | 100 |\n| Starter | ₹3,499/mo | 1,000 |\n| Growth ⭐ | ₹9,999/mo | 5,000 |\n| Enterprise | Custom | Unlimited |\n\nInterested? Share your details and our team will help you choose the best plan!", triggerLead: true };
+      return { text: "**Plan Comparison**\n\n| Plan | Price | Conversations |\n|------|-------|-------|\n| Free | ₹0 | 100 |\n| Starter | ₹1,499/mo | 1,500 |\n| Growth ⭐ | ₹4,999/mo | 6,000 |\n| Enterprise | Custom | Unlimited |\n\nInterested? Share your details and our team will help you choose the best plan!", triggerLead: true };
     }
-    const plans = KB.plans.map(p => `**${p.name}** — ₹${p.price.toLocaleString()}/mo\n${p.features.slice(0, 2).map(f => `- ${f}`).join('\n')}`).join('\n\n');
+    const plans = KB.plans.map(p => p.name === 'Enterprise' ? `**${p.name}** — Custom\n${p.features.slice(0, 2).map(f => `- ${f}`).join('\n')}` : `**${p.name}** — ₹${p.price.toLocaleString()}/mo\n${p.features.slice(0, 2).map(f => `- ${f}`).join('\n')}`).join('\n\n');
     return { text: `**Autoniv Pricing**\n\n${plans}\n\nWant to get started? Share your details and we'll set you up!`, triggerLead: true };
   }
 
   if (/\bfree\b/.test(q) && /plan|pric/.test(q)) return { text: "**Free Plan** — ₹0 forever\n\n- 100 conversations/month\n- 1 chatbot\n- Website embed\n- Basic FAQ & lead capture\n\nWant to try it? Share your details!", triggerLead: true };
-  if (/\bstarter\b/.test(q)) return { text: "**Starter Plan** — ₹3,499/mo\n\n- 1,000 conversations/month\n- 3 chatbots\n- WhatsApp + website\n- Hindi & Hinglish support\n\nReady to start? Share your details!", triggerLead: true };
-  if (/\bgrowth\b/.test(q)) return { text: "**Growth Plan** ⭐ — ₹9,999/mo\n\n- 5,000 conversations/month\n- 10 chatbots\n- All channels incl. Instagram\n- CRM & helpdesk integrations\n\nMost popular! Share your details to get started!", triggerLead: true };
-  if (/\benterprise\b/.test(q)) return { text: "**Enterprise Plan** — Custom pricing\n\n- Unlimited chatbots\n- Unlimited conversations\n- Custom AI model training\n- DPDP Act 2023 compliance\n\nEnterprise ready? Share your details!", triggerLead: true };
+  if (/\bstarter\b/.test(q)) return { text: "**Starter Plan** — ₹1,499/mo\n\n- 1,500 conversations/month\n- 2 chatbots\n- WhatsApp + website\n- Branding removed\n\nReady to start? Share your details!", triggerLead: true };
+  if (/\bgrowth\b/.test(q)) return { text: "**Growth Plan** ⭐ — ₹4,999/mo\n\n- 6,000 conversations/month\n- Unlimited chatbots\n- All channels incl. WhatsApp & Instagram\n- CRM & helpdesk integrations\n\nMost popular! Share your details to get started!", triggerLead: true };
+  if (/\benterprise\b/.test(q)) return { text: "**Enterprise Plan** — Custom pricing\n\n- Unlimited chatbots\n- Unlimited conversations\n- Custom AI model training\n- SOC 2 / HIPAA-ready\n\nEnterprise ready? Share your details!", triggerLead: true };
 
   if (/agent|receptionist|appointment|faq|voice assistant|ai agent|bot/.test(q)) {
     if (/receptionist|front desk/.test(q)) return { text: "**Receptionist Agent**\n\n- Front desk & general inquiries\n- Greets callers warmly\n- Collects name, phone, and purpose\n- Available 24/7\n\n**Best For**: Healthcare, real estate, any business needing a virtual front desk.\n\nWant one? Share your details!", triggerLead: true };
