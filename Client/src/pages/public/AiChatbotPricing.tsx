@@ -4,7 +4,6 @@ import Footer from './Footer';
 import { USPSlider } from './sections/USPSlider';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BRAND, INK, SLATE, MUTE, HAIRLINE, SURFACE, TINT, MONO, SANS, Reveal, SectionLabel, GradientText } from './design';
 
 interface ChatPlan {
   name: string;

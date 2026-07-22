@@ -402,7 +402,7 @@ export function PublicNavbar() {
                 </Link>
                 {hasSub && (
                   <div className="pl-4 space-y-0.5 mt-0.5 border-l border-slate-100 ml-4 mb-2">
-                    {item.dropdownItems.map((subItem) => (
+                    {item.dropdownItems?.map((subItem) => (
                       <Link
                         key={subItem.label}
                         to={subItem.href}

@@ -23,8 +23,20 @@ interface Chatbot {
       phoneNumberId: string | null;
       connectedAt?: string | null;
       displayPhoneNumber?: string | null;
+      verifiedName?: string | null;
     };
     widget: { enabled: boolean };
+    telegram?: {
+      enabled: boolean;
+      token?: string | null;
+      botUsername?: string | null;
+    };
+    facebook?: {
+      enabled: boolean;
+      pageId?: string | null;
+      pageAccessToken?: string | null;
+      instagramAccountId?: string | null;
+    };
   };
   createdAt: string;
 }
