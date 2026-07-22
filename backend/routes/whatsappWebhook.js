@@ -25,9 +25,11 @@ function verifyMetaSignature(req) {
 
 // Meta webhook verification
 router.get('/', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
+  const mode = req.query['hub.mode'] || req.query['hub_mode'];
+  const token = req.query['hub.verify_token'] || req.query['hub_verify_token'];
+  const challenge = req.query['hub.challenge'] || req.query['hub_challenge'];
+
+  log.info('whatsapp_webhook_verify_request', { mode, token, expected: VERIFY_TOKEN, query: req.query });
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
     log.info('whatsapp_webhook_verified');

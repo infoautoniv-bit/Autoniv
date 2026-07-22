@@ -26,6 +26,21 @@ const chatbotSchema = new mongoose.Schema({
     widget: {
       enabled: { type: Boolean, default: true },
     },
+    telegram: {
+      enabled: { type: Boolean, default: false },
+      token: { type: String, default: null },
+      botUsername: { type: String, default: null },
+    },
+    facebook: {
+      enabled: { type: Boolean, default: false },
+      pageId: { type: String, default: null },
+      pageAccessToken: { type: String, default: null },
+      instagramAccountId: { type: String, default: null },
+    },
+  },
+  crmIntegrations: {
+    hubspotToken: { type: String, default: null },
+    webhookUrl: { type: String, default: null },
   },
 }, { timestamps: true });
 

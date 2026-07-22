@@ -27,8 +27,8 @@ const PLAN_CONFIG = {
     },
   },
   chat_starter: {
-    name: 'Chat Starter', monthlyPrice: 3499, monthlyPriceUSD: 49, setupFee: 0,
-    limits: { calls: 0, minutes: 0, chatbots: 3, conversations: 1000 },
+    name: 'Chat Starter', monthlyPrice: 1499, monthlyPriceUSD: 29, setupFee: 0,
+    limits: { calls: 0, minutes: 0, chatbots: 2, conversations: 1500 },
     features: {
       whatsapp: true, removeBranding: true, hindiSupport: true,
       allChannels: false, crmIntegration: false, analytics: false,
@@ -36,8 +36,8 @@ const PLAN_CONFIG = {
     },
   },
   chat_growth: {
-    name: 'Chat Growth', monthlyPrice: 9999, monthlyPriceUSD: 149, setupFee: 0,
-    limits: { calls: 0, minutes: 0, chatbots: 10, conversations: 5000 },
+    name: 'Chat Growth', monthlyPrice: 4999, monthlyPriceUSD: 99, setupFee: 0,
+    limits: { calls: 0, minutes: 0, chatbots: -1, conversations: 6000 },
     features: {
       whatsapp: true, removeBranding: true, hindiSupport: true,
       allChannels: true, crmIntegration: true, analytics: true,
@@ -112,8 +112,8 @@ const PLAN_CONFIG = {
     },
   },
   both_starter: {
-    name: 'Chat + Voice Foundation', monthlyPrice: 18498, monthlyPriceUSD: 228, setupFee: 14999,
-    limits: { calls: 120, minutes: 120, chatbots: 1, conversations: 1000 },
+    name: 'Chat + Voice Foundation', monthlyPrice: 16498, monthlyPriceUSD: 208, setupFee: 14999,
+    limits: { calls: 120, minutes: 120, chatbots: 2, conversations: 1500 },
     features: {
       whatsapp: true, removeBranding: true, hindiSupport: true,
       allChannels: false, crmIntegration: false, analytics: true,
@@ -124,8 +124,8 @@ const PLAN_CONFIG = {
     },
   },
   both_growth: {
-    name: 'Chat + Voice Scale', monthlyPrice: 39998, monthlyPriceUSD: 508, setupFee: 39999,
-    limits: { calls: 400, minutes: 400, chatbots: 10, conversations: 5000 },
+    name: 'Chat + Voice Scale', monthlyPrice: 34998, monthlyPriceUSD: 458, setupFee: 39999,
+    limits: { calls: 400, minutes: 400, chatbots: -1, conversations: 6000 },
     features: {
       whatsapp: true, removeBranding: true, hindiSupport: true,
       allChannels: true, crmIntegration: true, analytics: true,
@@ -150,8 +150,8 @@ const PLAN_CONFIG = {
 
   // ── Legacy fallback (treated as both) ──
   free:       { name: 'Trial',       monthlyPrice: 4999,  monthlyPriceUSD: 59,  setupFee: 0,     limits: { calls: 30,  minutes: 30,  chatbots: 1,  conversations: 100  }, features: { whatsapp: false, removeBranding: false, hindiSupport: false, allChannels: false, crmIntegration: false, analytics: false, customAI: false, dpdpCompliance: false, dedicatedManager: false, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: false, prioritySupport: false, customReporting: false, whiteLabel: false, advancedAutomation: false } },
-  starter:    { name: 'Foundation',  monthlyPrice: 14999, monthlyPriceUSD: 179, setupFee: 14999, limits: { calls: 120, minutes: 120, chatbots: 1,  conversations: 1000 }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: false, crmIntegration: false, analytics: true, customAI: false, dpdpCompliance: false, dedicatedManager: false, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: false, prioritySupport: false, customReporting: false, whiteLabel: false, advancedAutomation: false } },
-  growth:     { name: 'Scale',       monthlyPrice: 29999, monthlyPriceUSD: 359, setupFee: 39999, limits: { calls: 400, minutes: 400, chatbots: 10, conversations: 5000 }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: false, dpdpCompliance: false, dedicatedManager: false, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true, customReporting: false, whiteLabel: false, advancedAutomation: false } },
+  starter:    { name: 'Foundation',  monthlyPrice: 14999, monthlyPriceUSD: 179, setupFee: 14999, limits: { calls: 120, minutes: 120, chatbots: 2,  conversations: 1500 }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: false, crmIntegration: false, analytics: true, customAI: false, dpdpCompliance: false, dedicatedManager: false, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: false, prioritySupport: false, customReporting: false, whiteLabel: false, advancedAutomation: false } },
+  growth:     { name: 'Scale',       monthlyPrice: 29999, monthlyPriceUSD: 359, setupFee: 39999, limits: { calls: 400, minutes: 400, chatbots: -1, conversations: 6000 }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: false, dpdpCompliance: false, dedicatedManager: false, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true, customReporting: false, whiteLabel: false, advancedAutomation: false } },
   enterprise: { name: 'Dominate',    monthlyPrice: 74999, monthlyPriceUSD: 899, setupFee: 89999, limits: { calls: 1200, minutes: -1, chatbots: -1, conversations: -1 }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: true, dpdpCompliance: true, dedicatedManager: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true, customReporting: true, whiteLabel: true, advancedAutomation: true } },
 };
 

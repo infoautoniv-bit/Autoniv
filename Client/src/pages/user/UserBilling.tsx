@@ -27,25 +27,25 @@ const planCategories = {
     },
     {
       id: 'chat_starter', name: 'Chat Starter', tagline: 'Freelancers & small businesses getting serious.',
-      price: 3499, priceUSD: 49, callsPerMonth: 1000, minutesPerMonth: 0,
+      price: 1499, priceUSD: 29, callsPerMonth: 1500, minutesPerMonth: 0,
       features: [
-        { text: '3 chatbots', included: true },
-        { text: '1,000 conversations / month', included: true },
-        { text: 'Website + email channel', included: true },
+        { text: '2 chatbots', included: true },
+        { text: '1,500 conversations / month', included: true },
+        { text: 'Website + WhatsApp channel', included: true },
         { text: 'Remove branding', included: true },
-        { text: 'Email & chat support', included: true },
+        { text: 'Email support', included: true },
         { text: 'No CRM integration', included: false },
       ],
       icon: '🚀', style: 'solid', accentColor: 'from-blue-500 to-indigo-600'
     },
     {
       id: 'chat_growth', name: 'Chat Growth', tagline: 'SMBs and mid-market teams scaling fast.',
-      price: 9999, priceUSD: 149, callsPerMonth: 5000, minutesPerMonth: 0,
+      price: 4999, priceUSD: 99, callsPerMonth: 6000, minutesPerMonth: 0,
       badge: 'Most Popular', icon: '📈', style: 'featured',
       features: [
-        { text: '10 chatbots', included: true },
-        { text: '5,000 conversations / month', included: true },
-        { text: 'All channels + multi-language', included: true },
+        { text: 'Unlimited chatbots', included: true },
+        { text: '6,000 conversations / month', included: true },
+        { text: 'All 5 channels (Web, WhatsApp, Instagram, Messenger, Telegram)', included: true },
         { text: 'CRM & helpdesk integrations', included: true },
         { text: 'Full analytics dashboard', included: true },
         { text: 'Priority support', included: true },
@@ -137,10 +137,10 @@ const planCategories = {
     },
     {
       id: 'both_starter', name: 'Chat + Voice Foundation', tagline: 'Combined package for growing businesses.',
-      price: 18498, priceUSD: 228, callsPerMonth: 1000, minutesPerMonth: 120, setupFee: 14999, setupFeeUSD: 179,
+      price: 16498, priceUSD: 208, callsPerMonth: 1500, minutesPerMonth: 120, setupFee: 14999, setupFeeUSD: 179,
       features: [
-        { text: '1 chatbot & 3 voice agents', included: true },
-        { text: '1,000 chats & 120 calls', included: true },
+        { text: '2 chatbots & 3 voice agents', included: true },
+        { text: '1,500 chats & 120 calls', included: true },
         { text: 'WhatsApp + website', included: true },
         { text: 'Basic analytics', included: true },
         { text: 'Free demo call', included: true },
@@ -150,11 +150,11 @@ const planCategories = {
     },
     {
       id: 'both_growth', name: 'Chat + Voice Scale', tagline: 'Complete automation for scaling teams.',
-      price: 39998, priceUSD: 508, callsPerMonth: 5000, minutesPerMonth: 400, setupFee: 39999, setupFeeUSD: 479,
+      price: 34998, priceUSD: 458, callsPerMonth: 6000, minutesPerMonth: 400, setupFee: 39999, setupFeeUSD: 479,
       badge: 'Best Value', icon: '🔥', style: 'featured',
       features: [
-        { text: '10 chatbots & 3 AI workflows', included: true },
-        { text: '5,000 chats & 400 calls', included: true },
+        { text: 'Unlimited chatbots & 3 AI workflows', included: true },
+        { text: '6,000 chats & 400 calls', included: true },
         { text: 'All channels incl. Instagram', included: true },
         { text: 'Custom call scripts', included: true },
         { text: 'CRM & helpdesk integrations', included: true },

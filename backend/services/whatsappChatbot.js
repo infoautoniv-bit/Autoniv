@@ -1,6 +1,8 @@
 import OpenAI from 'openai';
 import Chatbot from '../db/models/Chatbot.js';
 import ChatbotConversation from '../db/models/ChatbotConversation.js';
+import Lead from '../db/models/Lead.js';
+import Appointment from '../db/models/Appointment.js';
 import { log } from './logger.js';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -62,8 +64,20 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
     await Chatbot.findByIdAndUpdate(chatbotId, { $inc: { conversationCount: 1 } });
   }
 
+  const crmJsonInstructions = `\n\nYou MUST respond with a JSON object in this exact format:
+{
+  "response": "Your conversational reply to the customer here. Keep it natural, warm and concise.",
+  "lead": null | { "name": "string", "phone": "string", "email": "string", "purpose": "string" },
+  "appointment": null | { "service": "string", "preferredDate": "string (YYYY-MM-DD)", "preferredTime": "string", "name": "string", "phone": "string" }
+}
+
+Flow Rules:
+1. If the customer is sharing contact details or interested in booking, ask for the required fields (name, phone, email, purpose/service) one by one in your "response" text.
+2. Once you have collected ALL required fields for a lead, populate the "lead" object (do not leave it null).
+3. Once you have collected ALL required fields for an appointment, populate the "appointment" object (do not leave it null).`;
+
   const messages = buildMessages(
-    chatbot.systemPrompt,
+    chatbot.systemPrompt + crmJsonInstructions,
     chatbot.welcomeMessage,
     conversation.messages,
     message,
@@ -74,10 +88,66 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
       model: GROQ_MODEL,
       messages,
       max_tokens: 512,
-      temperature: 0.7,
+      temperature: 0.5,
+      response_format: { type: 'json_object' }
     });
 
-    const reply = completion.choices?.[0]?.message?.content?.trim() || 'Sorry, I could not generate a response.';
+    const content = completion.choices?.[0]?.message?.content?.trim();
+    if (!content) {
+      return 'Sorry, I could not generate a response.';
+    }
+
+    let parsed;
+    let reply = '';
+    try {
+      parsed = JSON.parse(content);
+      reply = parsed.response || "I'm not sure how to respond to that.";
+    } catch {
+      reply = content;
+    }
+
+    // Save lead if AI returned one
+    if (parsed && parsed.lead && parsed.lead.name && parsed.lead.phone && parsed.lead.email && parsed.lead.purpose) {
+      try {
+        const existing = await Lead.findOne({ userId: chatbot.userId, phone: parsed.lead.phone }).sort({ createdAt: -1 }).lean();
+        if (!existing || (Date.now() - new Date(existing.createdAt).getTime() > 60000)) {
+          await Lead.create({
+            userId: chatbot.userId,
+            chatbotId: chatbot._id,
+            name: parsed.lead.name,
+            phone: parsed.lead.phone,
+            email: parsed.lead.email,
+            purpose: parsed.lead.purpose,
+            status: 'new',
+            leadType: 'chat',
+          });
+        }
+        log.info('chatbot_lead_saved', { chatbotId: chatbot._id, name: parsed.lead.name });
+      } catch (err) {
+        log.error('chatbot_lead_save_error', { error: err.message, chatbotId: chatbot._id });
+      }
+    }
+
+    // Save appointment if AI returned one
+    if (parsed && parsed.appointment && parsed.appointment.service && parsed.appointment.preferredDate && parsed.appointment.preferredTime && parsed.appointment.name) {
+      try {
+        const existingAppt = await Appointment.findOne({ userId: chatbot.userId, name: parsed.appointment.name, service: parsed.appointment.service }).sort({ createdAt: -1 }).lean();
+        if (!existingAppt || (Date.now() - new Date(existingAppt.createdAt).getTime() > 60000)) {
+          await Appointment.create({
+            userId: chatbot.userId,
+            name: parsed.appointment.name,
+            phone: parsed.appointment.phone || null,
+            service: parsed.appointment.service,
+            preferredDate: parsed.appointment.preferredDate,
+            preferredTime: parsed.appointment.preferredTime,
+            status: 'pending',
+          });
+        }
+        log.info('chatbot_appt_saved', { chatbotId: chatbot._id, name: parsed.appointment.name });
+      } catch (err) {
+        log.error('chatbot_appt_save_error', { error: err.message, chatbotId: chatbot._id });
+      }
+    }
 
     conversation.messages.push({ role: 'user', text: message, timestamp: new Date() });
     conversation.messages.push({ role: 'bot', text: reply, timestamp: new Date() });

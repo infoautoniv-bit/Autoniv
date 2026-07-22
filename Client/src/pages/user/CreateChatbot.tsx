@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatbotService } from '../../services/api';
+import { useAuth } from '../../App';
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const fadeUp = {
@@ -48,6 +49,12 @@ export function CreateChatbot() {
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
+  const { user } = useAuth();
+  const currentPlan = user?.chatPlan || 'chat_free';
+  const hasWhatsApp = currentPlan !== 'chat_free' || user?.role === 'admin';
+  const hasAdvancedChannels = currentPlan === 'chat_growth' || currentPlan === 'chat_enterprise' || user?.role === 'admin';
+  const hasCRM = currentPlan === 'chat_growth' || currentPlan === 'chat_enterprise' || user?.role === 'admin';
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
@@ -56,6 +63,15 @@ export function CreateChatbot() {
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [whatsappPhoneId, setWhatsappPhoneId] = useState('');
   const [widgetEnabled, setWidgetEnabled] = useState(true);
+  const [telegramEnabled, setTelegramEnabled] = useState(false);
+  const [telegramToken, setTelegramToken] = useState('');
+  const [telegramBotUsername, setTelegramBotUsername] = useState('');
+  const [facebookEnabled, setFacebookEnabled] = useState(false);
+  const [facebookPageId, setFacebookPageId] = useState('');
+  const [facebookPageAccessToken, setFacebookPageAccessToken] = useState('');
+  const [instagramAccountId, setInstagramAccountId] = useState('');
+  const [hubspotToken, setHubspotToken] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEdit);
   const [error, setError] = useState('');
@@ -91,6 +107,15 @@ export function CreateChatbot() {
         setWhatsappEnabled(c.channels?.whatsapp?.enabled || false);
         setWhatsappPhoneId(c.channels?.whatsapp?.phoneNumberId || '');
         setWidgetEnabled(c.channels?.widget?.enabled !== false);
+        setTelegramEnabled(c.channels?.telegram?.enabled || false);
+        setTelegramToken(c.channels?.telegram?.token || '');
+        setTelegramBotUsername(c.channels?.telegram?.botUsername || '');
+        setFacebookEnabled(c.channels?.facebook?.enabled || false);
+        setFacebookPageId(c.channels?.facebook?.pageId || '');
+        setFacebookPageAccessToken(c.channels?.facebook?.pageAccessToken || '');
+        setInstagramAccountId(c.channels?.facebook?.instagramAccountId || '');
+        setHubspotToken(c.crmIntegrations?.hubspotToken || '');
+        setWebhookUrl(c.crmIntegrations?.webhookUrl || '');
         setApiKey(c.apiKey || '');
         // Reflect an existing Embedded-Signup connection (accessToken is never returned;
         // connectedAt is the signal that a per-tenant token is stored).
@@ -166,6 +191,12 @@ export function CreateChatbot() {
         channels: {
           whatsapp: { enabled: whatsappEnabled, phoneNumberId: whatsappPhoneId || undefined },
           widget: { enabled: widgetEnabled },
+          telegram: { enabled: telegramEnabled, token: telegramToken || undefined, botUsername: telegramBotUsername || undefined },
+          facebook: { enabled: facebookEnabled, pageId: facebookPageId || undefined, pageAccessToken: facebookPageAccessToken || undefined, instagramAccountId: instagramAccountId || undefined },
+        },
+        crmIntegrations: {
+          hubspotToken: hubspotToken || undefined,
+          webhookUrl: webhookUrl || undefined,
         },
       };
 
@@ -376,12 +407,18 @@ export function CreateChatbot() {
               desc="Embed on any website with a script tag" />
 
             <ChannelToggle
-              on={whatsappEnabled} onChange={setWhatsappEnabled}
-              icon="📱" title="WhatsApp"
-              desc="Reply to WhatsApp messages with this chatbot" />
+              on={whatsappEnabled && hasWhatsApp} onChange={(val) => {
+                if (!hasWhatsApp) {
+                  pushToast('WhatsApp is only available on Starter or Growth plans. Please upgrade!', 'error');
+                  return;
+                }
+                setWhatsappEnabled(val);
+              }}
+              icon="📱" title={hasWhatsApp ? "WhatsApp" : "WhatsApp 🔒"}
+              desc="Reply to WhatsApp messages with this chatbot (Starter or Growth plan required)" />
 
             <AnimatePresence initial={false}>
-              {whatsappEnabled && (
+              {whatsappEnabled && hasWhatsApp && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -419,7 +456,7 @@ export function CreateChatbot() {
                           {waConnecting ? (
                             <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              <circle className="opacity-75" fill="currentColor" cx="12" cy="12" r="10" />
                             </svg>
                           ) : (
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -469,6 +506,125 @@ export function CreateChatbot() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Telegram Channel Toggle and settings */}
+            <ChannelToggle
+              on={telegramEnabled && hasAdvancedChannels} onChange={(val) => {
+                if (!hasAdvancedChannels) {
+                  pushToast('Telegram is only available on the Growth plan. Please upgrade!', 'error');
+                  return;
+                }
+                setTelegramEnabled(val);
+              }}
+              icon="✈️" title={hasAdvancedChannels ? "Telegram" : "Telegram 🔒"}
+              desc="Connect this chatbot to a Telegram bot (Growth plan required)" />
+            <AnimatePresence initial={false}>
+              {telegramEnabled && hasAdvancedChannels && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25, ease }}
+                  className="overflow-hidden">
+                  <div className="ml-1 pt-1 space-y-3">
+                    <div className="p-3 rounded-xl border border-[var(--slate-border)] bg-white space-y-3">
+                      <Field label="Telegram Bot Token" required={telegramEnabled}
+                        hint="Create a bot via @BotFather on Telegram and copy the API token.">
+                        <input type="text" required={telegramEnabled} value={telegramToken} onChange={e => setTelegramToken(e.target.value)}
+                          placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                          className="form-input" />
+                      </Field>
+                      <Field label="Bot Username (Optional)"
+                        hint="Username of your Telegram bot (without the @ symbol)">
+                        <input type="text" value={telegramBotUsername} onChange={e => setTelegramBotUsername(e.target.value)}
+                          placeholder="e.g. MyCustomerSupportBot"
+                          className="form-input" />
+                      </Field>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Facebook / Instagram Channel Toggle and settings */}
+            <ChannelToggle
+              on={facebookEnabled && hasAdvancedChannels} onChange={(val) => {
+                if (!hasAdvancedChannels) {
+                  pushToast('Messenger & Instagram are only available on the Growth plan. Please upgrade!', 'error');
+                  return;
+                }
+                setFacebookEnabled(val);
+              }}
+              icon="💬" title={hasAdvancedChannels ? "Messenger & Instagram" : "Messenger & Instagram 🔒"}
+              desc="Connect to Facebook Messenger and Instagram Direct Messages (Growth plan required)" />
+            <AnimatePresence initial={false}>
+              {facebookEnabled && hasAdvancedChannels && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25, ease }}
+                  className="overflow-hidden">
+                  <div className="ml-1 pt-1 space-y-3">
+                    <div className="p-3 rounded-xl border border-[var(--slate-border)] bg-white space-y-3">
+                      <Field label="Page ID" required={facebookEnabled}
+                        hint="Facebook Page ID where Messenger is connected.">
+                        <input type="text" required={facebookEnabled} value={facebookPageId} onChange={e => setFacebookPageId(e.target.value)}
+                          placeholder="e.g. 1045239928172"
+                          className="form-input" />
+                      </Field>
+                      <Field label="Page Access Token" required={facebookEnabled}
+                        hint="Facebook Page Access Token (from Meta Developer portal).">
+                        <input type="password" required={facebookEnabled} value={facebookPageAccessToken} onChange={e => setFacebookPageAccessToken(e.target.value)}
+                          placeholder="Meta Page Access Token"
+                          className="form-input" />
+                      </Field>
+                      <Field label="Instagram Account ID (Optional)"
+                        hint="Link your business Instagram account ID to support Instagram DMs.">
+                        <input type="text" value={instagramAccountId} onChange={e => setInstagramAccountId(e.target.value)}
+                          placeholder="e.g. 178414002918281"
+                          className="form-input" />
+                      </Field>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Section>
+
+          {/* CRM & Webhooks */}
+          <Section {...fadeUp} transition={{ delay: 0.25, duration: 0.35, ease }} icon="⚙️" title="CRM & Integrations" subtitle="Sync captured leads to external systems">
+            {!hasCRM ? (
+              <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 text-center space-y-3.5 my-1">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 border border-amber-200/50 flex items-center justify-center text-lg font-black mx-auto">🔒</div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-[var(--text)]">CRM & Webhook Integrations Locked</h3>
+                  <p className="text-xs text-[var(--text-secondary)] font-semibold max-w-sm mx-auto leading-relaxed">
+                    Automatically sync captured leads directly to HubSpot and trigger custom webhook automation. Available on the **Growth** plan.
+                  </p>
+                </div>
+                <button type="button" onClick={() => navigate('/dashboard/billing')}
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-bold rounded-xl text-white border-none shadow-sm hover:shadow-md hover:scale-[1.01] transition-all cursor-pointer"
+                  style={{ background: 'linear-gradient(135deg, var(--primary-blue), #00c8b4)' }}>
+                  Upgrade Subscription
+                </button>
+              </div>
+            ) : (
+              <>
+                <Field label="HubSpot Private App Token"
+                  hint="Get this from HubSpot settings -> Integrations -> Private Apps. Autoniv will push qualified leads automatically.">
+                  <input type="password" value={hubspotToken} onChange={e => setHubspotToken(e.target.value)}
+                    placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    className="form-input" />
+                </Field>
+                <Field label="Custom Webhook URL"
+                  hint="Autoniv will POST a JSON payload to this URL when a lead is captured.">
+                  <input type="url" value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)}
+                    placeholder="https://yourserver.com/api/autoniv-leads"
+                    className="form-input" />
+                </Field>
+              </>
+            )}
           </Section>
 
           <AnimatePresence>

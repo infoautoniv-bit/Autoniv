@@ -27,6 +27,7 @@ const Agents = lazy(() => import('./pages/public/Agents').then(m => ({ default: 
 const CaseStudies = lazy(() => import('./pages/public/CaseStudies').then(m => ({ default: m.CaseStudies })));
 const CaseStudyDetail = lazy(() => import('./pages/public/CaseStudyDetail'));
 const Pricing = lazy(() => import('./pages/public/Pricing').then(m => ({ default: m.Pricing })));
+const AiChatbotPricing = lazy(() => import('./pages/public/AiChatbotPricing').then(m => ({ default: m.AiChatbotPricing })));
 const News = lazy(() => import('./pages/public/News').then(m => ({ default: m.News })));
 const MyAgents = lazy(() => import('./pages/user/MyAgents').then(m => ({ default: m.MyAgents })));
 const CustomWebCall = lazy(() => import('./pages/user/CustomWebCall').then(m => ({ default: m.CustomWebCall })));
@@ -157,6 +158,10 @@ const EXACT_META: Record<string, Meta> = {
   '/pricing': {
     title: 'Pricing Plans - Autoniv',
     description: 'Choose the right plan for your business. Start free with 100 conversations per month, no credit card required, and scale as you grow.',
+  },
+  '/pricing/ai-chatbot': {
+    title: 'AI Chatbot Pricing | Autoniv — Omnichannel AI Automation Platform',
+    description: "Autoniv AI chatbot pricing: transparent plans for Website, WhatsApp, Instagram and Facebook automation. Compare features, see ROI, and start free. Pricing for India (INR) and global (USD) businesses.",
   },
   '/news': {
     title: 'Latest News - Autoniv',
@@ -441,6 +446,7 @@ function AppRoutes() {
         <Route path="/case-studies" element={<CaseStudies />} />
         <Route path="/case-studies/:id" element={<CaseStudyDetail />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/pricing/ai-chatbot" element={<AiChatbotPricing />} />
         <Route path="/news" element={<News />} />
 
         <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />

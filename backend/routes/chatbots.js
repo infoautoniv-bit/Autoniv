@@ -125,6 +125,48 @@ router.put('/:id', authenticate, contentFilter('name', 'systemPrompt'), async (r
     if (channels?.widget) {
       chatbot.channels.widget.enabled = channels.widget.enabled ?? chatbot.channels.widget.enabled;
     }
+    if (channels?.telegram) {
+      const oldToken = chatbot.channels?.telegram?.token;
+      chatbot.channels.telegram.enabled = channels.telegram.enabled ?? chatbot.channels.telegram.enabled;
+      chatbot.channels.telegram.token = channels.telegram.token ?? chatbot.channels.telegram.token;
+      chatbot.channels.telegram.botUsername = channels.telegram.botUsername ?? chatbot.channels.telegram.botUsername;
+
+      // Automatically register Telegram webhook if token changed
+      if (channels.telegram.token && channels.telegram.token !== oldToken) {
+        const host = req.get('host');
+        const protocol = req.protocol === 'http' && host.includes('localhost') ? 'http' : 'https';
+        const webhookUrl = `${protocol}://${host}/api/webhooks/telegram/${chatbot._id}`;
+        const setWebhookUrl = `https://api.telegram.org/bot${channels.telegram.token}/setWebhook?url=${webhookUrl}`;
+        
+        try {
+          const tgRes = await fetch(setWebhookUrl);
+          const tgData = await tgRes.json();
+          if (!tgData.ok) {
+            log.warn('telegram_set_webhook_failed', { error: tgData.description });
+          } else {
+            log.info('telegram_set_webhook_success', { chatbotId: chatbot._id });
+          }
+        } catch (err) {
+          log.error('telegram_set_webhook_error', { error: err.message });
+        }
+      }
+    }
+    if (channels?.facebook) {
+      chatbot.channels.facebook.enabled = channels.facebook.enabled ?? chatbot.channels.facebook.enabled;
+      chatbot.channels.facebook.pageId = channels.facebook.pageId ?? chatbot.channels.facebook.pageId;
+      chatbot.channels.facebook.pageAccessToken = channels.facebook.pageAccessToken ?? chatbot.channels.facebook.pageAccessToken;
+      chatbot.channels.facebook.instagramAccountId = channels.facebook.instagramAccountId ?? chatbot.channels.facebook.instagramAccountId;
+    }
+
+    if (req.body.crmIntegrations) {
+      chatbot.crmIntegrations = {
+        hubspotToken: req.body.crmIntegrations.hubspotToken !== undefined ? req.body.crmIntegrations.hubspotToken : chatbot.crmIntegrations?.hubspotToken,
+        webhookUrl: req.body.crmIntegrations.webhookUrl !== undefined ? req.body.crmIntegrations.webhookUrl : chatbot.crmIntegrations?.webhookUrl
+      };
+    }
+
+    chatbot.markModified('channels');
+    chatbot.markModified('crmIntegrations');
 
     await chatbot.save();
     log.info('chatbot_updated', { chatbotId: String(chatbot._id), userId: req.user.userId });
@@ -216,6 +258,67 @@ router.get('/:id/analytics', authenticate, async (req, res) => {
   } catch (err) {
     log.error('chatbot_analytics_error', { error: err.message });
     return res.status(500).json({ message: 'Failed to fetch analytics' });
+  }
+});
+
+// Update chatbot integrations
+router.put('/:id/integrations', authenticate, async (req, res) => {
+  try {
+    const chatbot = await Chatbot.findOne({ _id: req.params.id, userId: req.user.userId });
+    if (!chatbot) return res.status(404).json({ message: 'Chatbot not found' });
+
+    const { telegram, facebook, crm } = req.body;
+
+    if (telegram) {
+      const oldToken = chatbot.channels?.telegram?.token;
+      chatbot.channels.telegram.enabled = !!telegram.enabled;
+      chatbot.channels.telegram.token = telegram.token || null;
+      chatbot.channels.telegram.botUsername = telegram.botUsername || null;
+
+      // Automatically set webhook if token is provided & changed
+      if (telegram.token && telegram.token !== oldToken) {
+        const host = req.get('host');
+        const protocol = req.protocol === 'http' && host.includes('localhost') ? 'http' : 'https';
+        const webhookUrl = `${protocol}/api/webhooks/telegram/${chatbot._id}`;
+        const setWebhookUrl = `https://api.telegram.org/bot${telegram.token}/setWebhook?url=${webhookUrl}`;
+        
+        try {
+          const tgRes = await fetch(setWebhookUrl);
+          const tgData = await tgRes.json();
+          if (!tgData.ok) {
+            log.warn('telegram_set_webhook_failed', { error: tgData.description });
+          } else {
+            log.info('telegram_set_webhook_success', { chatbotId: chatbot._id });
+          }
+        } catch (err) {
+          log.error('telegram_set_webhook_error', { error: err.message });
+        }
+      }
+    }
+
+    if (facebook) {
+      chatbot.channels.facebook.enabled = !!facebook.enabled;
+      chatbot.channels.facebook.pageId = facebook.pageId || null;
+      chatbot.channels.facebook.pageAccessToken = facebook.pageAccessToken || null;
+      chatbot.channels.facebook.instagramAccountId = facebook.instagramAccountId || null;
+    }
+
+    if (crm) {
+      chatbot.crmIntegrations = {
+        hubspotToken: crm.hubspotToken || null,
+        webhookUrl: crm.webhookUrl || null
+      };
+    }
+
+    // Mark changes on nested objects since Mongoose doesn't always detect them
+    chatbot.markModified('channels');
+    chatbot.markModified('crmIntegrations');
+
+    await chatbot.save();
+    return res.json({ message: 'Integrations updated successfully', chatbot });
+  } catch (err) {
+    log.error('chatbot_update_integrations_error', { error: err.message });
+    return res.status(500).json({ message: 'Failed to update integrations' });
   }
 });
 

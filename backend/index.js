@@ -4,7 +4,7 @@ import express from 'express';
 import compression from 'compression';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
-import WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
 
 import { connectDb } from './db/connection.js';
 import authRoutes from './routes/auth.js';
@@ -33,6 +33,8 @@ import chatHistoryRoutes from './routes/chatHistory.js';
 import widgetRoutes from './routes/widget.js';
 import ttsRoutes from './routes/tts.js';
 import whatsappWebhookRoutes from './routes/whatsappWebhook.js';
+import telegramWebhookRoutes from './routes/telegramWebhook.js';
+import facebookWebhookRoutes from './routes/facebookWebhook.js';
 import whatsappConnectRoutes from './routes/whatsappConnect.js';
 import bulkCallRoutes from './routes/bulkCalls.js';
 import phoneNumberRoutes from './routes/phoneNumbers.js';
@@ -155,6 +157,8 @@ app.use('/api/leads/public', publicLeadRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/webhooks/whatsapp', whatsappWebhookRoutes);
+app.use('/api/webhooks/telegram', telegramWebhookRoutes);
+app.use('/api/webhooks/facebook', facebookWebhookRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/upgrade-requests', upgradeRequestRoutes);
 app.use('/api/appointments', appointmentRoutes);
@@ -201,7 +205,7 @@ app.use(errorHandler);
       }
 
       // Plan update WebSocket — /ws/plan?token=<jwt>
-      const planWss = new WebSocket.Server({ noServer: true });
+      const planWss = new WebSocketServer({ noServer: true });
       planWss.on('connection', (ws, req) => {
         const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
         const token = parsedUrl.searchParams.get('token');

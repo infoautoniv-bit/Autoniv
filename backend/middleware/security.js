@@ -34,9 +34,11 @@ export function buildCors() {
     const path = req.path || '';
     const isWidgetRoute = path.startsWith('/api/widget');
     const isWhatsAppWebhook = path.startsWith('/api/webhooks/whatsapp');
+    const isTelegramWebhook = path.startsWith('/api/webhooks/telegram');
+    const isFacebookWebhook = path.startsWith('/api/webhooks/facebook');
     const isChatbotWidget = path.startsWith('/api/chatbot-widget');
 
-    if (isWhatsAppWebhook || isChatbotWidget) {
+    if (isWhatsAppWebhook || isTelegramWebhook || isFacebookWebhook || isChatbotWidget) {
       cb(null, {
         origin: '*',
         methods: ['GET', 'POST', 'OPTIONS'],

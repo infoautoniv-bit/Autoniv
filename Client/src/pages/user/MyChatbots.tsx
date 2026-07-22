@@ -253,7 +253,7 @@ export function MyChatbots() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <ChannelPill
                         on={chatbot.channels?.whatsapp?.enabled}
                         icon="📱"
@@ -264,6 +264,8 @@ export function MyChatbots() {
                         }
                       />
                       <ChannelPill on={chatbot.channels?.widget?.enabled} icon="🌐" label="Widget" />
+                      <ChannelPill on={chatbot.channels?.telegram?.enabled} icon="✈️" label="Telegram" />
+                      <ChannelPill on={chatbot.channels?.facebook?.enabled} icon="💬" label="Messenger" />
                     </div>
                   </div>
 
