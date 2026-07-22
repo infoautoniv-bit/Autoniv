@@ -5,6 +5,8 @@ import { USPSlider } from './sections/USPSlider';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { INK, SANS, Reveal, SectionLabel } from './design';
+
 interface ChatPlan {
   name: string;
   desc: string;

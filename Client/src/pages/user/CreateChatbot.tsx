@@ -195,9 +195,9 @@ export function CreateChatbot() {
         channels: {
           whatsapp: {
             enabled: whatsappEnabled,
-            phoneNumberId: whatsappPhoneId || null,
-            displayPhoneNumber: whatsappDisplayPhone || null,
-            accessToken: whatsappAccessToken === '••••••••••••••••' ? undefined : (whatsappAccessToken || null)
+            phoneNumberId: whatsappPhoneId || undefined,
+            displayPhoneNumber: whatsappDisplayPhone || undefined,
+            accessToken: whatsappAccessToken === '••••••••••••••••' ? undefined : (whatsappAccessToken || undefined)
           },
           widget: { enabled: widgetEnabled },
           telegram: { enabled: telegramEnabled, token: telegramToken || undefined, botUsername: telegramBotUsername || undefined },
