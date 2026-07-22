@@ -209,7 +209,7 @@ export function createDeepgramSTT({ agentObj, encoding, sampleRate, logPrefix, o
 
   const langCode = getLangCode(agentObj?.language || 'en');
   const langParam = (agentObj?.language === 'en' || !agentObj?.language) ? 'multi' : langCode;
-  const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langParam}&encoding=${encoding}&sample_rate=${sampleRate}&interim_results=true&endpointing=200&utterance_end_ms=1000&vad_events=true`;
+  const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langParam}&encoding=${encoding}&sample_rate=${sampleRate}&interim_results=true&endpointing=350&utterance_end_ms=1000&vad_events=true&smart_format=true`;
 
   const wrapper = new ReconnectingDeepgramWS(
     deepgramUrl,

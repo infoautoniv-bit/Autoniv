@@ -251,16 +251,33 @@ async function buildAssistantConfig({ name, type, prompt, language, voiceId, use
     voice = { provider: '11labs', voiceId: 'hpp4J3VqNfWAUOO0d1Us' };
   }
 
-  const transcriber = language && language !== 'en'
-    ? { provider: 'deepgram', model: 'nova-2', language }
-    : undefined;
+  const transcriber = {
+    provider: 'deepgram',
+    model: 'nova-2',
+    language: language && language !== 'en' ? language : 'en',
+    smartFormat: true,
+    endpointing: 350,
+  };
 
   return {
     name: name || `${type} Agent`,
     firstMessage,
     model: modelConfig,
     voice,
-    ...(transcriber ? { transcriber } : {}),
+    transcriber,
+    startSpeakingPlan: {
+      waitSeconds: 0.4,
+      transcriptionEndpointingPlan: {
+        onPunctuationSeconds: 0.3,
+        onNoPunctuationSeconds: 0.8,
+        onNumberSeconds: 0.5,
+      },
+    },
+    stopSpeakingPlan: {
+      numWords: 2,
+      voiceSeconds: 0.2,
+      backoffSeconds: 0.8,
+    },
     ...(serverUrl ? { server: { url: getWebhookUrl(serverUrl) } } : {}),
     recordingEnabled: true,
     silenceTimeoutSeconds: 60,

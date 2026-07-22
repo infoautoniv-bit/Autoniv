@@ -159,9 +159,10 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
 }
 
 Flow Rules:
-1. If the customer is sharing contact details or interested in booking, ask for the required fields (name, phone, email, purpose/service) one by one in your "response" text.
-2. Once you have collected ALL required fields for a lead, populate the "lead" object (do not leave it null).
-3. Once you have collected ALL required fields for an appointment, populate the "appointment" object (do not leave it null).`;
+1. Active Listening: Read the customer's message carefully. If they provide multiple details at once (e.g. name, email, phone, or service), extract and save ALL of them immediately. NEVER ask for details the customer has already stated in current or past messages.
+2. If any required fields (name, phone, email, purpose/service) are still missing, ask for only the missing ones gently in your "response" text.
+3. Once you have collected ALL required fields for a lead, populate the "lead" object (do not leave it null).
+4. Once you have collected ALL required fields for an appointment, populate the "appointment" object (do not leave it null).`;
 
   const messages = buildMessages(
     chatbot.systemPrompt + crmJsonInstructions,
