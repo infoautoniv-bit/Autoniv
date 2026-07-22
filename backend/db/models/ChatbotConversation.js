@@ -8,7 +8,7 @@ const chatbotMessageSchema = new mongoose.Schema({
 
 const chatbotConversationSchema = new mongoose.Schema({
   chatbotId: { type: mongoose.Schema.Types.ObjectId, ref: 'Chatbot', required: true, index: true },
-  channel: { type: String, enum: ['whatsapp', 'widget'], required: true },
+  channel: { type: String, enum: ['whatsapp', 'widget', 'telegram', 'page', 'instagram'], required: true },
   customerIdentifier: { type: String, required: true },
   messages: [chatbotMessageSchema],
   lastActive: { type: Date, default: Date.now },
