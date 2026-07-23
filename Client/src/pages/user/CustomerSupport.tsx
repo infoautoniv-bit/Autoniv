@@ -80,7 +80,7 @@ export function CustomerSupport() {
         setSubmitted(false);
         setTicketForm({ name: '', email: '', subject: '', message: '' });
       }, 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Support ticket error:', err);
       setError('Failed to submit. Please try again.');
     } finally {

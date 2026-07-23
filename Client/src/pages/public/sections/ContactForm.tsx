@@ -55,7 +55,7 @@ export function ContactForm() {
         message: trimmedMessage
       });
       setSubmitted(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Backend submission error:", err);
       setError("Failed to send. Please try again.");
     } finally {

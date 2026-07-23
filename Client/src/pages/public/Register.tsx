@@ -325,7 +325,7 @@ export function Register() {
           {/* Mobile logo (hidden on desktop) */}
           <div className="lg:hidden flex justify-center -mb-5">
             <Link to="/">
-              <img src={logoAutonivBrand} alt="Autoniv Logo" className="h-40 w-auto object-contain " />
+              <img src={logoAutonivBrand} alt="Autoniv Logo" loading="lazy" className="h-40 w-auto object-contain " />
             </Link>
           </div>
           <div className="text-center lg:text-left">

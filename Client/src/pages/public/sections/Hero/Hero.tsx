@@ -8,11 +8,10 @@ import { LogoMarquee } from "./LogoMarquee";
 export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void }) {
   const reduced = useReducedMotion() ?? false;
   const ref = useRef<HTMLElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
   const [documentLoaded, setDocumentLoaded] = useState(false);
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 1024);
     let t: ReturnType<typeof setTimeout>;
     const handleResize = () => {
       clearTimeout(t);

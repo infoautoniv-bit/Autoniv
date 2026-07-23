@@ -190,7 +190,7 @@ export default function Footer() {
               border: '1px solid rgba(16,185,129,0.08)',
             }}>
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-pulse" />
-              <span style={{ fontSize: 11, color: 'rgba(148,175,210,0.6)' }}>
+              <span style={{ fontSize: 11, color: 'rgba(148,175,210,0.7)' }}>
                 Trusted by 2,000+ businesses
               </span>
             </div>
@@ -220,7 +220,7 @@ export default function Footer() {
                         className="link-underline"
                         style={{
                           fontSize: 13.5,
-                          color: 'rgba(148,175,210,0.65)',
+                          color: 'rgba(148,175,210,0.75)',
                           textDecoration: 'none',
                           transition: 'color 0.18s',
                           display: 'inline-flex',
@@ -231,13 +231,13 @@ export default function Footer() {
                           e.currentTarget.style.color = 'rgba(148,175,210,1)';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'rgba(148,175,210,0.65)';
+                          e.currentTarget.style.color = 'rgba(148,175,210,0.75)';
                         }}
                       >
                         {label}
                       </Link>
                     ) : (
-                      <a
+                       <a
                         href={href}
                         className="link-underline"
                         onClick={
@@ -247,7 +247,7 @@ export default function Footer() {
                         }
                         style={{
                           fontSize: 13.5,
-                          color: 'rgba(148,175,210,0.65)',
+                          color: 'rgba(148,175,210,0.75)',
                           textDecoration: 'none',
                           transition: 'color 0.18s',
                           display: 'inline-flex',
@@ -258,7 +258,7 @@ export default function Footer() {
                           e.currentTarget.style.color = 'rgba(148,175,210,1)';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'rgba(148,175,210,0.65)';
+                          e.currentTarget.style.color = 'rgba(148,175,210,0.75)';
                         }}
                       >
                         {label}
@@ -334,7 +334,7 @@ export default function Footer() {
           <p
             style={{
               fontSize: 11.5,
-              color: 'rgba(148,175,210,0.38)',
+              color: 'rgba(148,175,210,0.6)',
               letterSpacing: '0.04em',
               margin: 0,
             }}
@@ -369,7 +369,7 @@ export default function Footer() {
         }}>
           <span style={{
             fontSize: 12,
-            color: 'rgba(148,175,210,0.5)',
+            color: 'rgba(148,175,210,0.7)',
           }}>
             🚀 Stay updated with the latest AI voice technology
           </span>

@@ -148,8 +148,8 @@ export function CreateChatbot() {
         setApiKey(data.chatbot.apiKey);
         navigate(`/dashboard/chatbots/${data.chatbot._id}`);
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to save chatbot');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save chatbot');
     } finally {
       setLoading(false);
     }
@@ -164,8 +164,8 @@ export function CreateChatbot() {
       setWaDisplayPhone(null);
       setWaVerifiedName(null);
       pushToast('WhatsApp disconnected', 'success');
-    } catch (err: any) {
-      pushToast(err?.response?.data?.message || 'Failed to disconnect', 'error');
+    } catch (err: unknown) {
+      pushToast(err instanceof Error ? err.message : 'Failed to disconnect', 'error');
     } finally {
       setWaConnecting(false);
     }

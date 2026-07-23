@@ -212,6 +212,7 @@ export default function LandingCallWidget() {
       <button
         onClick={() => setModalOpen(true)}
         className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-40 group"
+        aria-label="Try our AI voice agent - click to call"
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '10px 18px 10px 12px', borderRadius: 16,
@@ -320,6 +321,7 @@ export default function LandingCallWidget() {
 
               <button
                 onClick={handleClose}
+                aria-label="Close"
                 style={{
                   width: 28, height: 28, borderRadius: 8,
                   border: '1px solid rgba(255,255,255,0.06)',

@@ -441,6 +441,7 @@ const ServiceDetailDialog = memo(function ServiceDetailDialog({
                     whileHover={{ scale: 1.08, rotate: 90 }}
                     whileTap={{ scale: 0.92 }}
                     transition={{ duration: 0.2 }}
+                    aria-label="Close"
                     className="p-1.5 rounded-lg
                                text-white/30 hover:text-white/80
                                bg-white/[0.03] hover:bg-white/[0.06]

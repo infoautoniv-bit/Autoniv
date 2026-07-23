@@ -141,7 +141,7 @@ const FeatureCard = React.memo(function FeatureCard({ feature, index }: { featur
           style={{ background: `linear-gradient(90deg, ${feature.color}, transparent)` }}
         />
         <CountUp value={feature.metric} className="text-2xl font-extrabold" style={{ color: feature.color }} />
-        <span className="tag text-[10px]" style={{ color: "#2563EB" }}>{feature.metricLabel}</span>
+        <span className="tag text-[10px]" style={{ color: "#1d4ed8" }}>{feature.metricLabel}</span>
       </div>
     </div>
   );

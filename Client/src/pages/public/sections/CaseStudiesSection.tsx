@@ -132,7 +132,7 @@ export function CaseStudiesSection() {
                         </div>
                         <div
                           className="text-[10px] font-semibold mt-0.5"
-                          style={{ color: "#64748b" }}
+                          style={{ color: "#475569" }}
                         >
                           {s.subcategory}
                         </div>
@@ -154,7 +154,7 @@ export function CaseStudiesSection() {
                         </div>
                         <div
                           className="text-[7px] font-black text-center leading-tight mt-0.5 uppercase tracking-wider"
-                          style={{ color: "#64748b" }}
+                          style={{ color: "#475569" }}
                         >
                           {s.metricLabel}
                         </div>
@@ -166,7 +166,7 @@ export function CaseStudiesSection() {
                   <div className="mb-5">
                     <div
                       className="text-[9px] font-extrabold uppercase tracking-widest mb-1.5"
-                      style={{ color: "#64748b" }}
+                      style={{ color: "#475569" }}
                     >
                       Challenge
                     </div>
@@ -182,7 +182,7 @@ export function CaseStudiesSection() {
                   <div className="mb-5">
                     <div
                       className="text-[9px] font-extrabold uppercase tracking-widest mb-2.5"
-                      style={{ color: "#64748b" }}
+                      style={{ color: "#475569" }}
                     >
                       Our Solution
                     </div>
@@ -224,7 +224,7 @@ export function CaseStudiesSection() {
                         </div>
                         <div
                           className="text-[9px] font-bold leading-tight mt-1"
-                          style={{ color: "#64748b" }}
+                          style={{ color: "#475569" }}
                         >
                           {r.label}
                         </div>

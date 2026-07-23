@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, memo } from "react";
+import { useRef, useState, useEffect, memo, useCallback } from "react";
 import { motion, useScroll, useReducedMotion, useInView, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import { STEPS } from "./data";
 import { MagBtn } from "./utils";
@@ -413,13 +413,13 @@ export function HowItWorks({ openAuth }: { openAuth: (m: "login" | "register") =
   // selection isn't immediately overridden by the next scroll tick.
   const manualUntil = useRef(0);
 
-  const selectStep = (i: number) => {
-    manualUntil.current = performance.now() + 4000;
+  const selectStep = useCallback((i: number) => {
+    manualUntil.current = Date.now() + 4000;
     setActiveIndex(i);
-  };
+  }, []);
 
   useMotionValueEvent(scrollYProgress, "change", (v) => {
-    if (performance.now() < manualUntil.current) return;
+    if (Date.now() < manualUntil.current) return;
     const clamped = Math.min(Math.max(v, 0), 1);
     const idx = Math.min(STEPS.length - 1, Math.floor(clamped * STEPS.length));
     setActiveIndex(idx);

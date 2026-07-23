@@ -49,6 +49,7 @@ export function FAQItem({ question, answer, index }: FAQItemProps) {
 
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
         className="w-full flex items-center gap-4 px-5 sm:px-6 py-5 text-left relative z-10"
         style={{ background: "transparent", border: "none", cursor: "pointer" }}
       >

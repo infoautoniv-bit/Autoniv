@@ -182,7 +182,6 @@ export function WordReveal({
         hidden: {},
         show: { transition: { staggerChildren: stagger, delayChildren: delay } },
       }}
-      aria-label={text}
     >
       {words.map((word, i) => (
         <span

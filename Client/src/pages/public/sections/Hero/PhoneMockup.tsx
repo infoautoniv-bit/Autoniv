@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, MotionValue } from "framer-motion";
 import { MicrophoneIcon, PhoneIcon, SpeakerWaveIcon, Squares2X2Icon } from "@heroicons/react/24/outline";
 import { WAVE_HEIGHTS } from "../data";
 
@@ -21,8 +21,8 @@ interface PhoneMockupProps {
   isMobile: boolean;
   lowPower: boolean;
   documentLoaded: boolean;
-  phoneRotate: any;
-  yGlow: any;
+  phoneRotate: MotionValue<number>;
+  yGlow: MotionValue<number>;
 }
 
 const PhoneMockup = React.memo(function PhoneMockup({

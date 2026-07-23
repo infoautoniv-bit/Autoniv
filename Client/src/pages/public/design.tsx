@@ -104,6 +104,13 @@ export function HeroWaveform() {
 export function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [contentHeight, setContentHeight] = useState(0);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setContentHeight(contentRef.current.scrollHeight);
+    }
+  }, [answer]);
 
   return (
     <div className="rounded-2xl overflow-hidden transition-all duration-300" style={{
@@ -120,7 +127,7 @@ export function FAQItem({ question, answer }: { question: string; answer: string
           </svg>
         </div>
       </button>
-      <div style={{ maxHeight: open ? contentRef.current?.scrollHeight ?? 400 : 0, overflow: 'hidden', transition: 'max-height 0.35s cubic-bezier(0.16,1,0.3,1)' }}>
+      <div style={{ maxHeight: open ? contentHeight ?? 400 : 0, overflow: 'hidden', transition: 'max-height 0.35s cubic-bezier(0.16,1,0.3,1)' }}>
         <div ref={contentRef} className="px-6 pb-5" style={{ borderTop: '1px solid rgba(37,99,235,0.08)' }}>
           <p className="text-sm leading-relaxed pt-4" style={{ color: SLATE }}>{answer}</p>
         </div>

@@ -57,76 +57,78 @@ export function LandingSection() {
   return (
     <div className="landing-page" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
       <PublicNavbar />
-      <div className="page-bg" style={{ paddingTop: 120, paddingBottom: 8 }}>
-        <div className="box-wrap">
-          <USPSlider />
-          <Hero openAuth={openAuth} />
-          <DeferRender height={600} forceRender={forceRender}>
-            <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-              <Demo />
-            </Suspense>
-          </DeferRender>
-            <div id="features">
-              <Features />
-            </div>
-            <Services openAuth={openAuth} />
-          <DeferRender height={500} forceRender={forceRender}>
-            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-              <Comparison />
-            </Suspense>
-          </DeferRender>
-          <div id="how-it-works">
+      <main>
+        <div className="page-bg" style={{ paddingTop: 120, paddingBottom: 8 }}>
+          <div className="box-wrap">
+            <USPSlider />
+            <Hero openAuth={openAuth} />
             <DeferRender height={600} forceRender={forceRender}>
               <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-                <HowItWorks openAuth={openAuth} />
+                <Demo />
               </Suspense>
             </DeferRender>
-          </div>
-          <DeferRender height={600} forceRender={forceRender}>
-            <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-              <Industry />
-            </Suspense>
-          </DeferRender>
-          <DeferRender height={500} forceRender={forceRender}>
-            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-              <CaseStudiesSection />
-            </Suspense>
-          </DeferRender>
-          <DeferRender height={500} forceRender={forceRender}>
-            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-              <Blog />
-            </Suspense>
-          </DeferRender>
-          <DeferRender height={600} forceRender={forceRender}>
-            <Suspense fallback={<div style={{ minHeight: 600 }} />}>
-              <Pricing openAuth={openAuth} />
-            </Suspense>
-          </DeferRender>
-          <div id="contact">
+              <div id="features">
+                <Features />
+              </div>
+              <Services openAuth={openAuth} />
             <DeferRender height={500} forceRender={forceRender}>
               <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-                <Contact />
+                <Comparison />
+              </Suspense>
+            </DeferRender>
+            <div id="how-it-works">
+              <DeferRender height={600} forceRender={forceRender}>
+                <Suspense fallback={<div style={{ minHeight: 600 }} />}>
+                  <HowItWorks openAuth={openAuth} />
+                </Suspense>
+              </DeferRender>
+            </div>
+            <DeferRender height={600} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 600 }} />}>
+                <Industry />
+              </Suspense>
+            </DeferRender>
+            <DeferRender height={500} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+                <CaseStudiesSection />
+              </Suspense>
+            </DeferRender>
+            <DeferRender height={500} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+                <Blog />
+              </Suspense>
+            </DeferRender>
+            <DeferRender height={600} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 600 }} />}>
+                <Pricing openAuth={openAuth} />
+              </Suspense>
+            </DeferRender>
+            <div id="contact">
+              <DeferRender height={500} forceRender={forceRender}>
+                <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+                  <Contact />
+                </Suspense>
+              </DeferRender>
+            </div>
+
+            <DeferRender height={500} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+                <Testimonials />
+              </Suspense>
+            </DeferRender>
+            <DeferRender height={400} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 400 }} />}>
+                <FAQ />
+              </Suspense>
+            </DeferRender>
+            <DeferRender height={300} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 300 }} />}>
+                <CTABanner openAuth={openAuth} />
               </Suspense>
             </DeferRender>
           </div>
-
-          <DeferRender height={500} forceRender={forceRender}>
-            <Suspense fallback={<div style={{ minHeight: 500 }} />}>
-              <Testimonials />
-            </Suspense>
-          </DeferRender>
-          <DeferRender height={400} forceRender={forceRender}>
-            <Suspense fallback={<div style={{ minHeight: 400 }} />}>
-              <FAQ />
-            </Suspense>
-          </DeferRender>
-          <DeferRender height={300} forceRender={forceRender}>
-            <Suspense fallback={<div style={{ minHeight: 300 }} />}>
-              <CTABanner openAuth={openAuth} />
-            </Suspense>
-          </DeferRender>
         </div>
-      </div>
+      </main>
       <Footer />
 
       <Suspense fallback={null}>

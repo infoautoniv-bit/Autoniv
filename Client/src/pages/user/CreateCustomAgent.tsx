@@ -352,8 +352,8 @@ export function CreateCustomAgent() {
       await dispatch(createAgent(submitData)).unwrap();
       await dispatch(fetchMyAgents({ page: 1, limit: 20 }));
       navigate('/dashboard/ai-voice-agent');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Something went wrong.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
       setSubmitting(false);
     }
@@ -363,7 +363,7 @@ export function CreateCustomAgent() {
     id: 'preview',
     userId: 'preview',
     name: formData.name.trim() || 'Your Custom Agent',
-    type: formData.type as any,
+    type: formData.type as Agent['type'],
     prompt: formData.prompt,
     voiceId: formData.voiceId,
     language: formData.language,
@@ -602,12 +602,12 @@ export function CreateCustomAgent() {
                 style={{ background: 'var(--s1)', border: '1px solid var(--border)' }}
               >
                 <div className="flex items-end gap-0.5 h-4">
-                  {[...Array(7)].map((_, i) => (
+                  {[4, 8, 12, 6, 10, 14, 7].map((h, i) => (
                     <motion.div
                       key={i}
                       className="w-[2px] rounded-full"
                       style={{ background: 'var(--gg)' }}
-                      animate={{ height: [4, Math.random() * 10 + 4, 4] }}
+                      animate={{ height: [4, h, 4] }}
                       transition={{ duration: 1.3, repeat: Infinity, delay: i * 0.13, ease: 'easeInOut' }}
                     />
                   ))}
