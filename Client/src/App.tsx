@@ -24,6 +24,13 @@ const Careers = lazy(() => import('./pages/public/Careers').then(m => ({ default
 const Blog = lazy(() => import('./pages/public/Blog').then(m => ({ default: m.Blog })));
 const Press = lazy(() => import('./pages/public/Press').then(m => ({ default: m.Press })));
 const Agents = lazy(() => import('./pages/public/Agents').then(m => ({ default: m.default })));
+const AiVoiceAgent = lazy(() => import('./pages/public').then(m => ({ default: m.AiVoiceAgent })));
+const AiChatbot = lazy(() => import('./pages/public').then(m => ({ default: m.AiChatbot })));
+const AiPhoneAnswering = lazy(() => import('./pages/public').then(m => ({ default: m.AiPhoneAnswering })));
+const AppointmentBooking = lazy(() => import('./pages/public').then(m => ({ default: m.AppointmentBooking })));
+const CustomerSupportPublic = lazy(() => import('./pages/public').then(m => ({ default: m.CustomerSupportPublic })));
+const RealEstateIndustry = lazy(() => import('./pages/public').then(m => ({ default: m.RealEstateIndustry })));
+const HealthcareIndustry = lazy(() => import('./pages/public').then(m => ({ default: m.HealthcareIndustry })));
 const CaseStudies = lazy(() => import('./pages/public/CaseStudies').then(m => ({ default: m.CaseStudies })));
 const CaseStudyDetail = lazy(() => import('./pages/public/CaseStudyDetail'));
 const Pricing = lazy(() => import('./pages/public/Pricing').then(m => ({ default: m.Pricing })));
@@ -442,13 +449,13 @@ function AppRoutes() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/press" element={<Press />} />
         <Route path="/services" element={<Agents />} />
-        <Route path="/ai-voice-agent" element={<Agents />} />
-        <Route path="/ai-chatbot" element={<Agents />} />
-        <Route path="/ai-phone-answering" element={<Agents />} />
-        <Route path="/appointment-booking" element={<Agents />} />
-        <Route path="/customer-support" element={<Agents />} />
-        <Route path="/industries/real-estate" element={<Landing />} />
-        <Route path="/industries/healthcare" element={<Landing />} />
+        <Route path="/ai-voice-agent" element={<AiVoiceAgent />} />
+        <Route path="/ai-chatbot" element={<AiChatbot />} />
+        <Route path="/ai-phone-answering" element={<AiPhoneAnswering />} />
+        <Route path="/appointment-booking" element={<AppointmentBooking />} />
+        <Route path="/customer-support" element={<CustomerSupportPublic />} />
+        <Route path="/industries/real-estate" element={<RealEstateIndustry />} />
+        <Route path="/industries/healthcare" element={<HealthcareIndustry />} />
         <Route path="/case-studies" element={<CaseStudies />} />
         <Route path="/case-studies/:id" element={<CaseStudyDetail />} />
         <Route path="/pricing" element={<Pricing />} />
