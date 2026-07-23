@@ -3,9 +3,8 @@ import { authenticate } from '../middleware/auth.js';
 import { synthesizeSpeech } from '../services/tts.js';
 
 const router = express.Router();
-router.use(authenticate);
 
-router.post('/preview', async (req, res) => {
+router.post('/preview', authenticate, async (req, res) => {
   try {
     const { voiceId, language, text } = req.body;
     if (!voiceId) {

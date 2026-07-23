@@ -438,31 +438,32 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
         $or: orConditions,
       }).lean();
 
-      if (!phoneDoc && !agent.phoneNumber && !agent.phoneNumberId) {
-        phoneDoc = await PhoneNumber.findOne({ userId: agent.userId })
-          .sort({ createdAt: -1 })
-          .lean();
+      if (!phoneDoc) {
+        if (agent.phoneNumberId && mongoose.Types.ObjectId.isValid(agent.phoneNumberId)) {
+          phoneDoc = await PhoneNumber.findById(agent.phoneNumberId).lean();
+        }
+        if (!phoneDoc && agent.phoneNumber) {
+          const rawNum = agent.phoneNumber.replace(/\D/g, '');
+          phoneDoc = await PhoneNumber.findOne({
+            userId: agent.userId,
+            $or: [
+              { phoneNumber: agent.phoneNumber },
+              { phoneNumber: { $regex: rawNum.slice(-10) + '$' } }
+            ]
+          }).lean();
+        }
+        if (!phoneDoc) {
+          phoneDoc = await PhoneNumber.findOne({ userId: agent.userId })
+            .sort({ createdAt: -1 })
+            .lean();
+        }
       }
 
       let platform = 'twilio';
       let credentials = {};
       if (phoneDoc) {
-        const rawPhoneDocNum = (phoneDoc.phoneNumber || '').replace(/\D/g, '');
-        const rawAgentNum = (agent.phoneNumber || '').replace(/\D/g, '');
-        
-        // If agent has an explicit phoneNumber set, phoneDoc MUST match that number
-        const isMatch = rawAgentNum && rawPhoneDocNum
-          ? (rawPhoneDocNum.endsWith(rawAgentNum.slice(-10)) || rawAgentNum.endsWith(rawPhoneDocNum.slice(-10)))
-          : (!rawAgentNum || (phoneDoc.assignedToAgent && phoneDoc.assignedToAgent.toString() === agent._id.toString()));
-
-        if (isMatch) {
-          platform = phoneDoc.platform || 'twilio';
-          // Carrier secrets are stored encrypted; decrypt for use here. Legacy
-          // plaintext records pass through unchanged (decrypt falls back to input).
-          credentials = decryptCredentials(phoneDoc.credentials || {});
-        } else {
-          phoneDoc = null; // Mismatched number, discard stale Exotel/other fallback
-        }
+        platform = phoneDoc.platform || 'twilio';
+        credentials = decryptCredentials(phoneDoc.credentials || {});
       }
 
       if (!phoneDoc) {
