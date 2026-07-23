@@ -109,7 +109,7 @@ const APPOINTMENT_BOOKING_RULES = `\n\nBOOKING RULES:
 
 // Hard cap on a single voice call. When it elapses we speak a wrap-up line and
 // end the call, so the agent must collect every detail inside this window.
-const MAX_CALL_DURATION_MS = 4 * 60 * 1000; // 4 minutes
+const MAX_CALL_DURATION_MS = 3.5 * 60 * 1000; // 4 minutes
 
 // Closing line spoken when the 4-minute limit is hit.
 const TIME_LIMIT_CLOSING = 'I have everything I need for now. Thank you so much for your time — our team will get back to you shortly. Goodbye!';

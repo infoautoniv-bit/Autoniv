@@ -178,6 +178,7 @@ export function tokenResponse({ user, dashboardStats, accessToken, refreshToken 
       isActive: user.isActive,
       chatEnabled: chatPlan !== 'none',
       voiceEnabled: voicePlan !== 'none',
+      activeAddOns: user.activeAddOns || [],
       features,
     },
   };

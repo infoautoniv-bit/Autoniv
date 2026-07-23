@@ -38,6 +38,7 @@ import facebookWebhookRoutes from './routes/facebookWebhook.js';
 import whatsappConnectRoutes from './routes/whatsappConnect.js';
 import bulkCallRoutes from './routes/bulkCalls.js';
 import phoneNumberRoutes from './routes/phoneNumbers.js';
+import teamRoutes from './routes/team.js';
 import { initOrchestrator } from './services/orchestrator.js';
 import { syncWebhookUrls } from './services/vapi.js';
 import { registerPlanWs } from './services/planNotifier.js';
@@ -177,6 +178,7 @@ app.use('/api/widget', widgetRoutes);
 app.use('/api/tts', ttsRoutes);
 app.use('/api/bulk-calls', bulkCallRoutes);
 app.use('/api/phone-numbers', phoneNumberRoutes);
+app.use('/api/team', teamRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

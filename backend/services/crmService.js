@@ -3,24 +3,30 @@ import { log } from './logger.js';
 /**
  * Sync lead data to connected CRM platforms (HubSpot and Custom Webhooks)
  */
-export async function syncLeadToCRM(chatbot, lead) {
-  const { crmIntegrations } = chatbot;
-  if (!crmIntegrations) return;
+export async function syncLeadToCRM(entity, lead) {
+  if (!entity) return;
+  const crmIntegrations = entity.crmIntegrations || {
+    hubspotToken: entity.hubspotToken,
+    webhookUrl: entity.webhookUrl,
+  };
+  if (!crmIntegrations.hubspotToken && !crmIntegrations.webhookUrl) return;
 
   const leadData = {
-    name: lead.name,
-    phone: lead.phone,
+    name: lead.name || 'Lead',
+    phone: lead.phone || '',
     email: lead.email || '',
+    purpose: lead.purpose || '',
     notes: lead.notes || '',
-    chatbotId: String(chatbot._id),
-    channel: lead.channel || 'unknown',
+    agentId: lead.agentId ? String(lead.agentId) : null,
+    chatbotId: lead.chatbotId ? String(lead.chatbotId) : null,
+    leadType: lead.leadType || 'call',
     createdAt: new Date().toISOString()
   };
 
   // 1. Sync to HubSpot
   if (crmIntegrations.hubspotToken) {
     try {
-      const names = leadData.name.trim().split(/\s+/);
+      const names = (leadData.name || '').trim().split(/\s+/);
       const firstName = names[0] || 'Lead';
       const lastName = names.slice(1).join(' ') || '';
 
@@ -36,19 +42,19 @@ export async function syncLeadToCRM(chatbot, lead) {
             lastname: lastName,
             phone: leadData.phone,
             email: leadData.email,
-            notes: leadData.notes
+            notes: `${leadData.notes} ${leadData.purpose ? `[Purpose: ${leadData.purpose}]` : ''}`.trim()
           }
         })
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        log.error('crm_sync_hubspot_failed', { chatbotId: chatbot._id, status: response.status, error: errText });
+        log.error('crm_sync_hubspot_failed', { entityId: entity._id, status: response.status, error: errText });
       } else {
-        log.info('crm_sync_hubspot_success', { chatbotId: chatbot._id });
+        log.info('crm_sync_hubspot_success', { entityId: entity._id });
       }
     } catch (err) {
-      log.error('crm_sync_hubspot_error', { chatbotId: chatbot._id, error: err.message });
+      log.error('crm_sync_hubspot_error', { entityId: entity._id, error: err.message });
     }
   }
 
@@ -65,12 +71,12 @@ export async function syncLeadToCRM(chatbot, lead) {
       });
 
       if (!response.ok) {
-        log.error('crm_sync_webhook_failed', { chatbotId: chatbot._id, status: response.status });
+        log.error('crm_sync_webhook_failed', { entityId: entity._id, status: response.status });
       } else {
-        log.info('crm_sync_webhook_success', { chatbotId: chatbot._id });
+        log.info('crm_sync_webhook_success', { entityId: entity._id });
       }
     } catch (err) {
-      log.error('crm_sync_webhook_error', { chatbotId: chatbot._id, error: err.message });
+      log.error('crm_sync_webhook_error', { entityId: entity._id, error: err.message });
     }
   }
 }

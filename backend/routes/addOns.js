@@ -1,6 +1,7 @@
 import express from 'express';
 import UserAddOn from '../db/models/UserAddOn.js';
 import AddOn from '../db/models/AddOn.js';
+import User from '../db/models/User.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { requireValidObjectId } from '../middleware/validators.js';
 import { contentFilter } from '../services/contentModeration.js';
@@ -193,6 +194,26 @@ router.put('/:id', requireValidObjectId('id'), requireAdmin, async (req, res) =>
     }
     item.status = status;
     await item.save();
+
+    // Activate Add-On on user.activeAddOns array without altering plan tiers
+    try {
+      const user = await User.findById(item.userId);
+      if (user) {
+        user.activeAddOns = user.activeAddOns || [];
+        if (status === 'approved') {
+          if (!user.activeAddOns.includes(item.addOnId)) {
+            user.activeAddOns.push(item.addOnId);
+          }
+        } else if (status === 'rejected') {
+          user.activeAddOns = user.activeAddOns.filter(a => a !== item.addOnId);
+        }
+        await user.save();
+        log.info('addon_status_updated_on_user', { userId: user._id, addOnId: item.addOnId, status });
+      }
+    } catch (actionErr) {
+      log.error('addon_action_execution_error', { error: actionErr.message, addOnId: item.addOnId });
+    }
+
     const catalog = await getCatalog();
     const updated = await UserAddOn.findById(item._id)
       .populate('userId', 'name email')

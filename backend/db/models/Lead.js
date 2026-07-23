@@ -28,6 +28,19 @@ leadSchema.post('save', async function (doc) {
       if (chatbot) {
         await syncLeadToCRM(chatbot, doc);
       }
+    } else if (doc.agentId) {
+      const Agent = mongoose.model('Agent');
+      const agent = await Agent.findById(doc.agentId);
+      if (agent) {
+        await syncLeadToCRM(agent, doc);
+      }
+    }
+    if (doc.userId) {
+      const User = mongoose.model('User');
+      const user = await User.findById(doc.userId);
+      if (user && user.crmIntegrations) {
+        await syncLeadToCRM(user, doc);
+      }
     }
   } catch (err) {
     console.error('Lead post-save CRM sync hook failed:', err.message);

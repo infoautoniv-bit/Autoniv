@@ -45,16 +45,16 @@ Autoniv offers three types of plans (Chat, Voice, and Combo):
    - Chat Enterprise: Custom pricing. Includes unlimited chatbots and conversations.
 
 2. Voice Plans:
-   - Voice Trial: ₹4,999/month. Includes 30 calls/month (30 minutes total).
-   - Voice Foundation: ₹14,999/month (+ ₹14,999 setup fee). Includes 120 calls/month (120 minutes total).
-   - Voice Scale: ₹29,999/month (+ ₹39,999 setup fee). Includes 400 calls/month (400 minutes total) and custom scripts.
-   - Voice Dominate: ₹74,999/month (+ ₹89,999 setup fee). Includes 1,200 calls/month (unlimited minutes total) and white-label support.
+   - Voice Launch: ₹4,999/month ($149/month) (+ ₹14,999 / $499 setup fee). Includes 500 minutes/month, 1 AI Voice Agent, 1 Phone Number.
+   - Voice Growth ⭐ Most Popular: ₹14,999/month ($349/month) (+ ₹29,999 / $999 setup fee). Includes 1,500 minutes/month, 2 Phone Numbers, 5 AI Workflows, CRM Integration.
+   - Voice Scale: ₹34,999/month ($799/month) (+ ₹49,999 / $1,999 setup fee). Includes 5,000 minutes/month, 5 Phone Numbers, Unlimited AI Workflows, WhatsApp follow-ups.
+   - Voice Enterprise: Custom pricing. Includes unlimited minutes & agents, white-labeling, and 24x7 support.
 
 3. Combo (Chat + Voice) Plans:
-   - Combo Trial: ₹4,999/month. Includes 100 chats/month and 30 calls/month (30 minutes total).
-   - Combo Foundation: ₹18,498/month (+ ₹14,999 setup fee). Includes 1,000 chats/month and 120 calls/month (120 minutes total).
-   - Combo Scale: ₹39,998/month (+ ₹39,999 setup fee). Includes 5,000 chats/month and 400 calls/month (400 minutes total).
-   - Combo Dominate: ₹74,999/month (+ ₹89,999 setup fee). Includes unlimited chats/month and 1,200 calls/month.
+   - Combo Launch: ₹4,999/month (+ ₹14,999 setup fee). Includes 100 chats/month and 500 voice minutes/month.
+   - Combo Growth: ₹16,498/month (+ ₹29,999 setup fee). Includes 1,500 chats/month and 1,500 voice minutes/month.
+   - Combo Scale: ₹39,998/month (+ ₹49,999 setup fee). Includes 6,000 chats/month and 5,000 voice minutes/month.
+   - Combo Enterprise: Custom pricing. Unified Voice + Chat enterprise platform.
 
 ## CONVERSATION APPROACH
 

@@ -478,4 +478,56 @@ router.post('/api-key/regenerate', async (req, res) => {
   }
 });
 
+// ─── White Label Settings ──────────────────────────────────────────────────
+
+router.get('/white-label', async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).lean();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ whiteLabelSettings: user.whiteLabelSettings || {} });
+  } catch (error) {
+    log.error('get_white_label_error', { error: error.message, userId: req.user?.userId });
+    res.status(500).json({ message: 'Failed to fetch white label settings' });
+  }
+});
+
+router.put('/white-label', async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Check plan eligibility for whiteLabel or removeBranding feature flag
+    const chatCfg = User.PLAN_CONFIG[user.chatPlan];
+    const voiceCfg = User.PLAN_CONFIG[user.voicePlan];
+    const legacyCfg = User.PLAN_CONFIG[user.plan];
+    const isEligible = user.role === 'admin' ||
+      chatCfg?.features?.whiteLabel || voiceCfg?.features?.whiteLabel || legacyCfg?.features?.whiteLabel ||
+      chatCfg?.features?.removeBranding || voiceCfg?.features?.removeBranding || legacyCfg?.features?.removeBranding;
+
+    if (!isEligible) {
+      return res.status(403).json({
+        message: 'White Label & Custom Branding is available on Growth, Scale, and Enterprise plans. Please upgrade your plan to unlock this feature.'
+      });
+    }
+
+    const { companyName, logoUrl, faviconUrl, customDomain, hidePoweredBy, supportEmail, accentColor } = req.body || {};
+
+    user.whiteLabelSettings = {
+      companyName: typeof companyName === 'string' ? companyName.trim().slice(0, 100) : (user.whiteLabelSettings?.companyName || ''),
+      logoUrl: typeof logoUrl === 'string' ? logoUrl.trim().slice(0, 500) : (user.whiteLabelSettings?.logoUrl || ''),
+      faviconUrl: typeof faviconUrl === 'string' ? faviconUrl.trim().slice(0, 500) : (user.whiteLabelSettings?.faviconUrl || ''),
+      customDomain: typeof customDomain === 'string' ? customDomain.trim().toLowerCase().slice(0, 200) : (user.whiteLabelSettings?.customDomain || ''),
+      hidePoweredBy: typeof hidePoweredBy === 'boolean' ? hidePoweredBy : (user.whiteLabelSettings?.hidePoweredBy || false),
+      supportEmail: typeof supportEmail === 'string' ? supportEmail.trim().toLowerCase().slice(0, 200) : (user.whiteLabelSettings?.supportEmail || ''),
+      accentColor: typeof accentColor === 'string' ? accentColor.trim().slice(0, 30) : (user.whiteLabelSettings?.accentColor || '#2563EB'),
+    };
+
+    await user.save();
+    res.json({ message: 'White label settings updated successfully', whiteLabelSettings: user.whiteLabelSettings });
+  } catch (error) {
+    log.error('update_white_label_error', { error: error.message, userId: req.user?.userId });
+    res.status(500).json({ message: 'Failed to update white label settings' });
+  }
+});
+
 export default router;
