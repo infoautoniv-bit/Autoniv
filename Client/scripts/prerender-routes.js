@@ -95,134 +95,91 @@ const EXACT_META = {
   },
 };
 
-const NOINDEX_ROUTES = ['/dashboard', '/admin', '/onboarding'];
-
-function shouldNoindex(route) {
-  return NOINDEX_ROUTES.some((prefix) => route.startsWith(prefix));
-}
-
 function escapeAttr(str) {
-  return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function generateRouteHtml(routePath, meta) {
+function swapMeta(html, routePath, meta) {
   const url = routePath === '/' ? DOMAIN : `${DOMAIN}${routePath}`;
-  const robotsContent = shouldNoindex(routePath) ? 'noindex, nofollow' : 'index, follow';
+  const escapedTitle = escapeAttr(meta.title);
+  const escapedDesc = escapeAttr(meta.description);
 
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/webp" href="/apple-touch-icon.webp" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="google-site-verification" content="%VITE_GOOGLE_SITE_VERIFICATION%" />
+  let result = html;
 
-  <title>${escapeAttr(meta.title)}</title>
-  <meta name="description" content="${escapeAttr(meta.description)}" />
-  <meta name="robots" content="${robotsContent}" />
-  <link rel="canonical" href="${url}" />
+  // Replace <title>
+  result = result.replace(/<title>[^<]*<\/title>/, `<title>${escapedTitle}</title>`);
 
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="${url}" />
-  <meta property="og:title" content="${escapeAttr(meta.title)}" />
-  <meta property="og:description" content="${escapeAttr(meta.description)}" />
-  <meta property="og:image" content="${DOMAIN}/og-image.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:site_name" content="Autoniv" />
-  <meta property="og:locale" content="en_US" />
+  // Replace meta description
+  result = result.replace(
+    /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
+    `<meta name="description" content="${escapedDesc}" />`
+  );
 
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="${url}" />
-  <meta name="twitter:title" content="${escapeAttr(meta.title)}" />
-  <meta name="twitter:description" content="${escapeAttr(meta.description)}" />
-  <meta name="twitter:image" content="${DOMAIN}/og-image.png" />
+  // Replace canonical
+  result = result.replace(
+    /<link\s+id="canonical-link"\s+rel="canonical"\s+href="[^"]*"\s*\/?>/,
+    `<link rel="canonical" href="${url}" />`
+  );
 
-  <!-- Geo Targeting -->
-  <meta name="geo.region" content="IN" />
-  <meta name="geo.placename" content="India" />
+  // Replace og:url
+  result = result.replace(
+    /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:url" content="${url}" />`
+  );
 
-  <!-- Favicon Variants -->
-  <link rel="apple-touch-icon" href="/apple-touch-icon.webp" />
-  <meta name="theme-color" content="#050d1a" />
+  // Replace og:title
+  result = result.replace(
+    /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:title" content="${escapedTitle}" />`
+  );
 
-  <!-- Schema.org JSON-LD -->
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "Autoniv",
-      "url": "${DOMAIN}",
-      "logo": "${DOMAIN}/logo.png",
-      "description": "AI-powered voice agents, chatbots, and phone answering services for businesses.",
-      "sameAs": [
-        "https://twitter.com/autoniv",
-        "https://linkedin.com/company/autoniv",
-        "https://facebook.com/autoniv"
-      ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "customer support",
-        "email": "hello@autoniv.com",
-        "telephone": "+91-7065990307",
-        "availableLanguage": ["English", "Hindi", "Spanish", "French"]
-      },
-      "areaServed": "Global",
-      "knowsLanguage": ["en", "es", "fr", "de", "it", "pt", "hi", "ar", "ja", "ko"]
-    }
-  </script>
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Autoniv",
-      "url": "${DOMAIN}",
-      "description": "Deploy intelligent AI voice agents that handle calls 24/7 in 20+ languages."
-    }
-  </script>
+  // Replace og:description
+  result = result.replace(
+    /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:description" content="${escapedDesc}" />`
+  );
 
-  <!-- Bing Webmaster Tools -->
-  <meta name="msvalidate.01" content="%VITE_BING_VERIFICATION%" />
+  // Replace twitter:url
+  result = result.replace(
+    /<meta\s+name="twitter:url"\s+content="[^"]*"\s*\/?>/,
+    `<meta name="twitter:url" content="${url}" />`
+  );
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-96TS2V6N6H"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-96TS2V6N6H');
-  </script>
-</head>
-<body>
-  <div id="root"></div>
-  <div id="fb-root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
-</html>`;
+  // Replace twitter:title
+  result = result.replace(
+    /<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/,
+    `<meta name="twitter:title" content="${escapedTitle}" />`
+  );
+
+  // Replace twitter:description
+  result = result.replace(
+    /<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/,
+    `<meta name="twitter:description" content="${escapedDesc}" />`
+  );
+
+  return result;
 }
+
+// Read the Vite-built index.html as template (has correct /assets/*.js references)
+const templatePath = path.join(distDir, 'index.html');
+const templateHtml = fs.readFileSync(templatePath, 'utf8');
 
 const prerenderedPaths = [];
 
 for (const [routePath, meta] of Object.entries(EXACT_META)) {
+  const routeHtml = swapMeta(templateHtml, routePath, meta);
+
   if (routePath === '/') {
-    const filePath = path.join(distDir, 'index.html');
-    const html = generateRouteHtml(routePath, meta);
-    fs.writeFileSync(filePath, html, 'utf8');
-    console.log(`  Generated: index.html (route: /)`);
+    fs.writeFileSync(templatePath, routeHtml, 'utf8');
+    console.log(`  Updated: index.html (route: /)`);
   } else {
     const dirPath = path.join(distDir, routePath);
     fs.mkdirSync(dirPath, { recursive: true });
     const filePath = path.join(dirPath, 'index.html');
-    const html = generateRouteHtml(routePath, meta);
-    fs.writeFileSync(filePath, html, 'utf8');
+    fs.writeFileSync(filePath, routeHtml, 'utf8');
     console.log(`  Generated: ${routePath}/index.html`);
   }
   prerenderedPaths.push(routePath);
 }
 
-const manifestPath = path.join(distDir, '_prerender-manifest.json');
-fs.writeFileSync(manifestPath, JSON.stringify(prerenderedPaths, null, 2), 'utf8');
-
-console.log(`\nPrerendered ${prerenderedPaths.length} routes. Manifest saved.`);
+console.log(`\nPrerendered ${prerenderedPaths.length} routes with correct JS/CSS references.`);
