@@ -390,16 +390,20 @@ router.post('/incoming-call', async (req, res) => {
       agent = await Agent.findOne({ isActive: true });
     }
 
-    // Verify the request genuinely came from Twilio before acting on it.
-    // Prefer the agent's own Twilio auth token, fall back to the account-wide env.
-    const twilioToken = agent?.twilioAuthToken
-      ? decrypt(agent.twilioAuthToken)
-      : process.env.TWILIO_AUTH_TOKEN || null;
-    if (!enforceTwilioSignature(req, twilioToken, { callSid, to, from })) {
-      return res
-        .status(403)
-        .type('text/xml')
-        .send(`<?xml version="1.0" encoding="UTF-8"?><Response><Reject/></Response>`);
+    const isExotel = (req.headers['user-agent'] || '').includes('Exotel') || (callSid || '').startsWith('exo_') || !!req.body.CallFrom || !!req.query.CallFrom;
+
+    if (!isExotel) {
+      // Verify the request genuinely came from Twilio before acting on it.
+      // Prefer the agent's own Twilio auth token, fall back to the account-wide env.
+      const twilioToken = agent?.twilioAuthToken
+        ? decrypt(agent.twilioAuthToken)
+        : process.env.TWILIO_AUTH_TOKEN || null;
+      if (!enforceTwilioSignature(req, twilioToken, { callSid, to, from })) {
+        return res
+          .status(403)
+          .type('text/xml')
+          .send(`<?xml version="1.0" encoding="UTF-8"?><Response><Reject/></Response>`);
+      }
     }
 
     if (agent) {
