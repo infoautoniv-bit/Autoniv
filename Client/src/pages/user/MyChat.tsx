@@ -919,9 +919,11 @@ export function MyChat() {
             </button>
           </div>
 
-          <p style={{ fontSize: isMobile ? 9 : 10.5, textAlign: 'center', color: 'var(--text-muted)', margin: isMobile ? '5px 0 0' : '8px 0 0', letterSpacing: '0.025em' }}>
-            Powered by Autoniv AI · End-to-end encrypted
-          </p>
+          {!user?.whiteLabelSettings?.hidePoweredBy && (
+            <p style={{ fontSize: isMobile ? 9 : 10.5, textAlign: 'center', color: 'var(--text-muted)', margin: isMobile ? '5px 0 0' : '8px 0 0', letterSpacing: '0.025em' }}>
+              Powered by {user?.whiteLabelSettings?.companyName || 'Autoniv AI'} · End-to-end encrypted
+            </p>
+          )}
         </div>
       </motion.div>
     </div>

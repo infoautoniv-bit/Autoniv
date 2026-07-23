@@ -1,3 +1,13 @@
+export interface WhiteLabelSettings {
+  companyName?: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+  customDomain?: string;
+  hidePoweredBy?: boolean;
+  supportEmail?: string;
+  accentColor?: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -17,6 +27,8 @@ export interface User {
   isActive: boolean;
   chatEnabled?: boolean;
   voiceEnabled?: boolean;
+  activeAddOns?: string[];
+  whiteLabelSettings?: WhiteLabelSettings;
   features?: {
     chat: Record<string, boolean | number>;
     voice: Record<string, boolean | number>;

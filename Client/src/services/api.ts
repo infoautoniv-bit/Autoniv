@@ -501,6 +501,31 @@ export const bulkCallService = {
   delete: (id: string) => api.delete(`/bulk-calls/${id}`),
 };
 
+// ── Team Management ────────────────────────────────────────────────────────
+export interface TeamMember {
+  _id?: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'member' | 'agent';
+  status: 'active' | 'pending';
+  addedAt: string;
+}
+
+export interface TeamData {
+  planName?: string;
+  owner: { id: string; name: string; email: string; role: string };
+  teamMembers: TeamMember[];
+  usedSeats: number;
+  totalSeats: number;
+}
+
+export const teamService = {
+  getTeam: () => api.get<TeamData>('/team'),
+  inviteMember: (data: { name: string; email: string; role?: string }) =>
+    api.post('/team/invite', data),
+  removeMember: (memberId: string) => api.delete(`/team/${memberId}`),
+};
+
 // ── Leads ──────────────────────────────────────────────────────────────────
 export const leadService = {
   /** Admin: all real-user / call leads (excludes AI-assistant public leads) */
@@ -725,6 +750,13 @@ export const publicDemoService = {
 export const apiKeyService = {
   get: () => api.get('/users/api-key'),
   regenerate: () => api.post('/users/api-key/regenerate'),
+};
+
+// ── White Label Settings ──────────────────────────────────────────────────
+export const whiteLabelService = {
+  get: () => api.get<{ whiteLabelSettings: import('../types').WhiteLabelSettings }>('/users/white-label'),
+  update: (settings: import('../types').WhiteLabelSettings) =>
+    api.put<{ message: string; whiteLabelSettings: import('../types').WhiteLabelSettings }>('/users/white-label', settings),
 };
 
 // ── TTS ────────────────────────────────────────────────────────────────────

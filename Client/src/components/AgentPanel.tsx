@@ -236,6 +236,12 @@ export interface AgentPanelProps {
     voiceId: string;
     useCustomEngine?: boolean;
     customEngineModel?: string;
+    hubspotToken?: string;
+    webhookUrl?: string;
+    crmIntegrations?: {
+      hubspotToken?: string;
+      webhookUrl?: string;
+    };
   };
   setFormData: (d: any) => void;
   onSubmit: () => void;
@@ -244,7 +250,7 @@ export interface AgentPanelProps {
   onUnlinkPhone?: () => Promise<void>;
 }
 
-type TabId = 'identity' | 'voice' | 'prompt' | 'engine' | 'connect';
+type TabId = 'identity' | 'voice' | 'prompt' | 'engine' | 'connect' | 'crm';
 
 export function AgentPanel({
   open, onClose, editing, formData, setFormData, onSubmit, submitting,
@@ -369,6 +375,7 @@ export function AgentPanel({
     prompt: formData.prompt.trim().length > 20,
     engine: !!formData.useCustomEngine,
     connect: hasPhoneLinked,
+    crm: !!(formData.hubspotToken || formData.webhookUrl || formData.crmIntegrations?.hubspotToken || formData.crmIntegrations?.webhookUrl),
   };
   const readyCount = (['identity', 'voice', 'prompt'] as TabId[]).filter((k) => completion[k]).length;
 
@@ -383,8 +390,8 @@ export function AgentPanel({
       { id: 'prompt', label: 'Prompt', icon: (
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
       )},
-      { id: 'engine', label: 'Engine', icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" strokeWidth={2}/></svg>
+      { id: 'crm', label: 'CRM & Webhooks', icon: (
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
       )},
     ];
     if (showConnectTab) {
@@ -661,6 +668,36 @@ export function AgentPanel({
                         </motion.div>
                       )}
                     </AnimatePresence>
+                  </motion.div>
+                )}
+
+                {tab === 'crm' && (
+                  <motion.div key="crm" {...slide} transition={{ duration: 0.16 }} className="space-y-4">
+                    <div>
+                      <FieldLabel hint="HubSpot Private App Token">HubSpot Access Token</FieldLabel>
+                      <TextInput
+                        value={formData.hubspotToken || formData.crmIntegrations?.hubspotToken || ''}
+                        onChange={(v) => setFormData((p: any) => ({ ...p, hubspotToken: v, crmIntegrations: { ...(p.crmIntegrations || {}), hubspotToken: v } }))}
+                        placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                        mono
+                      />
+                      <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                        Creates or updates contacts in HubSpot CRM with caller name, phone number, email, purpose, and call notes.
+                      </p>
+                    </div>
+
+                    <div>
+                      <FieldLabel hint="Zapier, GHL, Zoho, Salesforce">Custom Webhook URL</FieldLabel>
+                      <TextInput
+                        value={formData.webhookUrl || formData.crmIntegrations?.webhookUrl || ''}
+                        onChange={(v) => setFormData((p: any) => ({ ...p, webhookUrl: v, crmIntegrations: { ...(p.crmIntegrations || {}), webhookUrl: v } }))}
+                        placeholder="https://hooks.zapier.com/hooks/catch/... or https://your-domain.com/webhook"
+                        mono
+                      />
+                      <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                        Instant JSON HTTP POST payload sent when phone calls complete with extracted lead details.
+                      </p>
+                    </div>
                   </motion.div>
                 )}
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { supportService } from '../../services/api';
+import ActiveAddOnsBanner from '../../components/ActiveAddOnsBanner';
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const stagger = { container: { animate: { transition: { staggerChildren: 0.04 } } } };
@@ -90,11 +91,16 @@ export function CustomerSupport() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Header */}
-      <motion.div {...fadeUp} className="mb-8">
+      <motion.div {...fadeUp} className="mb-6">
         <h1 className="text-2xl font-bold text-[var(--text)]">Customer Support</h1>
         <p className="text-sm text-[var(--text-muted)] mt-1">
           We're here to help. Find answers or reach out to our team.
         </p>
+      </motion.div>
+
+      {/* Active Priority Support Add-On Banner */}
+      <motion.div {...fadeUp} className="mb-6">
+        <ActiveAddOnsBanner filterIds={['priority-support']} />
       </motion.div>
 
       {/* Contact Cards */}

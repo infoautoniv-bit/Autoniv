@@ -133,10 +133,10 @@ const CHAT_PLAN_OPTIONS = [
 ];
 
 const VOICE_PLAN_OPTIONS = [
-  { value: 'voice_free', label: 'Voice Trial (30 calls · ₹4,999)' },
-  { value: 'voice_starter', label: 'Voice Foundation (120 calls · ₹14,999)' },
-  { value: 'voice_growth', label: 'Voice Scale (400 calls · ₹29,999)' },
-  { value: 'voice_enterprise', label: 'Voice Dominate (1,200 calls · ₹74,999)' },
+  { value: 'voice_free', label: 'Voice Launch (500 mins · ₹4,999 / $149)' },
+  { value: 'voice_starter', label: 'Voice Growth (1,500 mins · ₹14,999 / $349)' },
+  { value: 'voice_growth', label: 'Voice Scale (5,000 mins · ₹34,999 / $799)' },
+  { value: 'voice_enterprise', label: 'Voice Enterprise (Custom mins)' },
   { value: 'none', label: 'None (Disabled)' },
 ];
 

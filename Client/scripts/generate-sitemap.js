@@ -19,6 +19,8 @@ const routes = [
   { path: '/industries/healthcare', priority: '0.8', changefreq: 'weekly' },
   { path: '/about', priority: '0.8', changefreq: 'monthly' },
   { path: '/pricing', priority: '0.9', changefreq: 'monthly' },
+  { path: '/pricing/voice-assistance', priority: '0.9', changefreq: 'monthly' },
+  { path: '/pricing/ai-chatbot', priority: '0.9', changefreq: 'monthly' },
   { path: '/help', priority: '0.7', changefreq: 'weekly' },
   { path: '/blog', priority: '0.8', changefreq: 'daily' },
   { path: '/press', priority: '0.6', changefreq: 'monthly' },

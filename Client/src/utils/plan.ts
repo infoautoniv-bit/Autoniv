@@ -35,6 +35,9 @@ export interface PlanConfig {
   monthlyPrice: number;
   monthlyPriceUSD: number;
   setupFee: number;
+  extraMinuteRateINR: number;
+  extraMinuteRateUSD: number;
+  supportSla: string;
   limits: PlanLimits;
   features: PlanFeatures;
 }
@@ -49,25 +52,25 @@ const ALL_FEATURES_FALSE: PlanFeatures = {
 };
 
 const PLAN_CONFIG: Record<string, PlanConfig> = {
-  chat_free:       { name: 'Chat Free',       monthlyPrice: 0,     monthlyPriceUSD: 0,   setupFee: 0,     limits: { chatbots: 1,   conversations: 100,   calls: 0,   minutes: 0   }, features: { ...ALL_FEATURES_FALSE } },
-  chat_starter:    { name: 'Chat Starter',    monthlyPrice: 1499,  monthlyPriceUSD: 29,  setupFee: 0,     limits: { chatbots: 2,   conversations: 1500,  calls: 0,   minutes: 0   }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true } },
-  chat_growth:     { name: 'Chat Growth',     monthlyPrice: 4999,  monthlyPriceUSD: 99,  setupFee: 0,     limits: { chatbots: -1,  conversations: 6000,  calls: 0,   minutes: 0   }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true } },
-  chat_enterprise: { name: 'Chat Enterprise', monthlyPrice: 0,     monthlyPriceUSD: 0,   setupFee: 0,     limits: { chatbots: -1,  conversations: -1,    calls: 0,   minutes: 0   }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: true, dpdpCompliance: true, dedicatedManager: true, leadCapture: false, whatsappDelivery: false, upgradePath: false, customScripts: false, prioritySupport: false, customReporting: false, whiteLabel: false, advancedAutomation: false } },
+  chat_free:       { name: 'Chat Free',       monthlyPrice: 0,     monthlyPriceUSD: 0,   setupFee: 0,     extraMinuteRateINR: 0,  extraMinuteRateUSD: 0,    supportSla: 'Email Support', limits: { chatbots: 1,   conversations: 100,   calls: 0,   minutes: 0   }, features: { ...ALL_FEATURES_FALSE } },
+  chat_starter:    { name: 'Chat Starter',    monthlyPrice: 1499,  monthlyPriceUSD: 29,  setupFee: 0,     extraMinuteRateINR: 0,  extraMinuteRateUSD: 0,    supportSla: 'Email Support', limits: { chatbots: 2,   conversations: 1500,  calls: 0,   minutes: 0   }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true } },
+  chat_growth:     { name: 'Chat Growth',     monthlyPrice: 4999,  monthlyPriceUSD: 99,  setupFee: 0,     extraMinuteRateINR: 0,  extraMinuteRateUSD: 0,    supportSla: 'Priority Support', limits: { chatbots: -1,  conversations: 6000,  calls: 0,   minutes: 0   }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true } },
+  chat_enterprise: { name: 'Chat Enterprise', monthlyPrice: 0,     monthlyPriceUSD: 0,   setupFee: 0,     extraMinuteRateINR: 0,  extraMinuteRateUSD: 0,    supportSla: '24×7 Premium Support', limits: { chatbots: -1,  conversations: -1,    calls: 0,   minutes: 0   }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: true, dpdpCompliance: true, dedicatedManager: true, leadCapture: false, whatsappDelivery: false, upgradePath: false, customScripts: false, prioritySupport: false, customReporting: false, whiteLabel: false, advancedAutomation: false } },
  
-  voice_free:       { name: 'Voice Trial',       monthlyPrice: 4999,  monthlyPriceUSD: 59,  setupFee: 0,     limits: { chatbots: 1, conversations: 0,   calls: 30,   minutes: 30   }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true } },
-  voice_starter:    { name: 'Voice Foundation',  monthlyPrice: 14999, monthlyPriceUSD: 179, setupFee: 14999, limits: { chatbots: 1, conversations: 0,   calls: 120,  minutes: 120  }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true, analytics: true } },
-  voice_growth:     { name: 'Voice Scale',       monthlyPrice: 29999, monthlyPriceUSD: 359, setupFee: 39999, limits: { chatbots: 3, conversations: 0,   calls: 400,  minutes: 400  }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, crmIntegration: true, analytics: true, prioritySupport: true } },
-  voice_enterprise: { name: 'Voice Dominate',    monthlyPrice: 74999, monthlyPriceUSD: 899, setupFee: 89999, limits: { chatbots: -1, conversations: 0,   calls: 1200, minutes: -1   }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, crmIntegration: true, analytics: true, prioritySupport: true, customReporting: true, whiteLabel: true, advancedAutomation: true, dedicatedManager: true } },
+  voice_free:       { name: 'Voice Launch',      monthlyPrice: 4999,  monthlyPriceUSD: 149, setupFee: 14999, extraMinuteRateINR: 12, extraMinuteRateUSD: 0.18, supportSla: 'Email Support', limits: { chatbots: 1, conversations: 0,   calls: 500,  minutes: 500  }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true, analytics: true } },
+  voice_starter:    { name: 'Voice Growth',      monthlyPrice: 14999, monthlyPriceUSD: 349, setupFee: 29999, extraMinuteRateINR: 11, extraMinuteRateUSD: 0.16, supportSla: 'Priority Support', limits: { chatbots: 1, conversations: 0,   calls: 1500, minutes: 1500 }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, crmIntegration: true, analytics: true, prioritySupport: true } },
+  voice_growth:     { name: 'Voice Scale',       monthlyPrice: 34999, monthlyPriceUSD: 799, setupFee: 49999, extraMinuteRateINR: 10, extraMinuteRateUSD: 0.14, supportSla: 'Priority Support', limits: { chatbots: 1, conversations: 0,   calls: 4000, minutes: 4000 }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, crmIntegration: true, analytics: true, prioritySupport: true, customReporting: true, advancedAutomation: true } },
+  voice_enterprise: { name: 'Voice Enterprise',  monthlyPrice: 0,     monthlyPriceUSD: 0,   setupFee: 0,     extraMinuteRateINR: 0,  extraMinuteRateUSD: 0,    supportSla: '24×7 Premium Support', limits: { chatbots: -1, conversations: 0,   calls: 99999, minutes: -1  }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, crmIntegration: true, analytics: true, prioritySupport: true, customReporting: true, whiteLabel: true, advancedAutomation: true, dedicatedManager: true } },
  
-  both_free:       { name: 'Chat + Voice Trial',       monthlyPrice: 4999,  monthlyPriceUSD: 59,  setupFee: 0,     limits: { chatbots: 1,   conversations: 100,   calls: 30,   minutes: 30   }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true } },
-  both_starter:    { name: 'Chat + Voice Foundation',  monthlyPrice: 16498, monthlyPriceUSD: 208, setupFee: 14999, limits: { chatbots: 2,   conversations: 1500,  calls: 120,  minutes: 120  }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, analytics: true } },
-  both_growth:     { name: 'Chat + Voice Scale',       monthlyPrice: 34998, monthlyPriceUSD: 458, setupFee: 39999, limits: { chatbots: -1,  conversations: 6000,  calls: 400,  minutes: 400  }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true } },
-  both_enterprise: { name: 'Chat + Voice Dominate',    monthlyPrice: 74999, monthlyPriceUSD: 899, setupFee: 89999, limits: { chatbots: -1,  conversations: -1,    calls: 1200, minutes: -1   }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: true, dpdpCompliance: true, dedicatedManager: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true, customReporting: true, whiteLabel: true, advancedAutomation: true } },
+  both_free:       { name: 'Chat + Voice Launch',      monthlyPrice: 4999,  monthlyPriceUSD: 149, setupFee: 14999, extraMinuteRateINR: 12, extraMinuteRateUSD: 0.18, supportSla: 'Email Support', limits: { chatbots: 1,   conversations: 100,   calls: 500,  minutes: 500  }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true } },
+  both_starter:    { name: 'Chat + Voice Growth',      monthlyPrice: 16498, monthlyPriceUSD: 378, setupFee: 29999, extraMinuteRateINR: 11, extraMinuteRateUSD: 0.16, supportSla: 'Priority Support', limits: { chatbots: 2,   conversations: 1500,  calls: 1500, minutes: 1500 }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, analytics: true } },
+  both_growth:     { name: 'Chat + Voice Scale',       monthlyPrice: 39998, monthlyPriceUSD: 898, setupFee: 49999, extraMinuteRateINR: 10, extraMinuteRateUSD: 0.14, supportSla: 'Priority Support', limits: { chatbots: -1,  conversations: 6000,  calls: 5000, minutes: 5000 }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true } },
+  both_enterprise: { name: 'Chat + Voice Enterprise',  monthlyPrice: 0,     monthlyPriceUSD: 0,   setupFee: 0,     extraMinuteRateINR: 0,  extraMinuteRateUSD: 0,    supportSla: '24×7 Premium Support', limits: { chatbots: -1,  conversations: -1,    calls: 99999, minutes: -1  }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: true, dpdpCompliance: true, dedicatedManager: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true, customReporting: true, whiteLabel: true, advancedAutomation: true } },
  
-  free:       { name: 'Trial',       monthlyPrice: 4999,  monthlyPriceUSD: 59,  setupFee: 0,     limits: { chatbots: 1,   conversations: 100,   calls: 30,   minutes: 30   }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true } },
-  starter:    { name: 'Foundation',  monthlyPrice: 14999, monthlyPriceUSD: 179, setupFee: 14999, limits: { chatbots: 2,   conversations: 1500,  calls: 120,  minutes: 120  }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, analytics: true } },
-  growth:     { name: 'Scale',       monthlyPrice: 29999, monthlyPriceUSD: 359, setupFee: 39999, limits: { chatbots: -1,  conversations: 6000,  calls: 400,  minutes: 400  }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true } },
-  enterprise: { name: 'Dominate',    monthlyPrice: 74999, monthlyPriceUSD: 899, setupFee: 89999, limits: { chatbots: -1,  conversations: -1,    calls: 1200, minutes: -1   }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: true, dpdpCompliance: true, dedicatedManager: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true, customReporting: true, whiteLabel: true, advancedAutomation: true } },
+  free:       { name: 'Launch',      monthlyPrice: 4999,  monthlyPriceUSD: 149, setupFee: 14999, extraMinuteRateINR: 12, extraMinuteRateUSD: 0.18, supportSla: 'Email Support', limits: { chatbots: 1,   conversations: 100,   calls: 500,  minutes: 500  }, features: { ...ALL_FEATURES_FALSE, leadCapture: true, whatsappDelivery: true, upgradePath: true } },
+  starter:    { name: 'Growth',      monthlyPrice: 14999, monthlyPriceUSD: 349, setupFee: 29999, extraMinuteRateINR: 11, extraMinuteRateUSD: 0.16, supportSla: 'Priority Support', limits: { chatbots: 2,   conversations: 1500,  calls: 1500, minutes: 1500 }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, analytics: true } },
+  growth:     { name: 'Scale',       monthlyPrice: 34999, monthlyPriceUSD: 799, setupFee: 49999, extraMinuteRateINR: 10, extraMinuteRateUSD: 0.14, supportSla: 'Priority Support', limits: { chatbots: -1,  conversations: 6000,  calls: 5000, minutes: 5000 }, features: { ...ALL_FEATURES_FALSE, whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true } },
+  enterprise: { name: 'Enterprise',  monthlyPrice: 0,     monthlyPriceUSD: 0,   setupFee: 0,     extraMinuteRateINR: 0,  extraMinuteRateUSD: 0,    supportSla: '24×7 Premium Support', limits: { chatbots: -1,  conversations: -1,    calls: 99999, minutes: -1  }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: true, dpdpCompliance: true, dedicatedManager: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true, customReporting: true, whiteLabel: true, advancedAutomation: true } },
 };
 
 // ─── Plan resolution helpers ──────────────────────────────────────────────────
@@ -156,6 +159,38 @@ export function getPlanColor(plan?: string): { bg: string; border: string; text:
     case 'starter':    return { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' };
     default:           return { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600' };
   }
+}
+
+/** Get extra minute rate formatted string (e.g. ₹12/min or $0.18/min) */
+export function getExtraMinuteRateStr(user: Pick<User, 'plan' | 'chatPlan' | 'voicePlan'>, currency: 'usd' | 'inr' = 'inr'): string {
+  const config = getPlanConfig(user);
+  if (!config.extraMinuteRateINR && !config.extraMinuteRateUSD) {
+    return 'Custom Volume Pricing';
+  }
+  return currency === 'usd'
+    ? `$${config.extraMinuteRateUSD}/min`
+    : `₹${config.extraMinuteRateINR}/min`;
+}
+
+/** Calculate overage cost for minutes used beyond the included allocation */
+export function calculateOverageCost(
+  user: Pick<User, 'plan' | 'chatPlan' | 'voicePlan'>,
+  minutesUsed: number,
+  currency: 'usd' | 'inr' = 'inr'
+): { overageMinutes: number; overageCost: number; rateStr: string } {
+  const maxMins = getMaxMinutes(user);
+  if (maxMins < 0 || minutesUsed <= maxMins) {
+    return { overageMinutes: 0, overageCost: 0, rateStr: getExtraMinuteRateStr(user, currency) };
+  }
+  const config = getPlanConfig(user);
+  const overageMinutes = minutesUsed - maxMins;
+  const rate = currency === 'usd' ? config.extraMinuteRateUSD : config.extraMinuteRateINR;
+  const overageCost = overageMinutes * rate;
+  return {
+    overageMinutes,
+    overageCost,
+    rateStr: getExtraMinuteRateStr(user, currency),
+  };
 }
 
 /** Get plan display name */

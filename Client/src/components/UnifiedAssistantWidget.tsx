@@ -62,16 +62,16 @@ const KB = {
       { name: 'Chat Enterprise', price: 'Custom', features: ['Unlimited chatbots & chats', 'Dedicated support'] },
     ],
     voice: [
-      { name: 'Voice Trial', price: '₹4,999/mo', features: ['30 calls/mo (30 mins total)', 'Basic FAQ & lead capture'] },
-      { name: 'Voice Foundation', price: '₹14,999/mo', setup: '₹14,999', features: ['120 calls/mo (120 mins total)', 'Analytics dashboard'] },
-      { name: 'Voice Scale', price: '₹29,999/mo', setup: '₹39,999', features: ['400 calls/mo (400 mins total)', 'Custom scripts support'] },
-      { name: 'Voice Dominate', price: '₹74,999/mo', setup: '₹89,999', features: ['1,200 calls/mo (unlimited mins)', 'White-labeling support'] },
+      { name: 'Voice Launch', price: '₹4,999/mo ($149)', setup: '₹14,999', features: ['500 mins/mo', '1 AI Voice Agent', '1 Phone number'] },
+      { name: 'Voice Growth ⭐', price: '₹14,999/mo ($349)', setup: '₹29,999', features: ['1,500 mins/mo', '2 Phone numbers', '5 AI Workflows', 'CRM Integration'] },
+      { name: 'Voice Scale', price: '₹34,999/mo ($799)', setup: '₹49,999', features: ['5,000 mins/mo', '5 Phone numbers', 'Unlimited Workflows', 'WhatsApp follow-ups'] },
+      { name: 'Voice Enterprise', price: 'Custom', setup: 'Custom', features: ['Unlimited mins & agents', 'White Label', '24x7 Support'] },
     ],
     combo: [
-      { name: 'Combo Trial', price: '₹4,999/mo', features: ['1 chatbot / 100 chats/mo', '30 calls/mo (30 mins total)'] },
-      { name: 'Combo Foundation', price: '₹16,498/mo', setup: '₹14,999', features: ['1 chatbot / 1,500 chats/mo', '120 calls/mo (120 mins total)'] },
-      { name: 'Combo Scale', price: '₹34,998/mo', setup: '₹39,999', features: ['Unlimited chatbots / 6,000 chats/mo', '400 calls/mo (400 mins total)'] },
-      { name: 'Combo Dominate', price: '₹74,999/mo', setup: '₹89,999', features: ['Unlimited chatbots & chats', '1,200 calls/mo (unlimited mins)'] },
+      { name: 'Combo Launch', price: '₹4,999/mo ($149)', setup: '₹14,999', features: ['1 chatbot / 100 chats/mo', '500 voice mins/mo'] },
+      { name: 'Combo Growth ⭐', price: '₹16,498/mo ($378)', setup: '₹29,999', features: ['2 chatbots / 1,500 chats/mo', '1,500 voice mins/mo'] },
+      { name: 'Combo Scale', price: '₹39,998/mo ($898)', setup: '₹49,999', features: ['Unlimited chatbots / 6,000 chats/mo', '5,000 voice mins/mo'] },
+      { name: 'Combo Enterprise', price: 'Custom', setup: 'Custom', features: ['Unlimited chatbots & chats', 'Unlimited voice mins'] },
     ]
   },
 };
@@ -254,10 +254,10 @@ function generateResponse(input: string): { text: string; triggerLead?: boolean 
 
 | Plan Tier | Chat Plan | Voice Plan | Combo Plan |
 |-----------|-----------|------------|------------|
-| **Trial/Free** | ₹0/mo | ₹4,999/mo | ₹4,999/mo |
-| **Foundation** | ₹1,499/mo | ₹14,999/mo | ₹16,498/mo |
-| **Scale** | ₹4,999/mo | ₹29,999/mo | ₹34,998/mo |
-| **Dominate** | Custom | ₹74,999/mo | ₹74,999/mo |
+| **Launch** | ₹0/mo | ₹4,999/mo ($149) | ₹4,999/mo |
+| **Growth** | ₹1,499/mo | ₹14,999/mo ($349) | ₹16,498/mo |
+| **Scale** | ₹4,999/mo | ₹34,999/mo ($799) | ₹39,998/mo |
+| **Enterprise** | Custom | Custom | Custom |
 
 Interested in a plan? Share your details and we will help you get set up!`,
         triggerLead: true
@@ -286,44 +286,44 @@ Interested in a plan? Share your details and we will help you get set up!`,
       text: `**Free & Trial Plans**
 
 • **Chat Free**: ₹0 forever (1 chatbot, 100 chats/mo, website embed)
-• **Voice Trial**: ₹4,999/mo (30 calls/mo, 30 total minutes)
-• **Combo Trial**: ₹4,999/mo (1 chatbot, 100 chats/mo + 30 calls/mo)
+• **Voice Launch**: ₹4,999/mo ($149/mo) (+ ₹14,999 setup) — 500 mins/mo, 1 AI Voice Agent
+• **Combo Launch**: ₹4,999/mo (1 chatbot + 500 voice mins/mo)
 
 Would you like to start a free trial? Share your details!`,
       triggerLead: true
     };
   }
-  if (/\b(starter|foundation)\b/.test(q)) {
+  if (/\b(starter|growth)\b/.test(q)) {
     return {
-      text: `**Starter & Foundation Plans**
+      text: `**Starter & Growth Plans**
 
 • **Chat Starter**: ₹1,499/mo (2 chatbots, 1,500 chats/mo, Website + WhatsApp)
-• **Voice Foundation**: ₹14,999/mo + ₹14,999 setup (120 calls/mo, 120 total minutes)
-• **Combo Foundation**: ₹16,498/mo + ₹14,999 setup (1 chatbot, 1,500 chats/mo + 120 calls/mo)
+• **Voice Growth ⭐**: ₹14,999/mo ($349/mo) + ₹29,999 setup (1,500 mins/mo, CRM integration)
+• **Combo Growth**: ₹16,498/mo + ₹29,999 setup (1 chatbot, 1,500 chats/mo + 1,500 voice mins/mo)
 
 Ready to get started? Share your details and we will set you up!`,
       triggerLead: true
     };
   }
-  if (/\b(growth|scale)\b/.test(q)) {
+  if (/\b(scale)\b/.test(q)) {
     return {
-      text: `**Growth & Scale Plans**
+      text: `**Scale Plans**
 
 • **Chat Growth**: ₹4,999/mo (Unlimited chatbots, 6,000 chats/mo, CRM integrations)
-• **Voice Scale**: ₹29,999/mo + ₹39,999 setup (400 calls/mo, 400 total minutes)
-• **Combo Scale**: ₹34,998/mo + ₹39,999 setup (Unlimited chatbots, 6,000 chats/mo + 400 calls/mo)
+• **Voice Scale**: ₹34,999/mo ($799/mo) + ₹49,999 setup (5,000 mins/mo, 5 phone numbers, WhatsApp follow-ups)
+• **Combo Scale**: ₹39,998/mo + ₹49,999 setup (Unlimited chatbots + 5,000 voice mins/mo)
 
 This is our most popular tier for growing businesses. Share your details to sign up!`,
       triggerLead: true
     };
   }
-  if (/\b(enterprise|dominate)\b/.test(q)) {
+  if (/\b(enterprise)\b/.test(q)) {
     return {
-      text: `**Enterprise & Dominate Plans**
+      text: `**Enterprise Plans**
 
 • **Chat Enterprise**: Custom pricing (Unlimited chatbots & chats, custom AI models)
-• **Voice Dominate**: ₹74,999/mo + ₹89,999 setup (1,200 calls/mo, unlimited minutes, white-label reseller)
-• **Combo Dominate**: ₹74,999/mo + ₹89,999 setup (Unlimited chats/mo + 1,200 calls/mo)
+• **Voice Enterprise**: Custom pricing & custom setup (Unlimited mins & agents, White Label, 24x7 support)
+• **Combo Enterprise**: Custom pricing (Unified voice + chat platform)
 
 Ready for full-scale automation? Share your details and our team will build a custom package!`,
       triggerLead: true

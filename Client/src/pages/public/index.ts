@@ -5,4 +5,6 @@ export { Register } from './Register';
 export { Agents } from './Agents';
 export { CaseStudies } from './CaseStudies';
 export { Pricing } from './Pricing';
+export { VoiceAssistancePricing } from './VoiceAssistancePricing';
+export { AiChatbotPricing } from './AiChatbotPricing';
 export { News } from './News';

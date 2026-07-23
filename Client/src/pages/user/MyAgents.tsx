@@ -16,6 +16,7 @@ import VapiModule from '@vapi-ai/web';
 import { logger } from '../../utils/logger';
 import type { Agent } from '../../types';
 import { getMaxChatbots, isVoicePlan } from '../../utils/plan';
+import ActiveAddOnsBanner from '../../components/ActiveAddOnsBanner';
 
 const Vapi = (typeof VapiModule === 'function' ? VapiModule : (VapiModule as any).default) as new (key: string) => any;
 
@@ -876,6 +877,11 @@ export function MyAgents() {
             </p>
           </motion.div>
         )}
+
+        {/* ── Active Add-Ons Capabilities Banner ── */}
+        <motion.div variants={fadeUp} className="relative z-10">
+          <ActiveAddOnsBanner filterIds={['regional-language-agent', 'script-ab-testing', 'whatsapp-followup', 'reactivation-campaigns']} />
+        </motion.div>
 
         {/* ── Voice minutes usage bar ── */}
         {(() => {

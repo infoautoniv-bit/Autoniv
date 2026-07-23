@@ -86,7 +86,7 @@ export function PublicNavbar() {
       href: '/pricing',
       hasDropdown: true,
       dropdownItems: [
-        { label: 'AI Voice Agents', href: '/pricing?mode=voice' },
+        { label: 'AI Voice Assistance', href: '/pricing/voice-assistance' },
         { label: 'AI Chatbots', href: '/pricing/ai-chatbot' },
       ],
     },

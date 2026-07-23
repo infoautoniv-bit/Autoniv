@@ -160,9 +160,9 @@ export function ForgotPassword() {
             {step === 'email' && 'Forgot Password'}
             {step === 'password' && 'Reset Password'}
           </h1>
-          <p className="text-[var(--slate-light)]">
-            {step === 'email' && "Enter your email and we'll send you a verification code"}
-            {step === 'password' && 'Enter the verification code and your new password'}
+          <p className="text-[var(--slate-light)] text-sm max-w-sm mx-auto">
+            {step === 'email' && "Enter your registered email address to receive a verification code"}
+            {step === 'password' && `If an account exists for ${email}, a 6-digit code was sent. Enter the code and your new password below.`}
           </p>
         </div>
 

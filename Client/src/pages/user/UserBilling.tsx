@@ -6,6 +6,9 @@ import { createUpgradeRequest, fetchMyUpgradeRequests } from '../../store/slices
 import { fetchMyAgents } from '../../store/slices/agentsSlice';
 import { isChatPlan, isVoicePlan, getPlanConfigByKey } from '../../utils/plan';
 
+import { checkAuth } from '../../store/slices/authSlice';
+import { whiteLabelService } from '../../services/api';
+
 const CONTACT_PHONE_RAW = import.meta.env.VITE_CONTACT_PHONE_RAW || '917065990307';
 const CONTACT_PHONE = import.meta.env.VITE_CONTACT_PHONE || '+917065990307';
 
@@ -68,110 +71,122 @@ const planCategories = {
   ],
   voice: [
     {
-      id: 'voice_free', name: 'Voice Trial', tagline: 'Test the system. See results in 30 days.',
-      price: 4999, priceUSD: 59, callsPerMonth: 30, minutesPerMonth: 30,
+      id: 'voice_free', name: 'Voice Launch', tagline: 'Start automating your business call volume.',
+      price: 4999, priceUSD: 149, callsPerMonth: 500, minutesPerMonth: 500, setupFee: 14999, setupFeeUSD: 499,
       features: [
-        { text: '1 AI Voice Assistant', included: true },
-        { text: '30 calls / month', included: true },
-        { text: 'Lead capture & logging', included: true },
-        { text: 'WhatsApp delivery', included: true },
-        { text: '30-day upgrade path', included: true },
-        { text: 'CRM integration', included: false },
+        { text: '1 AI Voice Agent', included: true },
+        { text: '500 Minutes / month', included: true },
+        { text: '1 Phone Number', included: true },
+        { text: '1 AI Workflow', included: true },
+        { text: 'Lead Capture & Booking', included: true },
+        { text: 'Call Recording', included: true },
+        { text: 'Basic Analytics', included: true },
+        { text: 'Email Support', included: true },
+        { text: 'Extra minutes: ₹12/min ($0.18/min)', included: true },
       ],
-      icon: '🎙️', style: 'dashed', accentColor: 'from-slate-400 to-slate-500'
+      icon: '🚀', style: 'solid', accentColor: 'from-blue-500 to-indigo-600'
     },
     {
-      id: 'voice_starter', name: 'Voice Foundation', tagline: 'For businesses automating first conversations.',
-      price: 14999, priceUSD: 179, callsPerMonth: 120, minutesPerMonth: 120, setupFee: 14999, setupFeeUSD: 179,
+      id: 'voice_starter', name: 'Voice Growth', tagline: '3x the minutes of Launch for growing teams.',
+      price: 14999, priceUSD: 349, callsPerMonth: 1500, minutesPerMonth: 1500, setupFee: 29999, setupFeeUSD: 999,
+      badge: 'Most Popular', icon: '📈', style: 'featured',
       features: [
-        { text: '1 AI Voice Assistant', included: true },
-        { text: '120 calls / month', included: true },
-        { text: 'Lead capture & logging', included: true },
-        { text: 'WhatsApp data delivery', included: true },
-        { text: 'Basic analytics', included: true },
-        { text: 'Free demo call', included: true },
-      ],
-      icon: '🎤', style: 'solid', accentColor: 'from-blue-500 to-indigo-600'
-    },
-    {
-      id: 'voice_growth', name: 'Voice Scale', tagline: 'For teams replacing a full calling function.',
-      price: 29999, priceUSD: 359, callsPerMonth: 400, minutesPerMonth: 400, setupFee: 39999, setupFeeUSD: 479,
-      badge: 'Most Popular', icon: '📞', style: 'featured',
-      features: [
-        { text: 'Up to 3 AI Workflows', included: true },
-        { text: '400 calls / month', included: true },
-        { text: 'Custom call scripts', included: true },
-        { text: 'CRM integration', included: true },
-        { text: 'Analytics dashboard', included: true },
-        { text: 'Priority support', included: true },
+        { text: '1 AI Voice Agent', included: true },
+        { text: '1,500 Minutes / month', included: true },
+        { text: '2 Phone Numbers', included: true },
+        { text: 'Up to 5 AI Workflows', included: true },
+        { text: 'AI Call Summary', included: true },
+        { text: 'Multi-Language Support', included: true },
+        { text: 'CRM Integration', included: true },
+        { text: 'Priority Support', included: true },
+        { text: 'Extra minutes: ₹11/min ($0.16/min)', included: true },
       ],
       accentColor: 'from-emerald-500 to-teal-600'
     },
     {
-      id: 'voice_enterprise', name: 'Voice Dominate', tagline: 'For high-volume operations that can\'t slow down.',
-      price: 74999, priceUSD: 899, callsPerMonth: 1200, minutesPerMonth: -1, setupFee: 89999, setupFeeUSD: 1079,
+      id: 'voice_growth', name: 'Voice Scale', tagline: 'For high-volume operations requiring full control.',
+      price: 34999, priceUSD: 799, callsPerMonth: 4000, minutesPerMonth: 4000, setupFee: 49999, setupFeeUSD: 1999,
+      icon: '⚡', style: 'solid',
       features: [
-        { text: 'Unlimited Workflows', included: true },
-        { text: '1,200 calls / month', included: true },
-        { text: 'Advanced automation', included: true },
-        { text: 'Full API & CRM integrations', included: true },
-        { text: 'Dedicated account manager', included: true },
-        { text: 'Custom reporting', included: true },
+        { text: '1 AI Voice Agent', included: true },
+        { text: '4,000 Minutes / month', included: true },
+        { text: 'Multiple Phone Numbers', included: true },
+        { text: 'Unlimited AI Workflows', included: true },
+        { text: 'Advanced + CRM Analytics', included: true },
+        { text: 'WhatsApp Follow-ups', included: true },
+        { text: 'API & Webhooks', included: true },
+        { text: 'Priority Support & SLA', included: true },
+        { text: 'Extra minutes: ₹10/min ($0.14/min)', included: true },
+      ],
+      accentColor: 'from-indigo-500 to-purple-600'
+    },
+    {
+      id: 'voice_enterprise', name: 'Voice Enterprise', tagline: 'Tailored AI automation for large organizations.',
+      price: 0, priceUSD: 0, callsPerMonth: 99999, minutesPerMonth: -1, setupFee: 0, setupFeeUSD: 0,
+      features: [
+        { text: 'Unlimited Voice Agents', included: true },
+        { text: 'Custom Minutes', included: true },
+        { text: 'Unlimited Phone Numbers', included: true },
+        { text: 'White Label Included', included: true },
+        { text: 'Dedicated Account Manager', included: true },
+        { text: 'Custom Integrations', included: true },
+        { text: '24×7 Premium Support', included: true },
+        { text: 'Extra minutes: Custom Volume Pricing', included: true },
       ],
       icon: '🏢', style: 'solid', accentColor: 'from-violet-500 to-purple-650'
     }
   ],
   both: [
     {
-      id: 'both_free', name: 'Chat + Voice Trial', tagline: 'Test both chat and voice capabilities.',
-      price: 4999, priceUSD: 59, callsPerMonth: 100, minutesPerMonth: 30,
+      id: 'both_free', name: 'Chat + Voice Launch', tagline: 'Combine website chat and voice call automation.',
+      price: 4999, priceUSD: 149, callsPerMonth: 500, minutesPerMonth: 500, setupFee: 14999, setupFeeUSD: 499,
       features: [
-        { text: '1 chatbot & 1 voice agent', included: true },
-        { text: '100 conversations & 30 calls', included: true },
-        { text: 'Website embed', included: true },
-        { text: 'Basic FAQ & lead capture', included: true },
+        { text: '1 Chatbot & 1 Voice Agent', included: true },
+        { text: '100 chats & 500 voice mins', included: true },
+        { text: 'Website embed & Lead Capture', included: true },
         { text: 'WhatsApp delivery', included: true },
-        { text: 'CRM integration', included: false },
+        { text: 'Email Support', included: true },
       ],
-      icon: '✨', style: 'dashed', accentColor: 'from-slate-400 to-slate-500'
+      icon: '✨', style: 'solid', accentColor: 'from-blue-500 to-indigo-600'
     },
     {
-      id: 'both_starter', name: 'Chat + Voice Foundation', tagline: 'Combined package for growing businesses.',
-      price: 16498, priceUSD: 208, callsPerMonth: 1500, minutesPerMonth: 120, setupFee: 14999, setupFeeUSD: 179,
+      id: 'both_starter', name: 'Chat + Voice Growth', tagline: 'Combined growth package for scaling businesses.',
+      price: 16498, priceUSD: 378, callsPerMonth: 1500, minutesPerMonth: 1500, setupFee: 29999, setupFeeUSD: 999,
+      badge: 'Best Value', icon: '⚡', style: 'featured',
       features: [
-        { text: '2 chatbots & 3 voice agents', included: true },
-        { text: '1,500 chats & 120 calls', included: true },
-        { text: 'WhatsApp + website', included: true },
-        { text: 'Basic analytics', included: true },
-        { text: 'Free demo call', included: true },
-        { text: 'No CRM integration', included: false },
-      ],
-      icon: '⚡', style: 'solid', accentColor: 'from-blue-500 to-indigo-600'
-    },
-    {
-      id: 'both_growth', name: 'Chat + Voice Scale', tagline: 'Complete automation for scaling teams.',
-      price: 34998, priceUSD: 458, callsPerMonth: 6000, minutesPerMonth: 400, setupFee: 39999, setupFeeUSD: 479,
-      badge: 'Best Value', icon: '🔥', style: 'featured',
-      features: [
-        { text: 'Unlimited chatbots & 3 AI workflows', included: true },
-        { text: '6,000 chats & 400 calls', included: true },
-        { text: 'All channels incl. Instagram', included: true },
-        { text: 'Custom call scripts', included: true },
-        { text: 'CRM & helpdesk integrations', included: true },
+        { text: '2 chatbots & 1 Voice Agent', included: true },
+        { text: '1,500 chats & 1,500 voice mins', included: true },
+        { text: 'WhatsApp + Website channels', included: true },
+        { text: 'AI Call Summary & Multi-language', included: true },
+        { text: 'CRM Integration', included: true },
         { text: 'Priority support', included: true },
       ],
       accentColor: 'from-emerald-500 to-teal-600'
     },
     {
-      id: 'both_enterprise', name: 'Chat + Voice Dominate', tagline: 'Complete customized AI architecture.',
-      price: 74999, priceUSD: 899, callsPerMonth: 99999, minutesPerMonth: -1, setupFee: 89999, setupFeeUSD: 1079,
+      id: 'both_growth', name: 'Chat + Voice Scale', tagline: 'Complete automation across all customer touchpoints.',
+      price: 39998, priceUSD: 898, callsPerMonth: 6000, minutesPerMonth: 5000, setupFee: 49999, setupFeeUSD: 1999,
+      icon: '🔥', style: 'solid',
       features: [
-        { text: 'Unlimited chatbots & agents', included: true },
+        { text: 'Unlimited chatbots & 1 Voice Agent', included: true },
+        { text: '6,000 chats & 5,000 voice mins', included: true },
+        { text: 'All 5 channels + WhatsApp Follow-ups', included: true },
+        { text: 'API & Webhook Integrations', included: true },
+        { text: 'Dedicated Success Manager', included: true },
+        { text: 'Priority support', included: true },
+      ],
+      accentColor: 'from-indigo-500 to-purple-600'
+    },
+    {
+      id: 'both_enterprise', name: 'Chat + Voice Enterprise', tagline: 'Complete customized AI architecture.',
+      price: 0, priceUSD: 0, callsPerMonth: 99999, minutesPerMonth: -1, setupFee: 0, setupFeeUSD: 0,
+      features: [
+        { text: 'Unlimited chatbots & voice agents', included: true },
         { text: 'Unlimited chats & voice mins', included: true },
-        { text: 'Custom voice & LLM training', included: true },
+        { text: 'White Label & Custom Integrations', included: true },
         { text: 'GDPR / HIPAA / SOC 2', included: true },
+        { text: '24×7 Premium support', included: true },
         { text: 'Dedicated account manager', included: true },
-        { text: 'Custom deployment node', included: true },
       ],
       icon: '🏢', style: 'solid', accentColor: 'from-violet-500 to-purple-650'
     }
@@ -241,6 +256,195 @@ function LockedSectionOverlay({ title, desc, onUnlock }: { title: string; desc: 
       >
         Unlock Plan
       </button>
+    </div>
+  );
+}
+
+function WhiteLabelSection({ user, onUnlockPlan }: { user: any; onUnlockPlan: () => void }) {
+  const dispatch = useAppDispatch();
+  const chatCfg = user?.chatPlan ? getPlanConfigByKey(user.chatPlan) : null;
+  const voiceCfg = user?.voicePlan ? getPlanConfigByKey(user.voicePlan) : null;
+  const legacyCfg = user?.plan ? getPlanConfigByKey(user.plan) : null;
+  const isWhiteLabelEligible = user?.role === 'admin' ||
+    Boolean(chatCfg?.features?.whiteLabel || voiceCfg?.features?.whiteLabel || legacyCfg?.features?.whiteLabel ||
+    chatCfg?.features?.removeBranding || voiceCfg?.features?.removeBranding || legacyCfg?.features?.removeBranding);
+
+  const [companyName, setCompanyName] = useState(user?.whiteLabelSettings?.companyName || '');
+  const [logoUrl, setLogoUrl] = useState(user?.whiteLabelSettings?.logoUrl || '');
+  const [faviconUrl, setFaviconUrl] = useState(user?.whiteLabelSettings?.faviconUrl || '');
+  const [customDomain, setCustomDomain] = useState(user?.whiteLabelSettings?.customDomain || '');
+  const [hidePoweredBy, setHidePoweredBy] = useState(user?.whiteLabelSettings?.hidePoweredBy || false);
+  const [supportEmail, setSupportEmail] = useState(user?.whiteLabelSettings?.supportEmail || '');
+  const [accentColor, setAccentColor] = useState(user?.whiteLabelSettings?.accentColor || '#2563EB');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    if (user?.whiteLabelSettings) {
+      setCompanyName(user.whiteLabelSettings.companyName || '');
+      setLogoUrl(user.whiteLabelSettings.logoUrl || '');
+      setFaviconUrl(user.whiteLabelSettings.faviconUrl || '');
+      setCustomDomain(user.whiteLabelSettings.customDomain || '');
+      setHidePoweredBy(user.whiteLabelSettings.hidePoweredBy || false);
+      setSupportEmail(user.whiteLabelSettings.supportEmail || '');
+      setAccentColor(user.whiteLabelSettings.accentColor || '#2563EB');
+    }
+  }, [user?.whiteLabelSettings]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setMsg(null);
+    try {
+      const res = await whiteLabelService.update({
+        companyName,
+        logoUrl,
+        faviconUrl,
+        customDomain,
+        hidePoweredBy,
+        supportEmail,
+        accentColor,
+      });
+      setMsg({ type: 'success', text: res.data.message || 'White Label & Custom Branding saved successfully!' });
+      dispatch(checkAuth());
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err.response?.data?.message || 'Failed to save White Label settings.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="relative mt-8">
+      {!isWhiteLabelEligible && (
+        <LockedSectionOverlay
+          title="White Label & Custom Branding Locked"
+          desc="Upgrade your plan to Growth, Scale, or Enterprise to upload custom logos, set custom CNAME domains, and remove platform branding."
+          onUnlock={onUnlockPlan}
+        />
+      )}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.35 }}
+        className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur-md p-6 sm:p-8 relative overflow-hidden"
+        style={{ filter: !isWhiteLabelEligible ? 'blur(4px)' : 'none', pointerEvents: !isWhiteLabelEligible ? 'none' : 'auto' }}
+      >
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+          <div>
+            <p className="text-[9px] font-black tracking-[0.25em] uppercase text-indigo-600 mb-1">BRANDING & DOMAINS</p>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">White Label & Custom Branding</h2>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Customize company logo, domain, accent color, and branding visibility</p>
+          </div>
+          <span className="px-3 py-1.5 rounded-full text-xs font-extrabold bg-indigo-50 text-indigo-600 border border-indigo-200">
+            {isWhiteLabelEligible ? '✓ Feature Unlocked' : 'Locked'}
+          </span>
+        </div>
+
+        {msg && (
+          <div className={`p-4 mb-6 rounded-xl text-xs font-bold ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+            {msg.text}
+          </div>
+        )}
+
+        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-500 mb-1.5">Custom Company Name</label>
+            <input
+              type="text"
+              placeholder="e.g. Acme Corp AI"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-500 mb-1.5">Custom Logo Image URL</label>
+            <input
+              type="url"
+              placeholder="https://example.com/logo.png"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-500 mb-1.5">Custom Favicon URL</label>
+            <input
+              type="url"
+              placeholder="https://example.com/favicon.ico"
+              value={faviconUrl}
+              onChange={(e) => setFaviconUrl(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-500 mb-1.5">Custom Domain (CNAME Mapping)</label>
+            <input
+              type="text"
+              placeholder="ai.yourcompany.com"
+              value={customDomain}
+              onChange={(e) => setCustomDomain(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-500 mb-1.5">Support Email Address</label>
+            <input
+              type="email"
+              placeholder="support@yourcompany.com"
+              value={supportEmail}
+              onChange={(e) => setSupportEmail(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-500 mb-1.5">Accent Color</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="w-10 h-10 rounded-lg cursor-pointer border border-slate-200 p-1"
+              />
+              <input
+                type="text"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-slate-200 bg-slate-50/50 text-slate-800 font-mono focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div className="md:col-span-2 mt-2 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="hidePoweredBy"
+                checked={hidePoweredBy}
+                onChange={(e) => setHidePoweredBy(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
+              />
+              <label htmlFor="hidePoweredBy" className="text-xs font-extrabold text-slate-700 cursor-pointer select-none">
+                Hide "Powered by Autoniv" branding across widgets, call dialer & customer portals
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving || !isWhiteLabelEligible}
+              className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 transition-all hover:scale-[1.02] shadow-md disabled:opacity-50 cursor-pointer"
+            >
+              {saving ? 'Saving Settings...' : 'Save White Label Settings'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
     </div>
   );
 }
@@ -711,6 +915,9 @@ export function UserBilling() {
             )}
           </motion.div>
         </div>
+
+        {/* ── White Label Settings ── */}
+        <WhiteLabelSection user={user} onUnlockPlan={() => setShowUpgrade(true)} />
 
         {/* ── Upgrade Modal ── */}
         <AnimatePresence>

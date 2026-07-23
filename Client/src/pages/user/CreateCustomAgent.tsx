@@ -99,6 +99,8 @@ const DEFAULT_FORM_DATA = {
   phoneNumberId: '',
   twilioAccountSid: '',
   twilioAuthToken: '',
+  hubspotToken: '',
+  webhookUrl: '',
 };
 
 // ── Shared styles ──────────────────────────────────────────────────────────
@@ -306,6 +308,8 @@ export function CreateCustomAgent() {
           phoneNumberId: '',
           twilioAccountSid: '',
           twilioAuthToken: '',
+          hubspotToken: '',
+          webhookUrl: '',
         }
       : DEFAULT_FORM_DATA
   );
@@ -339,6 +343,11 @@ export function CreateCustomAgent() {
         phoneNumber: phoneNumberVal,
         twilioAccountSid: phoneMode === 'direct' ? formData.twilioAccountSid : '',
         twilioAuthToken: phoneMode === 'direct' ? formData.twilioAuthToken : '',
+        crmIntegrations: {
+          hubspotToken: formData.hubspotToken || undefined,
+          webhookUrl: formData.webhookUrl || undefined,
+        },
+        webhookUrl: formData.webhookUrl || undefined,
       };
       await dispatch(createAgent(submitData)).unwrap();
       await dispatch(fetchMyAgents({ page: 1, limit: 20 }));
@@ -799,6 +808,53 @@ export function CreateCustomAgent() {
                 <p className="text-[10.5px] font-medium" style={{ color: 'var(--text-muted)' }}>
                   If left blank, the agent can only be tested using web chat.
                 </p>
+              </div>
+            </SectionCard>
+
+            {/* 5 — CRM Integration & Webhooks */}
+            <SectionCard step={5} title="CRM Integration & Webhooks" subtitle="Auto-sync call leads to HubSpot or Custom Webhooks (Optional)">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label style={fieldLabel}>HubSpot Private App Access Token</label>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      HubSpot Direct Sync
+                    </span>
+                  </div>
+                  <input
+                    type="password"
+                    value={formData.hubspotToken}
+                    onChange={e => patch({ hubspotToken: e.target.value })}
+                    placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    style={inputBase}
+                    onFocus={focusStyle}
+                    onBlur={blurStyle}
+                  />
+                  <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Paste your HubSpot Private App Token to auto-create HubSpot Contacts whenever this Custom Voice Agent qualifies a caller.
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label style={fieldLabel}>Custom Webhook URL (Zapier / GHL / Salesforce / Zoho)</label>
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      JSON HTTP POST
+                    </span>
+                  </div>
+                  <input
+                    type="url"
+                    value={formData.webhookUrl}
+                    onChange={e => patch({ webhookUrl: e.target.value })}
+                    placeholder="https://hooks.zapier.com/hooks/catch/... or https://your-server.com/api/webhook"
+                    style={inputBase}
+                    onFocus={focusStyle}
+                    onBlur={blurStyle}
+                  />
+                  <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Instant webhook payload will be sent when calls end with extracted lead details (name, phone, email, purpose, notes).
+                  </p>
+                </div>
               </div>
             </SectionCard>
 

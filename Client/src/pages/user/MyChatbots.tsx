@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatbotService } from '../../services/api';
+import ActiveAddOnsBanner from '../../components/ActiveAddOnsBanner';
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
@@ -172,6 +173,11 @@ export function MyChatbots() {
               New Chatbot
             </Link>
           </div>
+        </motion.div>
+
+        {/* ── Active Add-Ons Capabilities Banner ── */}
+        <motion.div variants={fadeUp}>
+          <ActiveAddOnsBanner filterIds={['whatsapp-channel', 'advanced-analytics', 'white-label-reseller']} />
         </motion.div>
 
         {/* ── Stat tiles ── */}

@@ -113,6 +113,7 @@ const userNavItems: NavItem[] = [
   { path: '/dashboard/leads', label: 'Leads', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', badge: null },
   { path: '/dashboard/appointment-booking', label: 'Appointments', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', badge: null },
   { path: '/dashboard/billing', label: 'Billing', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', badge: null },
+  { path: '/dashboard/team', label: 'My Team', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', badge: null },
   { path: '/dashboard/add-ons', label: 'Add-Ons', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', badge: null },
 ];
 
@@ -385,7 +386,7 @@ const UserSection: React.FC<{
         whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
         whileTap={{ scale: 0.98 }}
         className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 border border-white/5 ${isCollapsed ? 'justify-center' : ''}`}
-        onClick={() => !isCollapsed && setOpen(!open)}
+        onClick={() => setOpen(!open)}
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.02)',
         }}
@@ -429,7 +430,7 @@ const UserSection: React.FC<{
 
       {/* Dropdown Menu */}
       <AnimatePresence>
-        {open && !isCollapsed && (
+        {open && (
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -747,9 +748,33 @@ export function Sidebar() {
   const isChat = user ? isChatPlan(user) : true;
   const isVoice = user ? isVoicePlan(user) : false;
 
+  const hasTeamSupport = (() => {
+    if (isAdmin) return true;
+    if (!user) return false;
+    const chatPlan = user.chatPlan || 'chat_free';
+    const voicePlan = user.voicePlan || 'none';
+    const plan = user.plan || '';
+
+    // Only allow My Team if user has Growth, Scale, Dominant, or Enterprise plan
+    const isGrowthOrHigher =
+      chatPlan.includes('growth') ||
+      chatPlan.includes('enterprise') ||
+      voicePlan.includes('growth') ||
+      voicePlan.includes('scale') ||
+      voicePlan.includes('dominant') ||
+      voicePlan.includes('enterprise') ||
+      plan.includes('growth') ||
+      plan.includes('scale') ||
+      plan.includes('dominant') ||
+      plan.includes('enterprise');
+
+    return isGrowthOrHigher;
+  })();
+
   const navItems = isAdmin
     ? adminNavItems
     : userNavItems.filter((item) => {
+      if (item.path === '/dashboard/team') return hasTeamSupport;
       if (item.path === '/dashboard/ai-chatbot' || item.path === '/dashboard/chatbots') return isChat;
       if (
         item.path === '/dashboard/ai-voice-agent' ||
@@ -763,35 +788,45 @@ export function Sidebar() {
       return true;
     });
 
+  const customLogoUrl = user?.whiteLabelSettings?.logoUrl;
+  const customCompanyName = user?.whiteLabelSettings?.companyName;
+
   const renderLogo = (forceExpanded: boolean) => (
     <div className={`p-4 border-b border-white/5 ${isCollapsed && !forceExpanded ? 'px-3' : ''}`}>
       <Link to="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-12 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-
-        >
-          <img
-            src={logoSymbol}
-            alt="Autoniv Symbol Logo"
-            width={48}
-            height={40}
-            className="w-full h-full object-cover"
-          />
-        </motion.div>
+        {customLogoUrl ? (
+          <img src={customLogoUrl} alt={customCompanyName || "Custom Logo"} className="w-10 h-10 object-contain rounded-lg flex-shrink-0" />
+        ) : (
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-12 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+          >
+            <img
+              src={logoSymbol}
+              alt="Autoniv Symbol Logo"
+              width={48}
+              height={40}
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
+        )}
         <AnimatePresence mode="wait">
           {(!isCollapsed || forceExpanded) && (
-            <motion.img
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              src={logoText}
-              alt="Autoniv Text Logo"
-              width={113}
-              height={20}
-              className="-ml-2 h-5 w-auto whitespace-nowrap"
-            />
+            customCompanyName ? (
+              <span className="text-sm font-black text-white tracking-tight truncate max-w-[130px]">{customCompanyName}</span>
+            ) : (
+              <motion.img
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                src={logoText}
+                alt="Autoniv Text Logo"
+                width={113}
+                height={20}
+                className="-ml-2 h-5 w-auto whitespace-nowrap"
+              />
+            )
           )}
         </AnimatePresence>
       </Link>

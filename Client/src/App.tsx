@@ -27,6 +27,7 @@ const Agents = lazy(() => import('./pages/public/Agents').then(m => ({ default: 
 const CaseStudies = lazy(() => import('./pages/public/CaseStudies').then(m => ({ default: m.CaseStudies })));
 const CaseStudyDetail = lazy(() => import('./pages/public/CaseStudyDetail'));
 const Pricing = lazy(() => import('./pages/public/Pricing').then(m => ({ default: m.Pricing })));
+const VoiceAssistancePricing = lazy(() => import('./pages/public/VoiceAssistancePricing').then(m => ({ default: m.VoiceAssistancePricing })));
 const AiChatbotPricing = lazy(() => import('./pages/public/AiChatbotPricing').then(m => ({ default: m.AiChatbotPricing })));
 const News = lazy(() => import('./pages/public/News').then(m => ({ default: m.News })));
 const MyAgents = lazy(() => import('./pages/user/MyAgents').then(m => ({ default: m.MyAgents })));
@@ -38,6 +39,7 @@ const BulkCallDashboard = lazy(() => import('./components/BulkCallDashboard').th
 const MyPhoneNumbers = lazy(() => import('./pages/user/MyPhoneNumbers').then(m => ({ default: m.MyPhoneNumbers })));
 const MyLeads = lazy(() => import('./pages/user/MyLeads').then(m => ({ default: m.MyLeads })));
 const UserBilling = lazy(() => import('./pages/user/UserBilling').then(m => ({ default: m.UserBilling })));
+const MyTeam = lazy(() => import('./pages/user/MyTeam').then(m => ({ default: m.MyTeam })));
 const MyAddOns = lazy(() => import('./pages/user/MyAddOns').then(m => ({ default: m.MyAddOns })));
 const MyAppointments = lazy(() => import('./pages/user/MyAppointments').then(m => ({ default: m.MyAppointments })));
 const MyChat = lazy(() => import('./pages/user/MyChat').then(m => ({ default: m.MyChat })));
@@ -158,6 +160,10 @@ const EXACT_META: Record<string, Meta> = {
   '/pricing': {
     title: 'Pricing Plans - Autoniv',
     description: 'Choose the right plan for your business. Start free with 100 conversations per month, no credit card required, and scale as you grow.',
+  },
+  '/pricing/voice-assistance': {
+    title: 'AI Voice Agent Pricing – Plans from ₹4,999/mo | Autoniv',
+    description: 'Compare AI voice agent pricing plans from ₹4,999/month. See features, add-ons, and a free ROI calculator. No hidden fees, 30-day money-back guarantee.',
   },
   '/pricing/ai-chatbot': {
     title: 'AI Chatbot Pricing | Autoniv — Omnichannel AI Automation Platform',
@@ -446,6 +452,7 @@ function AppRoutes() {
         <Route path="/case-studies" element={<CaseStudies />} />
         <Route path="/case-studies/:id" element={<CaseStudyDetail />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/pricing/voice-assistance" element={<VoiceAssistancePricing />} />
         <Route path="/pricing/ai-chatbot" element={<AiChatbotPricing />} />
         <Route path="/news" element={<News />} />
 
@@ -465,6 +472,7 @@ function AppRoutes() {
         <Route path="/dashboard/chatbots/new" element={<ProtectedRoute feature="chat"><CreateChatbot /></ProtectedRoute>} />
         <Route path="/dashboard/chatbots/:id" element={<ProtectedRoute feature="chat"><CreateChatbot /></ProtectedRoute>} />
         <Route path="/dashboard/billing" element={<ProtectedRoute><UserBilling /></ProtectedRoute>} />
+        <Route path="/dashboard/team" element={<ProtectedRoute><MyTeam /></ProtectedRoute>} />
         <Route path="/dashboard/add-ons" element={<ProtectedRoute><MyAddOns /></ProtectedRoute>} />
         <Route path="/dashboard/support" element={<CustomerSupport />} />
 
