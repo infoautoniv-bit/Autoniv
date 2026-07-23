@@ -519,7 +519,7 @@ router.post('/incoming-call', async (req, res) => {
     }
 
     const actionUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/vapi', '/incoming-call') : `https://${host}/api/webhooks/incoming-call`}`;
-    const speakUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/vapi', '/tts/speak') : `https://${host}/api/tts/speak`}?agentId=${agentId}&text=${encodeURIComponent(responseText)}`;
+    const speakUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/webhooks/vapi', '/tts/speak').replace('/vapi', '/tts/speak') : `https://${host}/api/tts/speak`}?agentId=${agentId}&text=${encodeURIComponent(responseText)}`;
     return res.send(buildTurnBasedResponse({ platform, responseText, actionUrl, speakUrl }));
   }
 

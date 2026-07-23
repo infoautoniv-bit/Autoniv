@@ -176,6 +176,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/chat-history', chatHistoryRoutes);
 app.use('/api/widget', widgetRoutes);
 app.use('/api/tts', ttsRoutes);
+app.use('/api/webhooks/tts', ttsRoutes);
 app.use('/api/bulk-calls', bulkCallRoutes);
 app.use('/api/phone-numbers', phoneNumberRoutes);
 app.use('/api/team', teamRoutes);
