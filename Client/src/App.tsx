@@ -166,8 +166,8 @@ const EXACT_META: Record<string, Meta> = {
     description: 'Compare AI voice agent pricing plans from ₹4,999/month. See features, add-ons, and a free ROI calculator. No hidden fees, 30-day money-back guarantee.',
   },
   '/pricing/ai-chatbot': {
-    title: 'AI Chatbot Pricing | Autoniv — Omnichannel AI Automation Platform',
-    description: "Autoniv AI chatbot pricing: transparent plans for Website, WhatsApp, Instagram and Facebook automation. Compare features, see ROI, and start free. Pricing for India (INR) and global (USD) businesses.",
+    title: 'AI Chatbot Pricing | Autoniv',
+    description: "Compare Autoniv's AI chatbot pricing for Website, WhatsApp, Instagram & Facebook automation. Plans from free to enterprise, in USD & INR. Start free.",
   },
   '/news': {
     title: 'Latest News - Autoniv',
