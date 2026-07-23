@@ -31,13 +31,20 @@ export function turnBasedDialect(platform) {
  * @returns {string} XML document
  */
 export function buildTurnBasedResponse({ platform, responseText, actionUrl, speakUrl }) {
-  const dialect = turnBasedDialect(platform);
+  const p = String(platform || '').toLowerCase();
   const escapedSpeak = String(speakUrl || '').replace(/&/g, '&amp;');
   const escapedAction = String(actionUrl || '').replace(/&/g, '&amp;');
+  const escapedText = String(responseText || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  if (dialect === 'plivo') {
-    // Plivo XML: <GetInput> captures speech, <Play> renders our TTS URL.
-    // VERIFY: element/attribute names against current Plivo Voice XML docs.
+  if (p === 'exotel') {
+    // Exotel XML: Native <Say> / <Play> response compatible with Exotel Passthru applet
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say>${escapedText}</Say>
+</Response>`;
+  }
+
+  if (p === 'plivo') {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <GetInput action="${escapedAction}" method="POST" inputType="speech" speechEndTimeout="auto" timeout="10">
@@ -46,7 +53,7 @@ export function buildTurnBasedResponse({ platform, responseText, actionUrl, spea
 </Response>`;
   }
 
-  // Twilio-compatible TwiML (Twilio / SignalWire / Exotel / default).
+  // Twilio-compatible TwiML (Twilio / SignalWire / default).
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather input="speech dtmf" action="${escapedAction}" method="POST" timeout="10" speechTimeout="auto">
