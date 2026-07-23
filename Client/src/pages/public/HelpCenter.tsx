@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import Footer from './Footer';
-import { BRAND, INK, SLATE, HAIRLINE, SURFACE, MONO, Reveal, SectionLabel, GradientText, FAQItem } from './design';
+import { BRAND, INK, SLATE, HAIRLINE, SURFACE, MONO, Reveal, SectionLabel, GradientText } from './design';
 
 const CATEGORIES = [
   { icon: '🚀', title: 'Getting Started', desc: 'Basic platform setup & first agent creation' },
