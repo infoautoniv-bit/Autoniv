@@ -162,7 +162,7 @@ const EXACT_META: Record<string, Meta> = {
     description: 'Choose the right plan for your business. Start free with 100 conversations per month, no credit card required, and scale as you grow.',
   },
   '/pricing/voice-assistance': {
-    title: 'AI Voice Agent Pricing| Autoniv',
+    title: 'AI Voice Agent Pricing – Plans from ₹4,999/mo | Autoniv',
     description: 'Compare AI voice agent pricing plans from ₹4,999/month. See features, add-ons, and a free ROI calculator. No hidden fees, 30-day money-back guarantee.',
   },
   '/pricing/ai-chatbot': {
