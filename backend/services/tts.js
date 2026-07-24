@@ -26,13 +26,15 @@ function addWavHeader(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerSam
   return Buffer.concat([header, pcmBuffer]);
 }
 
-async function synthesizeSpeechDirectDeepgram(text, isTwilio, modelName) {
+async function synthesizeSpeechDirectDeepgram(text, fmt, modelName) {
   const deepgramKey = process.env.DEEPGRAM_API_KEY;
   if (!deepgramKey || deepgramKey.startsWith('your-')) {
     throw new Error('DEEPGRAM_API_KEY is not set or is a placeholder');
   }
-  const format = isTwilio ? 'encoding=mulaw&sample_rate=8000' : 'encoding=linear16&sample_rate=24000';
-  const container = isTwilio ? 'container=none' : 'container=wav';
+  const encoding = fmt.encoding || 'mulaw';
+  const sampleRate = fmt.sampleRate || 8000;
+  const format = `encoding=${encoding}&sample_rate=${sampleRate}`;
+  const container = fmt.isTelephony ? 'container=none' : 'container=wav';
   const url = `https://api.deepgram.com/v1/speak?model=${modelName}&${format}&${container}`;
 
   const response = await fetch(url, {
@@ -95,11 +97,7 @@ export function detectLanguageOfText(text, agentLanguage = 'en') {
   // 2. Character & word checks for common European languages.
   const lowerText = text.toLowerCase();
 
-  // Diacritic checks are strong signals (these characters almost never appear in
-  // English), so a single occurrence is enough. Word checks are NOT reliable on
-  // their own: common English words ("is", "come", "si", "de", "en"...) also occur
-  // in these stopword lists, so a lone match misclassifies English text and hijacks
-  // the caller's chosen voice/provider. Require >=2 distinct stopword matches instead.
+
   const hits = (words) => {
     let n = 0;
     for (const w of words) {
@@ -166,20 +164,27 @@ function getBestMultilingualProvider(detectedLang, gender) {
 // `isTwilio` (true => mulaw/8000 telephony output, false => linear16/24000 web
 // output). To let per-provider transport adapters declare their own audio
 // format, the second argument now also accepts a descriptor
-// `{ encoding, sampleRate }`. Today both telephony adapters (Twilio, SignalWire)
-// use mulaw/8000, so any mulaw/ulaw or 8kHz format maps to the existing
-// telephony profile — keeping current behavior byte-for-byte identical.
+// `{ encoding, sampleRate }`. The function returns the resolved format object
+// so callers can inspect the actual encoding/sampleRate used.
 function normalizeTelephonyFormat(fmt) {
-  if (typeof fmt === 'boolean') return fmt;
   if (fmt && typeof fmt === 'object') {
     const enc = String(fmt.encoding || '').toLowerCase();
-    return enc === 'mulaw' || enc === 'ulaw' || fmt.sampleRate === 8000;
+    const sr = Number(fmt.sampleRate) || 24000;
+    // isTelephony is true only for mulaw/ulaw (traditional telephony encoding).
+    // linear16 at 8kHz is used by Exotel Voicebot Applet and is NOT telephony.
+    return { encoding: enc || 'mulaw', sampleRate: sr, isTelephony: enc === 'mulaw' || enc === 'ulaw' };
   }
-  return true;
+  if (typeof fmt === 'boolean') {
+    return fmt
+      ? { encoding: 'mulaw', sampleRate: 8000, isTelephony: true }
+      : { encoding: 'linear16', sampleRate: 24000, isTelephony: false };
+  }
+  return { encoding: 'mulaw', sampleRate: 8000, isTelephony: true };
 }
 
 export async function synthesizeSpeech(text, telephonyOrFormat = true, language = 'en', voiceId = null) {
-  const isTwilio = normalizeTelephonyFormat(telephonyOrFormat);
+  const fmt = normalizeTelephonyFormat(telephonyOrFormat);
+  const isTwilio = fmt.isTelephony;
   let provider = null;
   let voiceModelOrId = voiceId;
 
@@ -286,13 +291,15 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
 
   if (provider === 'deepgram' && !isDeepgramMissing) {
     const fallbackVoice = (voiceModelOrId && (voiceModelOrId.includes('male') || voiceModelOrId.includes('orion') || voiceModelOrId.includes('zeus') || voiceModelOrId.includes('arcas'))) ? 'aura-orion-en' : (voiceModelOrId && voiceModelOrId.startsWith('aura-') ? voiceModelOrId : 'aura-asteria-en');
-    return synthesizeSpeechDirectDeepgram(text, isTwilio, fallbackVoice);
+    return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
   }
 
   if (provider === 'elevenlabs' && !isElevenLabsMissing) {
     try {
-      const outputFormat = isTwilio ? 'ulaw_8000' : 'mp3_44100_128';
-      const acceptHeader = isTwilio ? 'audio/wav' : 'audio/mpeg';
+      // ElevenLabs output formats: ulaw_8000, mp3_44100_128, pcm_16000, pcm_24000
+      // For telephony (mulaw), use ulaw_8000. For others, use mp3.
+      const outputFormat = fmt.encoding === 'mulaw' ? 'ulaw_8000' : 'mp3_44100_128';
+      const acceptHeader = fmt.encoding === 'mulaw' ? 'audio/wav' : 'audio/mpeg';
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceModelOrId}?output_format=${outputFormat}`, {
         method: 'POST',
         headers: {
@@ -322,7 +329,7 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     } catch (elevenErr) {
       console.warn('[TTS] ElevenLabs TTS failed, falling back to Deepgram Aura:', elevenErr.message);
       const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
-      return synthesizeSpeechDirectDeepgram(text, isTwilio, fallbackVoice);
+      return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
     }
   }
 
@@ -349,12 +356,12 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     if (!languageCodes[language]) {
       console.warn(`[TTS] Sarvam does not support language: ${language}. Falling back to Deepgram Aura.`);
       const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
-      return synthesizeSpeechDirectDeepgram(text, isTwilio, fallbackVoice);
+      return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
     }
 
     const targetLangCode = languageCodes[language];
-    const sampleRate = isTwilio ? 8000 : 24000;
-    const outputCodec = isTwilio ? 'mulaw' : 'linear16';
+    const sampleRate = fmt.sampleRate || 8000;
+    const outputCodec = fmt.encoding || 'linear16';
 
     let sarvamModel = 'bulbul:v3';
     let speaker = 'shreya';
@@ -454,8 +461,8 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
       }
       log.warn('sarvam_tts_fully_failed_falling_back_to_deepgram', { error: errTxt || 'Network/API error' });
       // Final fallback to Deepgram with correct gender
-      const fallbackVoice = isMaleSpeaker ? 'aura-orion-en' : (isTwilio ? 'aura-stella-en' : 'aura-asteria-en');
-      return synthesizeSpeechDirectDeepgram(text, isTwilio, fallbackVoice);
+      const fallbackVoice = isMaleSpeaker ? 'aura-orion-en' : (fmt.encoding === 'mulaw' ? 'aura-stella-en' : 'aura-asteria-en');
+      return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
     }
 
     let json = null;
@@ -463,20 +470,20 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
       json = await response.json();
     } catch (jsonErr) {
       log.warn('sarvam_tts_json_parse_failed_falling_back_to_deepgram', { error: jsonErr.message });
-      const fallbackVoice = isMaleSpeaker ? 'aura-orion-en' : (isTwilio ? 'aura-stella-en' : 'aura-asteria-en');
-      return synthesizeSpeechDirectDeepgram(text, isTwilio, fallbackVoice);
+      const fallbackVoice = isMaleSpeaker ? 'aura-orion-en' : (fmt.encoding === 'mulaw' ? 'aura-stella-en' : 'aura-asteria-en');
+      return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
     }
 
     const base64Audio = json?.audios?.[0];
     if (!base64Audio) {
       log.warn('sarvam_tts_empty_audio_list_falling_back_to_deepgram');
-      const fallbackVoice = isMaleSpeaker ? 'aura-orion-en' : (isTwilio ? 'aura-stella-en' : 'aura-asteria-en');
-      return synthesizeSpeechDirectDeepgram(text, isTwilio, fallbackVoice);
+      const fallbackVoice = isMaleSpeaker ? 'aura-orion-en' : (fmt.encoding === 'mulaw' ? 'aura-stella-en' : 'aura-asteria-en');
+      return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
     }
 
-    if (!isTwilio) {
+    if (fmt.encoding !== 'mulaw') {
       const pcmBuffer = Buffer.from(base64Audio, 'base64');
-      const wavBuffer = addWavHeader(pcmBuffer, 24000, 1, 16);
+      const wavBuffer = addWavHeader(pcmBuffer, fmt.sampleRate || 24000, 1, 16);
       return wavBuffer.toString('base64');
     }
 

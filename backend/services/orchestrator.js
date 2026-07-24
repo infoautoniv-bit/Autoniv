@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import Agent from '../db/models/Agent.js';
 import Call from '../db/models/Call.js';
 import User from '../db/models/User.js';
+import PhoneNumber from '../db/models/PhoneNumber.js';
 import { DEMO_AGENT } from '../routes/publicDemo.js';
 
 import { synthesizeSpeech } from './tts.js';
@@ -109,13 +110,13 @@ const APPOINTMENT_BOOKING_RULES = `\n\nBOOKING RULES:
 
 // Hard cap on a single voice call. When it elapses we speak a wrap-up line and
 // end the call, so the agent must collect every detail inside this window.
-const MAX_CALL_DURATION_MS = 3.5 * 60 * 1000; // 4 minutes
+const MAX_CALL_DURATION_MS = 3.5 * 60 * 1000; // 3.5 minutes (210 seconds)
 
-// Closing line spoken when the 4-minute limit is hit.
+// Closing line spoken when the 3.5-minute limit is hit.
 const TIME_LIMIT_CLOSING = 'I have everything I need for now. Thank you so much for your time — our team will get back to you shortly. Goodbye!';
 
 // Appended to every agent's system prompt so it works efficiently within the cap.
-const TIME_LIMIT_RULES = `\n\nTIME LIMIT: You have a strict maximum of 4 minutes for this entire call. Be warm but efficient — collect all essential details (full name, phone number, and the purpose or booking information) as early and quickly as possible. Do not make small talk or ask unnecessary questions. Call the required tools (like saveLead) as soon as you have the information, without waiting.`;
+const TIME_LIMIT_RULES = `\n\nTIME LIMIT: You have a strict maximum of 3.5 minutes for this entire call. Be warm but efficient — collect all essential details (full name, phone number, and the purpose or booking information) as early and quickly as possible. Do not make small talk or ask unnecessary questions. Call the required tools (like saveLead, saveAppointment) as soon as you have the information, without waiting.`;
 
 // Appended to every agent's system prompt so the agent remembers caller details.
 const CALLER_MEMORY_RULES = `\n\nCALLER INFORMATION MEMORY:
@@ -196,12 +197,14 @@ export function initOrchestrator(server) {
       handleTwilioStream(ws, agentId);
     } else if (urlPath === '/web-call') {
       handleWebCall(ws, req);
+    } else if (urlPath === '/exotel-stream') {
+      handleExotelStream(ws);
     } else {
       ws.close(4004, 'Not Found');
     }
   });
 
-  console.log('[Orchestrator] Voice agent WebSocket handlers initialized on /media-stream and /web-call');
+  console.log('[Orchestrator] Voice agent WebSocket handlers initialized on /media-stream, /web-call, and /exotel-stream');
 }
 
 function handleTwilioStream(twilioWs, urlAgentId) {
@@ -476,7 +479,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
   const endCallOnTimeLimit = async () => {
     if (timeLimitReached || cleanedUp) return;
     timeLimitReached = true;
-    console.log('[Twilio WS] 2-minute call limit reached — closing call.');
+    console.log('[Twilio WS] 3.5-minute call limit reached — closing call.');
     // Cut off any current agent turn so the closing line plays immediately.
     isInterrupted = true;
     if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
@@ -553,7 +556,396 @@ function handleTwilioStream(twilioWs, urlAgentId) {
 }
 
 // ==========================================
-// 2. Web Call Connection Handler
+// 3. Exotel Voicebot Stream Handler
+// ==========================================
+async function handleExotelStream(exotelWs) {
+  console.log('[Exotel WS] Stream connection established.');
+
+  let streamSid = null;
+  let callSid = null;
+  let agentObj = null;
+  let exotelToNumber = null; // The Exotel number the caller dialed
+  let conversationHistory = [];
+  let fullTranscript = '';
+  const callStartTime = new Date();
+  let deepgramWs = null;
+  let isInterrupted = false;
+  let isProcessing = false;
+  let toolAlreadyExecuted = { saveAppointment: false, saveLead: false };
+  let callerInfo = { name: null, phone: null };
+  let cleanedUp = false;
+  let callTimeout = null;
+  let timeLimitReached = false;
+  // Exotel Voicebot Applet sends raw/slin 16-bit PCM at 8kHz (not mulaw).
+  // Deepgram STT and outbound TTS must both use linear16/8kHz.
+  const EXOTEL_SAMPLE_RATE = 8000;
+  const recorder = new AudioRecorder(EXOTEL_SAMPLE_RATE);
+  let muteInputUntil = 0;
+  const ECHO_TAIL_MS = 600;
+
+  const { groq, openaiClient, gemini } = getSharedLLM();
+
+  const runCleanup = async () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    if (callTimeout) { clearTimeout(callTimeout); callTimeout = null; }
+    await closeAndCleanup({
+      callSid, agentObj, callStartTime, fullTranscript, deepgramWs,
+      pendingLeadData: toolAlreadyExecuted.pendingLeadData, recorder,
+    });
+  };
+
+  const endCallOnTimeLimit = async () => {
+    if (timeLimitReached || cleanedUp) return;
+    timeLimitReached = true;
+    console.log('[Exotel Call] 3.5-minute limit reached — closing.');
+    isInterrupted = true;
+    if (exotelWs.readyState === WebSocket.OPEN && streamSid) {
+      try { exotelWs.send(JSON.stringify({ event: 'clear', stream_sid: streamSid })); } catch (_) { /* gone */ }
+    }
+    isInterrupted = false;
+    if (exotelWs.readyState === WebSocket.OPEN) {
+      try { exotelWs.send(JSON.stringify({ event: 'transcript', role: 'agent', text: TIME_LIMIT_CLOSING })); } catch (_) { /* gone */ }
+    }
+    try {
+      await processSentenceForPlay(TIME_LIMIT_CLOSING);
+    } catch (_) { /* best-effort */ }
+    setTimeout(() => {
+      try { if (exotelWs.readyState === WebSocket.OPEN) exotelWs.close(1000, 'Time limit reached'); } catch (_) { /* gone */ }
+      runCleanup();
+    }, 4000);
+  };
+
+  const triggerInterruption = () => {
+    if (!isProcessing || isInterrupted) return;
+    isInterrupted = true;
+    console.log('[Exotel Interruption] Caller barged in.');
+    if (exotelWs.readyState === WebSocket.OPEN && streamSid) {
+      exotelWs.send(JSON.stringify({ event: 'clear', stream_sid: streamSid }));
+    }
+  };
+
+  const extractCallerInfo = (text) => {
+    if (!text) return;
+    if (!callerInfo.name) {
+      const namePatterns = [
+        /(?:my name is|i'm|i am|this is|name's|name:)\s+([A-Za-z][A-Za-z\s]{1,30})/i,
+      ];
+      for (const pat of namePatterns) {
+        const m = text.match(pat);
+        if (m && m[1] && !/unknown|none|test|hello|hi|hey/i.test(m[1].trim())) {
+          callerInfo.name = m[1].trim();
+          break;
+        }
+      }
+    }
+    if (!callerInfo.phone) {
+      const phonePatterns = [
+        /(?:my (?:phone |number |cell )?(?:number|is|:))\s*([\d\s\-+()]{7,20})/i,
+        /(?:call me at|reach me at|number is)\s*([\d\s\-+()]{7,20})/i,
+        /\b(\d{10,15})\b/,
+      ];
+      for (const pat of phonePatterns) {
+        const m = text.match(pat);
+        if (m && m[1]) {
+          const digits = m[1].replace(/\D/g, '');
+          if (digits.length >= 7 && digits.length <= 15) {
+            callerInfo.phone = m[1].trim();
+            break;
+          }
+        }
+      }
+    }
+  };
+
+  const injectCallerContext = () => {
+    if (!callerInfo.name && !callerInfo.phone) return;
+    const sysIdx = conversationHistory.findIndex(m => m.role === 'system');
+    if (sysIdx === -1) return;
+    let ctx = '\n\nCALLER CONTEXT (already provided — do NOT ask again):';
+    if (callerInfo.name) ctx += `\n- Name: ${callerInfo.name}`;
+    if (callerInfo.phone) ctx += `\n- Phone: ${callerInfo.phone}`;
+    ctx += '\nUse this information directly. Never re-ask for details already listed above.';
+    const base = conversationHistory[sysIdx].content.replace(/\n\nCALLER CONTEXT \(already provided[^)]*\):[\s\S]*$/, '');
+    conversationHistory[sysIdx] = { role: 'system', content: base + ctx };
+  };
+
+  const handleUserUtterance = async (userInputText) => {
+    isInterrupted = false;
+    extractCallerInfo(userInputText);
+    conversationHistory.push({ role: 'user', content: userInputText });
+    injectCallerContext();
+    executeCompletionFlow();
+  };
+
+  const processSentenceForPlay = async (sentence) => {
+    if (isInterrupted) return;
+    try {
+      // Exotel Voicebot Applet expects raw/slin 16-bit PCM at 8kHz.
+      const base64Audio = await synthesizeSpeech(sentence, { encoding: 'linear16', sampleRate: EXOTEL_SAMPLE_RATE }, agentObj.language || 'en', agentObj.voiceId);
+      if (base64Audio && !isInterrupted) {
+        const agentAudioBuffer = Buffer.from(base64Audio, 'base64');
+        recorder.writeAudio(agentAudioBuffer, Date.now(), EXOTEL_SAMPLE_RATE);
+        if (exotelWs.readyState === WebSocket.OPEN && streamSid) {
+          exotelWs.send(JSON.stringify({
+            event: 'media',
+            stream_sid: streamSid,
+            media: { payload: base64Audio },
+          }));
+          // Send mark so Exotel notifies us when playback completes (for echo suppression).
+          exotelWs.send(JSON.stringify({
+            event: 'mark',
+            stream_sid: streamSid,
+            mark: { name: `audio-${Date.now()}` },
+          }));
+        }
+      }
+    } catch (err) {
+      console.error('[Exotel TTS Error]', err.message);
+    }
+  };
+
+  const executeCompletionFlow = async () => {
+    if (isProcessing) return;
+    isProcessing = true;
+    try {
+      const { stream } = await generateCompletion({
+        groq, openaiClient, gemini, conversationHistory,
+        agentType: agentObj?.type, logPrefix: 'Exotel LLM',
+        toolState: toolAlreadyExecuted, agentObj,
+      });
+      const { fullResponseText, toolCalls, interrupted } = await processStream({
+        stream, isInterrupted, onSentence: processSentenceForPlay,
+      });
+      if (interrupted) return;
+      if (fullResponseText || toolCalls.length > 0) {
+        const assistantMsg = { role: 'assistant' };
+        if (fullResponseText) {
+          assistantMsg.content = fullResponseText;
+          fullTranscript += `Agent: ${fullResponseText}\n`;
+          if (exotelWs.readyState === WebSocket.OPEN) {
+            exotelWs.send(JSON.stringify({ event: 'transcript', role: 'agent', text: fullResponseText }));
+          }
+        } else {
+          assistantMsg.content = null;
+        }
+        if (toolCalls.length > 0) {
+          assistantMsg.tool_calls = toolCalls.map(tc => ({
+            id: tc.id, type: 'function',
+            function: { name: tc.name, arguments: tc.arguments },
+          }));
+        }
+        conversationHistory.push(assistantMsg);
+      }
+      if (toolCalls.length > 0 && !isInterrupted) {
+        await executeToolCalls({
+          toolCalls, agentObj, toolAlreadyExecuted,
+          conversationHistory, logPrefix: 'Exotel Tool', callId: callSid,
+        });
+        isProcessing = false;
+        await executeCompletionFlow();
+        return;
+      }
+    } catch (err) {
+      console.error('[Exotel Completions Error]', err.message);
+      if (!isInterrupted) {
+        try { await processSentenceForPlay('Sorry, I missed that. Could you say it again?'); } catch (_) { /* best-effort */ }
+      }
+    } finally {
+      isProcessing = false;
+    }
+  };
+
+  const handleStartCall = async () => {
+    // Load agent from DB — look up by the Exotel ExoPhone number (the `to` number)
+    try {
+      if (exotelToNumber) {
+        const rawDigits = exotelToNumber.replace(/\D/g, '');
+        const last10 = rawDigits.slice(-10);
+        const phoneNumber = await PhoneNumber.findOne({
+          platform: 'exotel',
+          $or: [
+            { phoneNumber: exotelToNumber },
+            { phoneNumber: { $regex: last10 + '$' } }
+          ],
+          status: 'active',
+        }).populate('assignedToAgent').lean();
+        
+        if (phoneNumber?.assignedToAgent) {
+          agentObj = phoneNumber.assignedToAgent;
+          // Store Exotel credentials for potential outbound API calls
+          agentObj._exotelCredentials = phoneNumber.credentials || {};
+          console.log(`[Database] Loaded Exotel Agent via PhoneNumber: ${agentObj.name}`);
+        }
+      }
+      // Fallback 1: try callSid if it looks like a MongoDB ObjectId
+      if (!agentObj && callSid && mongoose.Types.ObjectId.isValid(callSid)) {
+        const callObj = await Call.findOne({ vapiCallId: callSid }).populate('agentId').lean();
+        if (callObj?.agentId) {
+          agentObj = callObj.agentId;
+          console.log(`[Database] Loaded Exotel Agent via Call record: ${agentObj.name}`);
+        }
+      }
+
+      // Fallback 2: find any active Exotel PhoneNumber assigned to an agent
+      if (!agentObj) {
+        const fallbackPhone = await PhoneNumber.findOne({
+          platform: 'exotel',
+          status: 'active',
+          assignedToAgent: { $exists: true, $ne: null }
+        }).populate('assignedToAgent').lean();
+
+        if (fallbackPhone?.assignedToAgent) {
+          agentObj = fallbackPhone.assignedToAgent;
+          console.log(`[Database] Loaded fallback Exotel Agent via PhoneNumber: ${agentObj.name}`);
+        }
+      }
+
+      // Fallback 3: find the latest active Agent in DB
+      if (!agentObj) {
+        agentObj = await Agent.findOne({ isActive: true }).sort({ updatedAt: -1 }).lean();
+        if (agentObj) {
+          console.log(`[Database] Loaded default active Agent for Exotel call: ${agentObj.name}`);
+        }
+      }
+    } catch (dbErr) {
+      console.error('[Database] Exotel agent resolution error:', dbErr.message);
+    }
+
+    if (!agentObj) {
+      console.error('[Exotel] No agent found — cannot start call.');
+      exotelWs.close(4001, 'Agent not found');
+      return;
+    }
+
+    // Initialize Deepgram STT after agent is loaded
+    // Exotel Voicebot Applet sends raw/slin 16-bit PCM (linear16) at 8kHz.
+    try {
+      deepgramWs = await createDeepgramSTT({
+        agentObj, encoding: 'linear16', sampleRate: EXOTEL_SAMPLE_RATE,
+        logPrefix: 'Deepgram Exotel STT',
+        onTranscript: (text) => {
+          fullTranscript += `Caller: ${text}\n`;
+          if (exotelWs.readyState === WebSocket.OPEN) {
+            exotelWs.send(JSON.stringify({ event: 'transcript', role: 'caller', text }));
+          }
+          handleUserUtterance(text);
+        },
+        onInterruption: triggerInterruption,
+      });
+    } catch (sttErr) {
+      console.error('[Exotel] Deepgram STT init failed:', sttErr.message);
+    }
+
+    const ownerUser = await User.findById(agentObj.userId).lean();
+    let systemInstructions = buildSystemPrompt(agentObj.type, agentObj.prompt);
+    if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser);
+    if (agentObj.type === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
+    systemInstructions += TIME_LIMIT_RULES;
+    systemInstructions += CALLER_MEMORY_RULES;
+
+    const agentLangName = LANGUAGE_NAMES[agentObj?.language || 'en'] || 'English';
+    systemInstructions += `\n\nMULTILINGUAL & HUMAN SPEECH RULES:
+1. You must respond in the same language that the user is speaking. If the user speaks or switches to another language (such as English, Hindi, Spanish, French, etc.), you MUST switch and reply in that language directly. Your default/starting language is ${agentLangName}.
+2. Speak exactly like a natural, warm, and friendly human. Never sound robotic, and never output lists, tables, or bullet points.
+3. When speaking in Hindi, use natural, conversational Hindi phrasing. Never write dates or times using spelled-out English words (e.g., do NOT say "twenty sixth july" or "four baje"). Instead, write them in standard digits or native Hindi words (e.g., say "26 जुलाई 2026" or "छब्बीस जुलाई" and "4 बजे" or "चार बजे"). Keep numbers and dates in standard format so the voice engine pronounces them naturally like a human.`;
+
+    let greetingText = await generateGreeting({ groq, openaiClient, gemini, systemInstructions, agentType: agentObj.type, agentObj });
+    const result = await translateIfNeeded(systemInstructions, greetingText, agentObj.language || 'en');
+    systemInstructions = result.systemInstructions;
+    greetingText = result.greetingText;
+
+    conversationHistory.push({ role: 'system', content: systemInstructions });
+    console.log(`[Exotel Greeting] "${greetingText}"`);
+    conversationHistory.push({ role: 'assistant', content: greetingText });
+    fullTranscript += `Agent: ${greetingText}\n`;
+
+    if (exotelWs.readyState === WebSocket.OPEN) {
+      exotelWs.send(JSON.stringify({ event: 'transcript', role: 'agent', text: greetingText }));
+    }
+    isProcessing = true;
+    try {
+      await processSentenceForPlay(greetingText);
+    } finally {
+      isProcessing = false;
+    }
+
+    callTimeout = setTimeout(endCallOnTimeLimit, MAX_CALL_DURATION_MS);
+  };
+
+  // ---------- Exotel event handling ----------
+  exotelWs.on('message', (raw, isBinary) => {
+    try {
+      if (isBinary || Buffer.isBuffer(raw) || raw instanceof Uint8Array || raw instanceof ArrayBuffer) {
+        // Raw binary audio (mu-law) — forward to Deepgram.
+        const audioBuffer = Buffer.from(raw);
+        recorder.writeAudio(audioBuffer, Date.now(), EXOTEL_SAMPLE_RATE);
+        if (deepgramWs && deepgramWs.readyState === WebSocket.OPEN) {
+          deepgramWs.send(audioBuffer);
+        }
+        return;
+      }
+
+      const data = JSON.parse(raw.toString());
+
+      switch (data.event) {
+        case 'connected':
+          console.log('[Exotel] Stream connected.');
+          break;
+
+        case 'start':
+          // Exotel sends stream_sid at top level AND inside start object.
+          streamSid = data.stream_sid || data.start?.stream_sid || null;
+          exotelToNumber = data.start?.to || null;
+          callSid = data.start?.call_sid || 'exotel-call';
+          console.log(`[Exotel] Stream started. streamSid=${streamSid}, callSid=${callSid}, from=${data.start?.from}, to=${exotelToNumber}`);
+          handleStartCall();
+          break;
+
+        case 'media': {
+          // Exotel sends media events (not "audio") with timestamp as string.
+          if (data.media?.payload) {
+            const inboundPcm = Buffer.from(data.media.payload, 'base64');
+            recorder.writeAudio(inboundPcm, Date.now(), EXOTEL_SAMPLE_RATE);
+            if (Date.now() < muteInputUntil) break;
+            if (deepgramWs && deepgramWs.readyState === WebSocket.OPEN) {
+              deepgramWs.send(inboundPcm);
+            }
+          }
+          break;
+        }
+
+        case 'dtmf':
+          // DTMF digits from caller — can be used for menu navigation if needed.
+          console.log(`[Exotel] DTMF digit: ${data.dtmf?.digit}`);
+          break;
+
+        case 'mark':
+          // Notification that previously sent audio finished playing.
+          console.log(`[Exotel] Mark received: ${data.mark?.name}`);
+          break;
+
+        case 'stop':
+          console.log(`[Exotel] Stream stop received. Reason: ${data.stop?.reason || 'unknown'}`);
+          exotelWs.close(1000, 'Exotel stream ended');
+          break;
+
+        default:
+          console.log(`[Exotel] Unknown event: ${data.event}`);
+      }
+    } catch (err) {
+      console.error('[Exotel WS Parse Error]', err.message);
+    }
+  });
+
+  exotelWs.on('close', async () => {
+    console.log('[Exotel WS] Client closed.');
+    await runCleanup();
+  });
+}
+
+// ==========================================
+// 4. Web Call Connection Handler
 // ==========================================
 async function handleWebCall(clientWs, req) {
   console.log('[Web Call] Client connection request.');
@@ -832,7 +1224,7 @@ async function handleWebCall(clientWs, req) {
   const endCallOnTimeLimit = async () => {
     if (timeLimitReached || cleanedUp) return;
     timeLimitReached = true;
-    console.log('[Web Call] 2-minute call limit reached — closing call.');
+    console.log('[Web Call] 3.5-minute call limit reached — closing call.');
     isInterrupted = true;
     if (clientWs.readyState === WebSocket.OPEN) {
       try { clientWs.send(JSON.stringify({ event: 'clear' })); } catch (_) { /* gone */ }

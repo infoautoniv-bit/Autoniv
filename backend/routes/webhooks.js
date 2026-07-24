@@ -42,6 +42,19 @@ function escapeXml(unsafe) {
 
 const router = express.Router();
 
+// Exotel ExoML XML Endpoint for Voicebot Stream
+router.all('/exotel/exoml', (req, res) => {
+  const host = req.headers.host;
+  const wsProtocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'wss' : 'ws';
+  const streamUrl = process.env.EXOTEL_STREAM_URL || `${wsProtocol}://${host}/exotel-stream`;
+
+  res.set('Content-Type', 'application/xml');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Stream url="${streamUrl}" />
+</Response>`);
+});
+
 router.post('/vapi', webhookLimiter, async (req, res) => {
   const { type, message, call: topCall, transcript: topTranscript, functionCall } = req.body || {};
   const eventType = type || message?.type;

@@ -17,10 +17,10 @@ router.use(requireFeature('voice'));
 
 async function cleanupStaleCalls(userId) {
   try {
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const staleThreshold = new Date(Date.now() - 4 * 60 * 1000);
     const filter = {
       status: 'in-progress',
-      startedAt: { $lt: twoMinutesAgo },
+      startedAt: { $lt: staleThreshold },
     };
     if (userId) filter.userId = new mongoose.Types.ObjectId(userId);
 
@@ -36,7 +36,7 @@ async function cleanupStaleCalls(userId) {
 // Normalize a call document for frontend consumption
 function normalizeCall(c) {
   let finalStatus = c.status;
-  const isStale = c.status === 'in-progress' && c.startedAt && (Date.now() - new Date(c.startedAt).getTime() > 120000);
+  const isStale = c.status === 'in-progress' && c.startedAt && (Date.now() - new Date(c.startedAt).getTime() > 240000);
   if (isStale) {
     finalStatus = 'failed';
   }
@@ -507,22 +507,27 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
         const apiToken = credentials.apiToken || credentials.authToken || process.env.EXOTEL_API_TOKEN;
 
         if (!sid || !apiKey || !apiToken) {
-          return res.status(400).json({ message: 'Exotel credentials incomplete. Account SID/Subdomain, API Key, and API Token are required.' });
+          return res.status(400).json({ message: 'Exotel credentials incomplete. Account SID, API Key, and API Token are required.' });
         }
 
         let cleanFromNumber = fromNumber.replace(/\D/g, '');
         let cleanE164Number = e164Number.replace(/\D/g, '');
-        // If 10-digit Indian number, format as 0... or 91... for Exotel
         if (cleanE164Number.length === 10) cleanE164Number = `0${cleanE164Number}`;
         if (cleanFromNumber.length === 10) cleanFromNumber = `0${cleanFromNumber}`;
+
+        const base = (process.env.WEBHOOK_URL || `https://${req.headers.host}`).replace(/\/api\/webhooks\/vapi$/, '').replace(/\/$/, '');
+        const exoMlUrl = credentials.url || `${base}/api/webhooks/exotel/exoml`;
+        const streamUrl = credentials.streamUrl || process.env.EXOTEL_STREAM_URL || `wss://${req.headers.host}/exotel-stream`;
 
         const exotelUrl = `https://api.exotel.com/v1/Accounts/${sid}/Calls/connect.json`;
         const params = new URLSearchParams({
           From: cleanE164Number,
           CallerId: cleanFromNumber,
-          Url: webhookUrl,
+          Url: exoMlUrl,
+          StreamUrl: streamUrl,
+          StreamType: 'bidirectional',
+          Record: 'true',
           StatusCallback: statusCallbackUrl,
-          CallType: 'trans',
         });
 
         const authHeader = 'Basic ' + Buffer.from(`${apiKey}:${apiToken}`).toString('base64');
