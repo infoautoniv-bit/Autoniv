@@ -442,7 +442,9 @@ function AppRoutes() {
         <Route path="/onboarding" element={<ProtectedRoute hideSidebar><WelcomeOnboarding onComplete={() => {}} /></ProtectedRoute>} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsConditions />} />
+        <Route path="/terms-conditions" element={<TermsConditions />} />
         <Route path="/help" element={<HelpCenter />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/careers" element={<Careers />} />

@@ -1,130 +1,359 @@
+import { useState } from 'react';
+import { PublicNavbar } from '../../components/PublicNavbar';
+import Footer from './Footer';
+import { INK, SLATE, HAIRLINE, SURFACE, MONO, Reveal, SectionLabel, GradientText } from './design';
+
+const TOC_ITEMS = [
+  { id: 'acceptance', title: '1. Acceptance of Terms' },
+  { id: 'description-of-service', title: '2. Description of Services' },
+  { id: 'account-security', title: '3. Account Registration & Security' },
+  { id: 'acceptable-use', title: '4. Acceptable Use & Prohibited Conduct' },
+  { id: 'telephony-compliance', title: '5. Telephony & TCPA Compliance' },
+  { id: 'ai-disclosures', title: '6. AI Content & Voice Disclosures' },
+  { id: 'intellectual-property', title: '7. IP & Data Ownership' },
+  { id: 'billing-terms', title: '8. Billing, Usage Minutes & Refunds' },
+  { id: 'sla-uptime', title: '9. Service Level Agreement (SLA)' },
+  { id: 'limitation-liability', title: '10. Limitation of Liability' },
+  { id: 'termination', title: '11. Term & Suspension' },
+  { id: 'governing-law', title: '12. Governing Law & Contact' },
+];
+
 export function TermsConditions() {
-  const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'hello@autoniv.com';
-  const CONTACT_PHONE = import.meta.env.VITE_CONTACT_PHONE || '+917065990307';
+  const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'legal@autoniv.com';
+  const CONTACT_PHONE = import.meta.env.VITE_CONTACT_PHONE || '+91 70659 90307';
   const CONTACT_WEBSITE = import.meta.env.VITE_CONTACT_WEBSITE || 'Autoniv.com';
 
+  const [activeSection, setActiveSection] = useState('acceptance');
+
+  const scrollToSection = (id: string) => {
+    setActiveSection(id);
+    const el = document.getElementById(id);
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - 90;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="min-h-screen" style={{ background: '#050d1a' }}>
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
-        <h1 style={{ color: '#e8f8ff', fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Terms and Conditions</h1>
-        <p style={{ color: 'rgba(148,175,210,0.6)', fontSize: 13, marginBottom: 40 }}>Last updated: June 24, 2026</p>
+    <div style={{ background: '#FAFBFD', color: INK, minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      <PublicNavbar />
 
-        <div style={{ color: 'rgba(148,175,210,0.8)', fontSize: 14.5, lineHeight: 1.8 }}>
+      {/* ─── HERO HEADER ─── */}
+      <section style={{
+        padding: '80px 24px 60px',
+        background: 'linear-gradient(180deg, #F0F4FF 0%, #FAFBFD 100%)',
+        borderBottom: `1px solid ${HAIRLINE}`,
+        textAlign: 'center'
+      }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <Reveal>
+            <SectionLabel text="LEGAL & AGREEMENTS" />
+            <h1 style={{
+              fontSize: 'clamp(2.2rem, 4.5vw, 3.5rem)',
+              fontWeight: 800,
+              lineHeight: 1.2,
+              letterSpacing: '-0.02em',
+              color: INK,
+              marginBottom: 16
+            }}>
+              Terms and Conditions of <GradientText>Autoniv AI Services</GradientText>
+            </h1>
+            <p style={{ color: SLATE, fontSize: 15, marginBottom: 24 }}>
+              Last updated: <strong>June 24, 2026</strong> · Effective Date: Immediate
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => window.print()}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 999,
+                  background: SURFACE,
+                  border: `1px solid ${HAIRLINE}`,
+                  color: INK,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(15,23,42,0.04)'
+                }}
+              >
+                🖨️ Print Terms Agreement
+              </button>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 999,
+                  background: 'rgba(37,99,235,0.08)',
+                  border: '1px solid rgba(37,99,235,0.2)',
+                  color: '#2563EB',
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  textDecoration: 'none'
+                }}
+              >
+                ✉️ Contact Legal Department
+              </a>
+            </div>
+          </Reveal>
 
-          <p style={{ marginBottom: 32 }}>Please read these terms and conditions carefully before using Our Service.</p>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Interpretation and Definitions</h2>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Interpretation</h3>
-            <p style={{ marginBottom: 12 }}>The words whose initial letters are capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Definitions</h3>
-            <p style={{ marginBottom: 12 }}>For the purposes of these Terms and Conditions:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li><strong>Affiliate</strong> means an entity that controls, is controlled by, or is under common control with a party, where "control" means ownership of 50% or more of the shares, equity interest or other securities entitled to vote for election of directors or other managing authority.</li>
-              <li><strong>Country</strong> refers to: Delhi, India</li>
-              <li><strong>Company</strong> (referred to as either "the Company", "We", "Us" or "Our" in these Terms and Conditions) refers to Autoniv.</li>
-              <li><strong>Device</strong> means any device that can access the Service such as a computer, a cell phone or a digital tablet.</li>
-              <li><strong>Service</strong> refers to the Website.</li>
-              <li><strong>Terms and Conditions</strong> (also referred to as "Terms") means these Terms and Conditions, including any documents expressly incorporated by reference, which govern Your access to and use of the Service and form the entire agreement between You and the Company regarding the Service.</li>
-              <li><strong>Third-Party Social Media Service</strong> means any services or content (including data, information, products or services) provided by a third party that is displayed, included, made available, or linked to through the Service.</li>
-              <li><strong>Website</strong> refers to Autoniv, accessible from {CONTACT_WEBSITE}</li>
-              <li><strong>You</strong> means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.</li>
-            </ul>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Acknowledgment</h2>
-            <p style={{ marginBottom: 12 }}>These are the Terms and Conditions governing the use of this Service and the agreement between You and the Company. These Terms and Conditions set out the rights and obligations of all users regarding the use of the Service.</p>
-            <p style={{ marginBottom: 12 }}>Your access to and use of the Service is conditioned on Your acceptance of and compliance with these Terms and Conditions. These Terms and Conditions apply to all visitors, users and others who access or use the Service.</p>
-            <p style={{ marginBottom: 12 }}>By accessing or using the Service You agree to be bound by these Terms and Conditions. If You disagree with any part of these Terms and Conditions then You may not access the Service.</p>
-            <p style={{ marginBottom: 12 }}>You represent that you are over the age of 18. The Company does not permit those under 18 to use the Service.</p>
-            <p style={{ marginBottom: 12 }}>Your access to and use of the Service is also subject to Our Privacy Policy, which describes how We collect, use, and disclose personal information. Please read Our Privacy Policy carefully before using Our Service.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Links to Other Websites</h2>
-            <p style={{ marginBottom: 12 }}>Our Service may contain links to third-party websites or services that are not owned or controlled by the Company.</p>
-            <p style={{ marginBottom: 12 }}>The Company has no control over, and assumes no responsibility for, the content, privacy policies, or practices of any third-party websites or services. You further acknowledge and agree that the Company shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with the use of or reliance on any such content, goods or services available on or through any such websites or services.</p>
-            <p style={{ marginBottom: 12 }}>We strongly advise You to read the terms and conditions and privacy policies of any third-party websites or services that You visit.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Links from a Third-Party Social Media Service</h2>
-            <p style={{ marginBottom: 12 }}>The Service may display, include, make available, or link to content or services provided by a Third-Party Social Media Service. A Third-Party Social Media Service is not owned or controlled by the Company, and the Company does not endorse or assume responsibility for any Third-Party Social Media Service.</p>
-            <p style={{ marginBottom: 12 }}>You acknowledge and agree that the Company shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with Your access to or use of any Third-Party Social Media Service, including any content, goods, or services made available through them. Your use of any Third-Party Social Media Service is governed by that Third-Party Social Media Service's terms and privacy policies.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Termination</h2>
-            <p style={{ marginBottom: 12 }}>We may terminate or suspend Your access immediately, without prior notice or liability, for any reason whatsoever, including without limitation if You breach these Terms and Conditions.</p>
-            <p style={{ marginBottom: 12 }}>Upon termination, Your right to use the Service will cease immediately.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Limitation of Liability</h2>
-            <p style={{ marginBottom: 12 }}>Notwithstanding any damages that You might incur, the entire liability of the Company and any of its suppliers under any provision of these Terms and Your exclusive remedy for all of the foregoing shall be limited to the amount actually paid by You through the Service or 100 USD if You haven't purchased anything through the Service.</p>
-            <p style={{ marginBottom: 12 }}>To the maximum extent permitted by applicable law, in no event shall the Company or its suppliers be liable for any special, incidental, indirect, or consequential damages whatsoever (including, but not limited to, damages for loss of profits, loss of data or other information, for business interruption, for personal injury, loss of privacy arising out of or in any way related to the use of or inability to use the Service, third-party software and/or third-party hardware used with the Service, or otherwise in connection with any provision of these Terms), even if the Company or any supplier has been advised of the possibility of such damages and even if the remedy fails of its essential purpose.</p>
-            <p style={{ marginBottom: 12 }}>Some states do not allow the exclusion of implied warranties or limitation of liability for incidental or consequential damages, which means that some of the above limitations may not apply. In these states, each party's liability will be limited to the greatest extent permitted by law.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>"AS IS" and "AS AVAILABLE" Disclaimer</h2>
-            <p style={{ marginBottom: 12 }}>The Service is provided to You "AS IS" and "AS AVAILABLE" and with all faults and defects without warranty of any kind. To the maximum extent permitted under applicable law, the Company, on its own behalf and on behalf of its Affiliates and its and their respective licensors and service providers, expressly disclaims all warranties, whether express, implied, statutory or otherwise, with respect to the Service, including all implied warranties of merchantability, fitness for a particular purpose, title and non-infringement, and warranties that may arise out of course of dealing, course of performance, usage or trade practice. Without limitation to the foregoing, the Company provides no warranty or undertaking, and makes no representation of any kind that the Service will meet Your requirements, achieve any intended results, be compatible or work with any other software, applications, systems or services, operate without interruption, meet any performance or reliability standards or be error free or that any errors or defects can or will be corrected.</p>
-            <p style={{ marginBottom: 12 }}>Without limiting the foregoing, neither the Company nor any of the company's provider makes any representation or warranty of any kind, express or implied: (i) as to the operation or availability of the Service, or the information, content, and materials or products included thereon; (ii) that the Service will be uninterrupted or error-free; (iii) as to the accuracy, reliability, or currency of any information or content provided through the Service; or (iv) that the Service, its servers, the content, or e-mails sent from or on behalf of the Company are free of viruses, scripts, trojan horses, worms, malware, timebombs or other harmful components.</p>
-            <p style={{ marginBottom: 12 }}>Some jurisdictions do not allow the exclusion of certain types of warranties or limitations on applicable statutory rights of a consumer, so some or all of the above exclusions and limitations may not apply to You. But in such a case the exclusions and limitations set forth in this section shall be applied to the greatest extent enforceable under applicable law.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Governing Law</h2>
-            <p style={{ marginBottom: 12 }}>The laws of the Country, excluding its conflicts of law rules, shall govern these Terms and Your use of the Service. Your use of the Application may also be subject to other local, state, national, or international laws.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Disputes Resolution</h2>
-            <p style={{ marginBottom: 12 }}>If You have any concern or dispute about the Service, You agree to first try to resolve the dispute informally by contacting the Company.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>For European Union (EU) Users</h2>
-            <p style={{ marginBottom: 12 }}>If You are a European Union consumer, you will benefit from any mandatory provisions of the law of the country in which You are resident.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>United States Legal Compliance</h2>
-            <p style={{ marginBottom: 12 }}>You represent and warrant that (i) You are not located in a country that is subject to the United States government embargo, or that has been designated by the United States government as a "terrorist supporting" country, and (ii) You are not listed on any United States government list of prohibited or restricted parties.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Severability and Waiver</h2>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Severability</h3>
-            <p style={{ marginBottom: 12 }}>If any provision of these Terms is held to be unenforceable or invalid, such provision will be changed and interpreted to accomplish the objectives of such provision to the greatest extent possible under applicable law and the remaining provisions will continue in full force and effect.</p>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Waiver</h3>
-            <p style={{ marginBottom: 12 }}>Except as provided herein, the failure to exercise a right or to require performance of an obligation under these Terms shall not affect a party's ability to exercise such right or require such performance at any time thereafter nor shall the waiver of a breach constitute a waiver of any subsequent breach.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Translation Interpretation</h2>
-            <p style={{ marginBottom: 12 }}>These Terms and Conditions may have been translated if We have made them available to You on our Service. You agree that the original English text shall prevail in the case of a dispute.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Changes to These Terms and Conditions</h2>
-            <p style={{ marginBottom: 12 }}>We reserve the right, at Our sole discretion, to modify or replace these Terms at any time. If a revision is material We will make reasonable efforts to provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at Our sole discretion.</p>
-            <p style={{ marginBottom: 12 }}>By continuing to access or use Our Service after those revisions become effective, You agree to be bound by the revised terms. If You do not agree to the new terms, in whole or in part, please stop using the Service.</p>
-          </section>
-
-          <section>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Contact Us</h2>
-            <p style={{ marginBottom: 8 }}>If you have any questions about these Terms and Conditions, You can contact us:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li>By email: <span style={{ color: '#0077ff' }}>{CONTACT_EMAIL}</span></li>
-              <li>By visiting this page on our website: <span style={{ color: '#0077ff' }}>{CONTACT_WEBSITE}</span></li>
-              <li>By phone: <span style={{ color: '#0077ff' }}>{CONTACT_PHONE}</span></li>
-            </ul>
-          </section>
-
+          {/* Highlights Grid */}
+          <div style={{ marginTop: 48 }}>
+            <Reveal delay={150}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 16,
+                textAlign: 'left'
+              }}>
+                <div style={{ background: SURFACE, padding: 20, borderRadius: 16, border: `1px solid ${HAIRLINE}` }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>📜</div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 4 }}>Subscription Agreement</h4>
+                  <p style={{ fontSize: 12.5, color: SLATE, margin: 0, lineHeight: 1.5 }}>
+                    Governs platform access, AI agent usage, API calls, and white-label tools.
+                  </p>
+                </div>
+                <div style={{ background: SURFACE, padding: 20, borderRadius: 16, border: `1px solid ${HAIRLINE}` }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>📞</div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 4 }}>TCPA & Telecom Compliance</h4>
+                  <p style={{ fontSize: 12.5, color: SLATE, margin: 0, lineHeight: 1.5 }}>
+                    Subscribers are required to comply with outbound calling and consent laws.
+                  </p>
+                </div>
+                <div style={{ background: SURFACE, padding: 20, borderRadius: 16, border: `1px solid ${HAIRLINE}` }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>⚡</div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 4 }}>99.9% Uptime Commitment</h4>
+                  <p style={{ fontSize: 12.5, color: SLATE, margin: 0, lineHeight: 1.5 }}>
+                    High-availability SIP gateways and distributed cloud processing infrastructure.
+                  </p>
+                </div>
+                <div style={{ background: SURFACE, padding: 20, borderRadius: 16, border: `1px solid ${HAIRLINE}` }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>💳</div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 4 }}>Transparent Usage Metering</h4>
+                  <p style={{ fontSize: 12.5, color: SLATE, margin: 0, lineHeight: 1.5 }}>
+                    Clear minute billing with rollover options and no hidden surcharge fees.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* ─── MAIN CONTENT WITH TABLE OF CONTENTS ─── */}
+      <section style={{ padding: '60px 24px 100px', background: SURFACE }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gridTemplateColumns: '280px 1fr', gap: 48, alignItems: 'start' }}>
+
+          {/* Sticky Table of Contents Sidebar */}
+          <aside className="hidden md:block" style={{
+            position: 'sticky',
+            top: 100,
+            background: '#FAFBFD',
+            padding: 24,
+            borderRadius: 20,
+            border: `1px solid ${HAIRLINE}`,
+            maxHeight: 'calc(100vh - 120px)',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ fontSize: 13, fontWeight: 800, color: INK, textTransform: 'uppercase', fontFamily: MONO, marginBottom: 16, letterSpacing: '0.05em' }}>
+              Terms Index
+            </h3>
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {TOC_ITEMS.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  style={{
+                    textAlign: 'left',
+                    background: 'none',
+                    border: 'none',
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: activeSection === item.id ? 700 : 500,
+                    color: activeSection === item.id ? '#2563EB' : SLATE,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    backgroundColor: activeSection === item.id ? 'rgba(37,99,235,0.08)' : 'transparent'
+                  }}
+                >
+                  {item.title}
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          {/* Document Body */}
+          <main style={{ color: SLATE, fontSize: 15, lineHeight: 1.8 }}>
+
+            {/* Section 1 */}
+            <section id="acceptance" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                1. Acceptance of Terms
+              </h2>
+              <p>
+                By creating an account, accessing, or using the services provided by <strong>Autoniv</strong> ("Company", "We", "Us", or "Our"), you ("Customer", "User", or "You") agree to be legally bound by these Terms and Conditions ("Terms") and our Privacy Policy.
+              </p>
+              <p>
+                If you are entering into these Terms on behalf of a company, enterprise, or legal entity, you represent and warrant that you have full legal authority to bind such entity to these Terms. If you do not agree with any part of these Terms, you must immediately cease accessing and using the Service.
+              </p>
+            </section>
+
+            {/* Section 2 */}
+            <section id="description-of-service" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                2. Description of Services
+              </h2>
+              <p>
+                Autoniv provides a cloud-based conversational artificial intelligence platform powering autonomous voice agents, phone answering services, website chatbots, WhatsApp business automation, and agency white-label portals (the "Services").
+              </p>
+              <p>
+                The Services include access to web dashboards, API keys, WebRTC audio interfaces, SIP telephony integration, knowledge base vector indexing, and automated appointment scheduling integrations.
+              </p>
+            </section>
+
+            {/* Section 3 */}
+            <section id="account-security" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                3. Account Registration & Security
+              </h2>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li><strong>Registration:</strong> You agree to provide accurate, current, and complete account information during registration and keep your billing and team details updated.</li>
+                <li><strong>Credential Safeguarding:</strong> You are solely responsible for maintaining the confidentiality of your account credentials, API secret keys, and SIP trunk passwords.</li>
+                <li><strong>Unauthorized Use:</strong> You must immediately notify Autoniv upon discovering any security breach or unauthorized access to your account. Autoniv will not be liable for losses caused by compromised login credentials.</li>
+              </ul>
+            </section>
+
+            {/* Section 4 */}
+            <section id="acceptable-use" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                4. Acceptable Use & Prohibited Conduct
+              </h2>
+              <p>You agree to use the Services strictly for lawful, legitimate business purposes. You shall NOT:</p>
+              <div style={{ background: '#FAFBFD', padding: 24, borderRadius: 16, border: `1px solid ${HAIRLINE}`, marginBottom: 20 }}>
+                <ul style={{ paddingLeft: 20, margin: 0 }}>
+                  <li style={{ marginBottom: 8 }}>Initiate illegal robocalls, unsolicited spam telemarketing, or malicious phone spam in violation of TCPA, TSR, or local telecom laws.</li>
+                  <li style={{ marginBottom: 8 }}>Spoof caller ID headers to impersonate government agencies, emergency services, financial institutions, or individuals without explicit authorization.</li>
+                  <li style={{ marginBottom: 8 }}>Use AI voice agents to transmit fraudulent, deceptive, harassing, defamatory, obscene, or unlawful speech.</li>
+                  <li style={{ marginBottom: 8 }}>Reverse-engineer, decompile, or attempt to extract source code or underlying machine learning weights from our platform.</li>
+                  <li style={{ marginBottom: 0 }}>Resell, sublicense, or rent the platform to third parties except under an authorized Enterprise White-Label agreement.</li>
+                </ul>
+              </div>
+            </section>
+
+            {/* Section 5 */}
+            <section id="telephony-compliance" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                5. Telephony, Calling & TCPA Compliance
+              </h2>
+              <p>
+                When using Autoniv outbound voice agents or phone dialers:
+              </p>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li><strong>Prior Express Written Consent:</strong> You guarantee that you have obtained all necessary consents required under the Telephone Consumer Protection Act (TCPA), CAN-SPAM, National Do Not Call (DNC) Registry, and applicable international laws prior to placing automated voice calls or sending messages to end users.</li>
+                <li><strong>Call Recording Disclosures:</strong> You are responsible for ensuring that appropriate pre-call audio disclaimers are played to comply with single-party or two-party consent requirements in the caller's jurisdiction.</li>
+                <li><strong>STIR/SHAKEN:</strong> All outbound calls placed via Autoniv phone trunks adhere to STIR/SHAKEN caller ID authentication standards. Accounts attempting caller ID spoofing will be permanently banned.</li>
+              </ul>
+            </section>
+
+            {/* Section 6 */}
+            <section id="ai-disclosures" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                6. AI Output & Virtual Assistant Disclosures
+              </h2>
+              <p>
+                You acknowledge that Autoniv Services utilize generative artificial intelligence and large language models (LLMs). While our systems are optimized for sub-300ms latency and high accuracy:
+              </p>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li>AI outputs are probabilistic. Autoniv does not warrant that AI agent speech or text responses will be 100% error-free in all domain scenarios.</li>
+                <li>You are responsible for reviewing and testing your agent prompts, knowledge base context, and fallback handoffs before deploying agents to live callers.</li>
+              </ul>
+            </section>
+
+            {/* Section 7 */}
+            <section id="intellectual-property" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                7. Intellectual Property & Customer Data Ownership
+              </h2>
+              <div style={{ background: 'linear-gradient(135deg, #F0F4FF 0%, #F0FDF4 100%)', padding: 24, borderRadius: 16, border: `1px solid ${HAIRLINE}`, marginBottom: 20 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: INK, margin: '0 0 8px' }}>💎 You Own Your Data & Content</h3>
+                <p style={{ margin: 0, fontSize: 14.5 }}>
+                  You retain 100% ownership of all uploaded documentation, customer CRM data, custom prompt templates, and conversation transcripts. Autoniv claims no ownership rights over your proprietary business assets.
+                </p>
+              </div>
+              <p>
+                Autoniv retains exclusive ownership of all software, source code, visual UI design, proprietary voice synthesis algorithms, logos, trademarks, and platform infrastructure.
+              </p>
+            </section>
+
+            {/* Section 8 */}
+            <section id="billing-terms" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                8. Billing, Usage Minutes & Refund Policy
+              </h2>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li><strong>Subscriptions:</strong> Fees are billed in advance on a recurring monthly or annual basis based on your selected plan.</li>
+                <li><strong>Minute Metering:</strong> Voice agent call duration is calculated in 60-second increments. Unused monthly plan minutes roll over according to your tier plan terms.</li>
+                <li><strong>Add-Ons & Top-Ups:</strong> Additional minute packages or team seats purchased are charged instantly to your default payment method.</li>
+                <li><strong>Refund Policy:</strong> We offer a 30-day money-back guarantee for new subscription signups if platform performance does not meet technical specifications. Minute top-up packages are non-refundable once consumed.</li>
+              </ul>
+            </section>
+
+            {/* Section 9 */}
+            <section id="sla-uptime" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                9. Service Level Agreement (SLA) & Uptime
+              </h2>
+              <p>
+                Autoniv targets 99.9% uptime for core platform services, webhooks, and SIP telephony gateways, excluding scheduled maintenance windows announced at least 48 hours in advance. Enterprise plan customers are eligible for service credits under our dedicated Enterprise SLA Agreement.
+              </p>
+            </section>
+
+            {/* Section 10 */}
+            <section id="limitation-liability" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                10. Limitation of Liability & Warranties
+              </h2>
+              <p>
+                TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, AUTONIV AND ITS SUPPLIERS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, OR PUNITIVE DAMAGES (INCLUDING LOSS OF PROFITS, DATA LOSS, OR BUSINESS INTERRUPTION) ARISING OUT OF OR IN CONNECTION WITH THE USE OF THE SERVICES.
+              </p>
+              <p>
+                IN NO EVENT SHALL AUTONIV'S TOTAL AGGREGATE LIABILITY EXCEED THE TOTAL AMOUNT ACTUALLY PAID BY YOU TO AUTONIV IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
+              </p>
+            </section>
+
+            {/* Section 11 */}
+            <section id="termination" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                11. Term & Suspension of Service
+              </h2>
+              <p>
+                You may cancel your subscription at any time via your Dashboard billing page. Autoniv reserves the right to suspend or terminate your account immediately upon notice if you breach these Terms (including failure to pay fees or engaging in prohibited telemarketing activities).
+              </p>
+            </section>
+
+            {/* Section 12 */}
+            <section id="governing-law" style={{ marginBottom: 32 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                12. Governing Law, Dispute Resolution & Contact
+              </h2>
+              <p>
+                These Terms shall be governed by and construed in accordance with the laws of Delhi, India, without regard to its conflict of law principles. Any dispute arising out of or relating to these Terms shall be resolved through binding arbitration in New Delhi, India.
+              </p>
+
+              <div style={{ background: SURFACE, padding: 24, borderRadius: 16, border: `1px solid ${HAIRLINE}`, marginTop: 20 }}>
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: INK, marginBottom: 8 }}>Legal & Regulatory Inquiries</h4>
+                <p style={{ margin: '0 0 6px' }}><strong>Autoniv Legal Department</strong></p>
+                <p style={{ margin: '0 0 6px' }}>Email: <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#2563EB' }}>{CONTACT_EMAIL}</a></p>
+                <p style={{ margin: '0 0 6px' }}>Phone: <span style={{ color: INK }}>{CONTACT_PHONE}</span></p>
+                <p style={{ margin: 0 }}>Website: <span style={{ color: INK }}>{CONTACT_WEBSITE}</span></p>
+              </div>
+            </section>
+
+          </main>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }

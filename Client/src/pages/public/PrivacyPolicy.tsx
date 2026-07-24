@@ -1,192 +1,419 @@
+import { useState } from 'react';
+import { PublicNavbar } from '../../components/PublicNavbar';
+import Footer from './Footer';
+import { INK, SLATE, HAIRLINE, SURFACE, MONO, Reveal, SectionLabel, GradientText } from './design';
+
+const TOC_ITEMS = [
+  { id: 'overview', title: '1. Overview & Data Controller' },
+  { id: 'data-collected', title: '2. Information We Collect' },
+  { id: 'data-use', title: '3. How We Use Your Data' },
+  { id: 'ai-voice-privacy', title: '4. AI Voice & Transcript Protections' },
+  { id: 'telephony-recording', title: '5. Telephony & Call Recordings' },
+  { id: 'third-parties', title: '6. Data Sharing & Third-Party Processors' },
+  { id: 'international-transfers', title: '7. International Data Transfers' },
+  { id: 'data-retention', title: '8. Data Retention Schedules' },
+  { id: 'security-measures', title: '9. Security & Compliance (SOC 2 / HIPAA)' },
+  { id: 'user-rights', title: '10. Your Privacy Rights (GDPR & CCPA)' },
+  { id: 'cookies-policy', title: '11. Cookies & Tracking Preferences' },
+  { id: 'updates-contact', title: '12. Updates & Contact DPO' },
+];
+
 export function PrivacyPolicy() {
-  const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'hello@autoniv.com';
-  const CONTACT_PHONE = import.meta.env.VITE_CONTACT_PHONE || '+917065990307';
+  const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'dpo@autoniv.com';
+  const CONTACT_PHONE = import.meta.env.VITE_CONTACT_PHONE || '+91 70659 90307';
   const CONTACT_WEBSITE = import.meta.env.VITE_CONTACT_WEBSITE || 'Autoniv.com';
 
+  const [activeSection, setActiveSection] = useState('overview');
+
+  const scrollToSection = (id: string) => {
+    setActiveSection(id);
+    const el = document.getElementById(id);
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - 90;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="min-h-screen" style={{ background: '#050d1a' }}>
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
-        <h1 style={{ color: '#e8f8ff', fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Privacy Policy for Autoniv</h1>
-        <p style={{ color: 'rgba(148,175,210,0.6)', fontSize: 13, marginBottom: 40 }}>Last updated: June 24, 2026</p>
+    <div style={{ background: '#FAFBFD', color: INK, minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      <PublicNavbar />
 
-        <div style={{ color: 'rgba(148,175,210,0.8)', fontSize: 14.5, lineHeight: 1.8 }}>
+      {/* ─── HERO HEADER ─── */}
+      <section style={{
+        padding: '80px 24px 60px',
+        background: 'linear-gradient(180deg, #F0F4FF 0%, #FAFBFD 100%)',
+        borderBottom: `1px solid ${HAIRLINE}`,
+        textAlign: 'center'
+      }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <Reveal>
+            <SectionLabel text="LEGAL & COMPLIANCE" />
+            <h1 style={{
+              fontSize: 'clamp(2.2rem, 4.5vw, 3.5rem)',
+              fontWeight: 800,
+              lineHeight: 1.2,
+              letterSpacing: '-0.02em',
+              color: INK,
+              marginBottom: 16
+            }}>
+              Privacy Policy for <GradientText>Autoniv AI Platform</GradientText>
+            </h1>
+            <p style={{ color: SLATE, fontSize: 15, marginBottom: 24 }}>
+              Last updated: <strong>June 24, 2026</strong> · Effective Date: Immediate
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => window.print()}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 999,
+                  background: SURFACE,
+                  border: `1px solid ${HAIRLINE}`,
+                  color: INK,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(15,23,42,0.04)'
+                }}
+              >
+                🖨️ Print / Save PDF
+              </button>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 999,
+                  background: 'rgba(37,99,235,0.08)',
+                  border: '1px solid rgba(37,99,235,0.2)',
+                  color: '#2563EB',
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  textDecoration: 'none'
+                }}
+              >
+                ✉️ Contact Data Protection Officer
+              </a>
+            </div>
+          </Reveal>
 
-          <p style={{ marginBottom: 16 }}>This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.</p>
-          <p style={{ marginBottom: 32 }}>We use Your Personal Data to provide and improve the Service. By using the Service, You agree to the collection and use of information in accordance with this Privacy Policy.</p>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Interpretation and Definitions</h2>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Interpretation</h3>
-            <p style={{ marginBottom: 12 }}>The words whose initial letters are capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Definitions</h3>
-            <p style={{ marginBottom: 12 }}>For the purposes of this Privacy Policy:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li><strong>Account</strong> means a unique account created for You to access our Service or parts of our Service.</li>
-              <li><strong>Affiliate</strong> means an entity that controls, is controlled by, or is under common control with a party, where "control" means ownership of 50% or more of the shares, equity interest or other securities entitled to vote for election of directors or other managing authority.</li>
-              <li><strong>Company</strong> (referred to as either "the Company", "We", "Us" or "Our" in this Privacy Policy) refers to Autoniv.</li>
-              <li><strong>Cookies</strong> are small files that are placed on Your computer, mobile device or any other device by a website, containing the details of Your browsing history on that website among its many uses.</li>
-              <li><strong>Country</strong> refers to: Delhi, India</li>
-              <li><strong>Device</strong> means any device that can access the Service such as a computer, a cell phone or a digital tablet.</li>
-              <li><strong>Personal Data</strong> (or "Personal Information") is any information that relates to an identified or identifiable individual.</li>
-              <li><strong>Service</strong> refers to the Website.</li>
-              <li><strong>Service Provider</strong> means any natural or legal person who processes the data on behalf of the Company. It refers to third-party companies or individuals employed by the Company to facilitate the Service, to provide the Service on behalf of the Company, to perform services related to the Service or to assist the Company in analyzing how the Service is used.</li>
-              <li><strong>Usage Data</strong> refers to data collected automatically, either generated by the use of the Service or from the Service infrastructure itself (for example, the duration of a page visit).</li>
-              <li><strong>Website</strong> refers to Autoniv, accessible from {CONTACT_WEBSITE}.</li>
-              <li><strong>You</strong> means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.</li>
-            </ul>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Collecting and Using Your Personal Data</h2>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Types of Data Collected</h3>
-            <h4 style={{ color: '#e8f8ff', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Personal Data</h4>
-            <p style={{ marginBottom: 12 }}>While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li>Email address</li>
-              <li>First name and last name</li>
-              <li>Phone number</li>
-            </ul>
-            <h4 style={{ color: '#e8f8ff', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Usage Data</h4>
-            <p style={{ marginBottom: 12 }}>Usage Data is collected automatically when using the Service.</p>
-            <p style={{ marginBottom: 12 }}>Usage Data may include information such as Your Device's Internet Protocol address (e.g. IP address), browser type, browser version, the pages of our Service that You visit, the time and date of Your visit, the time spent on those pages, unique device identifiers and other diagnostic data.</p>
-            <p style={{ marginBottom: 12 }}>When You access the Service by or through a mobile device, We may collect certain information automatically, including, but not limited to, the type of mobile device You use, Your mobile device's unique ID, the IP address of Your mobile device, Your mobile operating system, the type of mobile Internet browser You use, unique device identifiers and other diagnostic data.</p>
-            <p style={{ marginBottom: 12 }}>We may also collect information that Your browser sends whenever You visit Our Service or when You access the Service by or through a mobile device.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Tracking Technologies and Cookies</h3>
-            <p style={{ marginBottom: 12 }}>We use Cookies and similar tracking technologies to track the activity on Our Service and store certain information. Tracking technologies We use include beacons, tags, and scripts to collect and track information and to improve and analyze Our Service. The technologies We use may include:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li><strong>Cookies or Browser Cookies.</strong> A cookie is a small file placed on Your Device. You can instruct Your browser to refuse all Cookies or to indicate when a Cookie is being sent. However, if You do not accept Cookies, You may not be able to use some parts of our Service.</li>
-              <li><strong>Web Beacons.</strong> Certain sections of our Service and our emails may contain small electronic files known as web beacons (also referred to as clear gifs, pixel tags, and single-pixel gifs) that permit the Company, for example, to count users who have visited those pages or opened an email and for other related website statistics (for example, recording the popularity of a certain section and verifying system and server integrity).</li>
-            </ul>
-            <p style={{ marginBottom: 12 }}>Cookies can be "Persistent" or "Session" Cookies. Persistent Cookies remain on Your personal computer or mobile device when You go offline, while Session Cookies are deleted as soon as You close Your web browser.</p>
-            <p style={{ marginBottom: 12 }}>Where required by law, we use non-essential cookies (such as analytics, advertising, and remarketing cookies) only with Your consent. You can withdraw or change Your consent at any time using Our cookie preferences tool (if available) or through Your browser/device settings. Withdrawing consent does not affect the lawfulness of processing based on consent before its withdrawal.</p>
-            <p style={{ marginBottom: 12 }}>We use both Session and Persistent Cookies for the purposes set out below:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li><strong>Necessary / Essential Cookies</strong><br />Type: Session Cookies<br />Administered by: Us<br />Purpose: These Cookies are essential to provide You with services available through the Website and to enable You to use some of its features. They help to authenticate users and prevent fraudulent use of user accounts. Without these Cookies, the services that You have asked for cannot be provided, and We only use these Cookies to provide You with those services.</li>
-              <li><strong>Cookies Policy / Notice Acceptance Cookies</strong><br />Type: Persistent Cookies<br />Administered by: Us<br />Purpose: These Cookies identify if users have accepted the use of cookies on the Website.</li>
-              <li><strong>Functionality Cookies</strong><br />Type: Persistent Cookies<br />Administered by: Us<br />Purpose: These Cookies allow Us to remember choices You make when You use the Website, such as remembering your login details or language preference. The purpose of these Cookies is to provide You with a more personal experience and to avoid You having to re-enter your preferences every time You use the Website.</li>
-            </ul>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Use of Your Personal Data</h2>
-            <p style={{ marginBottom: 12 }}>The Company may use Personal Data for the following purposes:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li>To provide and maintain our Service, including to monitor the usage of our Service.</li>
-              <li>To manage Your Account: to manage Your registration as a user of the Service. The Personal Data You provide can give You access to different functionalities of the Service that are available to You as a registered user.</li>
-              <li>For the performance of a contract: the development, compliance and undertaking of the purchase contract for the products, items or services You have purchased or of any other contract with Us through the Service.</li>
-              <li>To contact You: To contact You by email, telephone calls, SMS, or other equivalent forms of electronic communication, such as a mobile application's push notifications regarding updates or informative communications related to the functionalities, products or contracted services, including the security updates, when necessary or reasonable for their implementation.</li>
-              <li>To provide You with news, special offers, and general information about other goods, services and events which We offer that are similar to those that you have already purchased or inquired about unless You have opted not to receive such information.</li>
-              <li>To manage Your requests: To attend and manage Your requests to Us.</li>
-              <li>For business transfers: We may use Your Personal Data to evaluate or conduct a merger, divestiture, restructuring, reorganization, dissolution, or other sale or transfer of some or all of Our assets, whether as a going concern or as part of bankruptcy, liquidation, or similar proceeding, in which Personal Data held by Us about our Service users is among the assets transferred.</li>
-              <li>For other purposes: We may use Your information for other purposes, such as data analysis, identifying usage trends, determining the effectiveness of our promotional campaigns and to evaluate and improve our Service, products, services, marketing and your experience.</li>
-            </ul>
-            <p style={{ marginBottom: 12 }}>We may share Your Personal Data in the following situations:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li><strong>With Service Providers:</strong> We may share Your Personal Data with Service Providers to monitor and analyze the use of our Service, to contact You.</li>
-              <li><strong>For business transfers:</strong> We may share or transfer Your Personal Data in connection with, or during negotiations of, any merger, sale of Company assets, financing, or acquisition of all or a portion of Our business to another company.</li>
-              <li><strong>With Affiliates:</strong> We may share Your Personal Data with Our affiliates, in which case we will require those affiliates to honor this Privacy Policy. Affiliates include Our parent company and any other subsidiaries, joint venture partners or other companies that We control or that are under common control with Us.</li>
-              <li><strong>With business partners:</strong> We may share Your Personal Data with Our business partners to offer You certain products, services or promotions.</li>
-              <li><strong>With other users:</strong> If Our Service offers public areas, when You share Personal Data or otherwise interact in the public areas with other users, such information may be viewed by all users and may be publicly distributed outside.</li>
-              <li><strong>With Your consent:</strong> We may disclose Your Personal Data for any other purpose with Your consent.</li>
-            </ul>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Retention of Your Personal Data</h2>
-            <p style={{ marginBottom: 12 }}>The Company will retain Your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use Your Personal Data to the extent necessary to comply with our legal obligations (for example, if We are required to retain Your data to comply with applicable laws), resolve disputes, and enforce our legal agreements and policies.</p>
-            <p style={{ marginBottom: 12 }}>Where possible, We apply shorter retention periods and/or reduce identifiability by deleting, aggregating, or anonymizing data. Unless otherwise stated, the retention periods below are maximum periods ("up to") and We may delete or anonymize data sooner when it is no longer needed for the relevant purpose. We apply different retention periods to different categories of Personal Data based on the purpose of processing and legal obligations:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li><strong>Account Information</strong><br />User Accounts: retained for the duration of your account relationship plus up to 24 months after account closure to handle any post-termination issues or resolve disputes.</li>
-              <li><strong>Customer Support Data</strong><br />Support tickets and correspondence: up to 24 months from the date of ticket closure to resolve follow-up inquiries, track service quality, and defend against potential legal claims<br />Chat transcripts: up to 24 months for quality assurance and staff training purposes.</li>
-              <li><strong>Usage Data</strong><br />Website analytics data (cookies, IP addresses, device identifiers): up to 24 months from the date of collection, which allows us to analyze trends while respecting privacy principles.<br />Server logs (IP addresses, access times): up to 24 months for security monitoring and troubleshooting purposes.</li>
-            </ul>
-            <p style={{ marginBottom: 12 }}>Usage Data is retained in accordance with the retention periods described above, and may be retained longer only where necessary for security, fraud prevention, or legal compliance.</p>
-            <p style={{ marginBottom: 12 }}>We may retain Personal Data beyond the periods stated above for different reasons:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li>Legal obligation: We are required by law to retain specific data (e.g., financial records for tax authorities).</li>
-              <li>Legal claims: Data is necessary to establish, exercise, or defend legal claims.</li>
-              <li>Your explicit request: You ask Us to retain specific information.</li>
-              <li>Technical limitations: Data exists in backup systems that are scheduled for routine deletion.</li>
-            </ul>
-            <p style={{ marginBottom: 12 }}>You may request information about how long We will retain Your Personal Data by contacting Us.</p>
-            <p style={{ marginBottom: 12 }}>When retention periods expire, We securely delete or anonymize Personal Data according to the following procedures:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li>Deletion: Personal Data is removed from Our systems and no longer actively processed.</li>
-              <li>Backup retention: Residual copies may remain in encrypted backups for a limited period consistent with our backup retention schedule and are not restored except where necessary for security, disaster recovery, or legal compliance.</li>
-              <li>Anonymization: In some cases, We convert Personal Data into anonymous statistical data that cannot be linked back to You. This anonymized data may be retained indefinitely for research and analytics.</li>
-            </ul>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Transfer of Your Personal Data</h2>
-            <p style={{ marginBottom: 12 }}>Your information, including Personal Data, is processed at the Company's operating offices and in any other places where the parties involved in the processing are located. It means that this information may be transferred to — and maintained on — computers located outside of Your state, province, country or other governmental jurisdiction where the data protection laws may differ from those from Your jurisdiction.</p>
-            <p style={{ marginBottom: 12 }}>Where required by applicable law, We will ensure that international transfers of Your Personal Data are subject to appropriate safeguards and supplementary measures where appropriate. The Company will take all steps reasonably necessary to ensure that Your data is treated securely and in accordance with this Privacy Policy and no transfer of Your Personal Data will take place to an organization or a country unless there are adequate controls in place including the security of Your data and other personal information.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Delete Your Personal Data</h2>
-            <p style={{ marginBottom: 12 }}>You have the right to delete or request that We assist in deleting the Personal Data that We have collected about You.</p>
-            <p style={{ marginBottom: 12 }}>Our Service may give You the ability to delete certain information about You from within the Service.</p>
-            <p style={{ marginBottom: 12 }}>You may update, amend, or delete Your information at any time by signing in to Your Account, if you have one, and visiting the account settings section that allows you to manage Your personal information. You may also contact Us to request access to, correct, or delete any Personal Data that You have provided to Us.</p>
-            <p style={{ marginBottom: 12 }}>Please note, however, that We may need to retain certain information when we have a legal obligation or lawful basis to do so.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Disclosure of Your Personal Data</h2>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Business Transactions</h3>
-            <p style={{ marginBottom: 12 }}>If the Company is involved in a merger, acquisition or asset sale, Your Personal Data may be transferred. We will provide notice before Your Personal Data is transferred and becomes subject to a different Privacy Policy.</p>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Law enforcement</h3>
-            <p style={{ marginBottom: 12 }}>Under certain circumstances, the Company may be required to disclose Your Personal Data if required to do so by law or in response to valid requests by public authorities (e.g. a court or a government agency).</p>
-            <h3 style={{ color: '#e8f8ff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Other legal requirements</h3>
-            <p style={{ marginBottom: 12 }}>The Company may disclose Your Personal Data in the good faith belief that such action is necessary to:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li>Comply with a legal obligation</li>
-              <li>Protect and defend the rights or property of the Company</li>
-              <li>Prevent or investigate possible wrongdoing in connection with the Service</li>
-              <li>Protect the personal safety of Users of the Service or the public</li>
-              <li>Protect against legal liability</li>
-            </ul>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Security of Your Personal Data</h2>
-            <p>The security of Your Personal Data is important to Us, but remember that no method of transmission over the Internet, or method of electronic storage is 100% secure. While We strive to use commercially reasonable means to protect Your Personal Data, We cannot guarantee its absolute security.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Children's Privacy</h2>
-            <p style={{ marginBottom: 12 }}>Our Service does not address anyone under the age of 16. We do not knowingly collect personally identifiable information from anyone under the age of 16. If You are a parent or guardian and You are aware that Your child has provided Us with Personal Data, please contact Us. If We become aware that We have collected Personal Data from anyone under the age of 16 without verification of parental consent, We take steps to remove that information from Our servers.</p>
-            <p style={{ marginBottom: 12 }}>If We need to rely on consent as a legal basis for processing Your information and Your country requires consent from a parent, We may require Your parent's consent before We collect and use that information.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Links to Other Websites</h2>
-            <p style={{ marginBottom: 12 }}>Our Service may contain links to other websites that are not operated by Us. If You click on a third party link, You will be directed to that third party's site. We strongly advise You to review the Privacy Policy of every site You visit.</p>
-            <p style={{ marginBottom: 12 }}>We have no control over and assume no responsibility for the content, privacy policies or practices of any third party sites or services.</p>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Changes to this Privacy Policy</h2>
-            <p style={{ marginBottom: 12 }}>We may update Our Privacy Policy from time to time. We will notify You of any changes by posting the new Privacy Policy on this page.</p>
-            <p style={{ marginBottom: 12 }}>We will let You know via email and/or a prominent notice on Our Service, prior to the change becoming effective and update the "Last updated" date at the top of this Privacy Policy.</p>
-            <p style={{ marginBottom: 12 }}>You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.</p>
-          </section>
-
-          <section>
-            <h2 style={{ color: '#e8f8ff', fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Contact Us</h2>
-            <p style={{ marginBottom: 8 }}>If you have any questions about this Privacy Policy, You can contact us:</p>
-            <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-              <li>By email: <span style={{ color: '#0077ff' }}>{CONTACT_EMAIL}</span></li>
-              <li>By visiting this page on our website: <span style={{ color: '#0077ff' }}>{CONTACT_WEBSITE}</span></li>
-              <li>By phone: <span style={{ color: '#0077ff' }}>{CONTACT_PHONE}</span></li>
-            </ul>
-          </section>
-
+          {/* Privacy Highlights Grid (TL;DR Callouts) */}
+          <div style={{ marginTop: 48 }}>
+            <Reveal delay={150}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 16,
+                textAlign: 'left'
+              }}>
+                <div style={{ background: SURFACE, padding: 20, borderRadius: 16, border: `1px solid ${HAIRLINE}` }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>🔒</div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 4 }}>Bank-Grade Encryption</h4>
+                  <p style={{ fontSize: 12.5, color: SLATE, margin: 0, lineHeight: 1.5 }}>
+                    All data is encrypted in transit via TLS 1.3 and at rest via AES-256.
+                  </p>
+                </div>
+                <div style={{ background: SURFACE, padding: 20, borderRadius: 16, border: `1px solid ${HAIRLINE}` }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>🤖</div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 4 }}>Zero Model Training</h4>
+                  <p style={{ fontSize: 12.5, color: SLATE, margin: 0, lineHeight: 1.5 }}>
+                    Your private business data is NEVER used to train foundational AI models.
+                  </p>
+                </div>
+                <div style={{ background: SURFACE, padding: 20, borderRadius: 16, border: `1px solid ${HAIRLINE}` }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>🛡️</div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 4 }}>GDPR & CCPA Compliant</h4>
+                  <p style={{ fontSize: 12.5, color: SLATE, margin: 0, lineHeight: 1.5 }}>
+                    Full rights to export, access, or delete your personal and business data at any time.
+                  </p>
+                </div>
+                <div style={{ background: SURFACE, padding: 20, borderRadius: 16, border: `1px solid ${HAIRLINE}` }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>📞</div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 4 }}>Telephony & Voice Isolation</h4>
+                  <p style={{ fontSize: 12.5, color: SLATE, margin: 0, lineHeight: 1.5 }}>
+                    Voice streams and audio logs are processed in isolated secure channels.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* ─── MAIN CONTENT WITH TABLE OF CONTENTS ─── */}
+      <section style={{ padding: '60px 24px 100px', background: SURFACE }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gridTemplateColumns: '280px 1fr', gap: 48, alignItems: 'start' }}>
+
+          {/* Sticky Table of Contents Sidebar */}
+          <aside className="hidden md:block" style={{
+            position: 'sticky',
+            top: 100,
+            background: '#FAFBFD',
+            padding: 24,
+            borderRadius: 20,
+            border: `1px solid ${HAIRLINE}`,
+            maxHeight: 'calc(100vh - 120px)',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ fontSize: 13, fontWeight: 800, color: INK, textTransform: 'uppercase', fontFamily: MONO, marginBottom: 16, letterSpacing: '0.05em' }}>
+              Contents Overview
+            </h3>
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {TOC_ITEMS.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  style={{
+                    textAlign: 'left',
+                    background: 'none',
+                    border: 'none',
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: activeSection === item.id ? 700 : 500,
+                    color: activeSection === item.id ? '#2563EB' : SLATE,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    backgroundColor: activeSection === item.id ? 'rgba(37,99,235,0.08)' : 'transparent'
+                  }}
+                >
+                  {item.title}
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          {/* Document Body */}
+          <main style={{ color: SLATE, fontSize: 15, lineHeight: 1.8 }}>
+
+            {/* Section 1 */}
+            <section id="overview" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                1. Overview & Data Controller
+              </h2>
+              <p>
+                This Privacy Policy explains how <strong>Autoniv</strong> ("Company", "We", "Us", or "Our") collects, uses, stores, and protects personal data and corporate communication telemetry when you access or use the Autoniv software platform, AI voice agents, web chatbots, API endpoints, and associated services (collectively, the "Services").
+              </p>
+              <p>
+                For the purposes of applicable data protection laws (including the EU General Data Protection Regulation 2016/679 "GDPR", the California Consumer Privacy Act "CCPA/CPRA", and the Digital Personal Data Protection Act "DPDP"):
+              </p>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li><strong>Data Controller:</strong> Autoniv Technologies, New Delhi, India.</li>
+                <li><strong>Data Processor:</strong> When Autoniv processes customer caller data, voice audio streams, or CRM contact lists on behalf of our enterprise subscribers, Autoniv acts as a Data Processor under a Data Processing Addendum (DPA).</li>
+              </ul>
+            </section>
+
+            {/* Section 2 */}
+            <section id="data-collected" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                2. Information We Collect
+              </h2>
+              <p>We collect information directly from you, automatically through your platform usage, and via third-party integrations.</p>
+
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: INK, marginTop: 20, marginBottom: 8 }}>A. Account & Profile Information</h3>
+              <p>When you register an account or purchase a subscription, we collect:</p>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li>Full name, corporate email address, password hash, and phone number.</li>
+                <li>Company name, domain, industry vertical, and billing address.</li>
+                <li>Payment details processed securely via Stripe/Razorpay (we do not store raw credit card numbers).</li>
+              </ul>
+
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: INK, marginTop: 20, marginBottom: 8 }}>B. AI Voice & Conversation Data</h3>
+              <p>In operating AI voice agents and web/WhatsApp chatbots on your behalf:</p>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li>Real-time speech audio feeds and speech-to-text transcripts generated during inbound/outbound calls.</li>
+                <li>Customer metadata provided during calls (e.g., caller name, appointment timestamps, inquiry details).</li>
+                <li>Custom knowledge base documentation (PDFs, Word documents, URLs, FAQ sheets) uploaded to train your specific agent persona.</li>
+              </ul>
+
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: INK, marginTop: 20, marginBottom: 8 }}>C. Technical & Telemetry Data</h3>
+              <p>When interacting with our web applications and telephony servers:</p>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li>IP address, device hardware specs, browser user-agent, operating system, and language preferences.</li>
+                <li>SIP call headers, call duration, latency metrics, audio packet loss, and connection timestamps.</li>
+              </ul>
+            </section>
+
+            {/* Section 3 */}
+            <section id="data-use" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                3. How We Use Your Data
+              </h2>
+              <p>We process your data strictly for legitimate operational and business purposes:</p>
+              <div style={{ background: '#FAFBFD', padding: 24, borderRadius: 16, border: `1px solid ${HAIRLINE}`, marginBottom: 20 }}>
+                <ul style={{ paddingLeft: 20, margin: 0 }}>
+                  <li style={{ marginBottom: 8 }}><strong>Service Delivery & Execution:</strong> Synthesizing real-time AI responses, executing phone calls, scheduling calendar appointments, and forwarding leads to your CRM.</li>
+                  <li style={{ marginBottom: 8 }}><strong>System Performance Tuning:</strong> Analyzing speech-to-text accuracy and latency metrics to ensure call turn-taking latency remains below 300ms.</li>
+                  <li style={{ marginBottom: 8 }}><strong>Account Administration & Billing:</strong> Tracking usage minutes, issuing monthly invoices, managing team seats, and sending security updates.</li>
+                  <li style={{ marginBottom: 8 }}><strong>Customer Support:</strong> Troubleshooting voice agent prompts, WebRTC connections, or API webhook issues when requested.</li>
+                  <li style={{ marginBottom: 0 }}><strong>Legal Compliance & Fraud Prevention:</strong> Preventing telephony spam, fraudulent caller ID spoofing, and ensuring compliance with telecom regulations.</li>
+                </ul>
+              </div>
+            </section>
+
+            {/* Section 4 */}
+            <section id="ai-voice-privacy" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                4. AI Voice & Transcript Protections (Zero Training Guarantee)
+              </h2>
+              <div style={{ background: 'linear-gradient(135deg, #F0F4FF 0%, #F0FDF4 100%)', padding: 24, borderRadius: 16, border: `1px solid ${HAIRLINE}`, marginBottom: 20 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: INK, margin: '0 0 8px' }}>🤖 Strict Private AI Commitment</h3>
+                <p style={{ margin: 0, fontSize: 14.5 }}>
+                  Autoniv explicitly guarantees that your proprietary business data, customer call audio, voice agent prompt instructions, and chat transcripts are <strong>NEVER used to train, retrain, or improve any public or shared foundation language models</strong> (including OpenAI, Anthropic, or open-source LLMs). All model inferences are isolated and ephemeral.
+                </p>
+              </div>
+              <p>
+                When customer audio is processed, speech tokens are converted to text in-memory and discarded post-processing unless call recording is explicitly enabled by your account admin for quality audit purposes.
+              </p>
+            </section>
+
+            {/* Section 5 */}
+            <section id="telephony-recording" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                5. Telephony Data & Call Recordings
+              </h2>
+              <p>
+                When utilizing Autoniv AI voice agents for phone call automation, you (the Customer) are responsible for complying with all local, state, federal, and international call recording consent laws (e.g., two-party consent laws in US states such as California, Florida, and Massachusetts).
+              </p>
+              <p>
+                We provide automated pre-call disclosures (e.g., <em>"This call may be recorded or monitored by an AI virtual assistant for quality purposes"</em>) which can be enabled in your agent settings dashboard.
+              </p>
+            </section>
+
+            {/* Section 6 */}
+            <section id="third-parties" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                6. Data Sharing & Third-Party Processors
+              </h2>
+              <p>We do NOT sell, rent, or trade personal data to third parties. We share data only with verified sub-processors necessary to operate our infrastructure:</p>
+
+              <div style={{ overflowX: 'auto', marginBottom: 20 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, background: SURFACE }}>
+                  <thead>
+                    <tr style={{ background: '#F8FAFC', borderBottom: `2px solid ${HAIRLINE}` }}>
+                      <th style={{ padding: 12, textAlign: 'left', color: INK }}>Sub-processor</th>
+                      <th style={{ padding: 12, textAlign: 'left', color: INK }}>Purpose</th>
+                      <th style={{ padding: 12, textAlign: 'left', color: INK }}>Location</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+                      <td style={{ padding: 12, fontWeight: 600, color: INK }}>Amazon Web Services (AWS)</td>
+                      <td style={{ padding: 12 }}>Cloud Hosting & Database Storage</td>
+                      <td style={{ padding: 12 }}>USA / EU / India</td>
+                    </tr>
+                    <tr style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+                      <td style={{ padding: 12, fontWeight: 600, color: INK }}>Twilio / Telnyx</td>
+                      <td style={{ padding: 12 }}>Telephony Carrier & SIP Trunking</td>
+                      <td style={{ padding: 12 }}>USA / Global</td>
+                    </tr>
+                    <tr style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+                      <td style={{ padding: 12, fontWeight: 600, color: INK }}>OpenAI / Deepgram / ElevenLabs</td>
+                      <td style={{ padding: 12 }}>Speech-to-Text & Text-to-Speech Inference</td>
+                      <td style={{ padding: 12 }}>USA (Zero Data Retention API)</td>
+                    </tr>
+                    <tr style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+                      <td style={{ padding: 12, fontWeight: 600, color: INK }}>Stripe / Razorpay</td>
+                      <td style={{ padding: 12 }}>Payment Gateway Processing</td>
+                      <td style={{ padding: 12 }}>USA / India</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* Section 7 */}
+            <section id="international-transfers" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                7. International Data Transfers
+              </h2>
+              <p>
+                Autoniv operates globally. Information collected may be transferred to and processed on servers located outside your home state or country. When transferring European Union or UK personal data internationally, we rely on EU Standard Contractual Clauses (SCCs) and robust technical safeguards (AES-256 encryption).
+              </p>
+            </section>
+
+            {/* Section 8 */}
+            <section id="data-retention" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                8. Data Retention Schedules
+              </h2>
+              <p>We maintain strict maximum data retention windows:</p>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li><strong>Account Data:</strong> Retained for the active lifecycle of your account plus up to 24 months post-closure for legal audit.</li>
+                <li><strong>Call Audio Recordings & Transcripts:</strong> Retained for up to 90 days by default (customizable to 0 days for strict HIPAA accounts).</li>
+                <li><strong>Web Server Telemetry Logs:</strong> Retained for up to 30 days for security anomaly detection and performance debugging.</li>
+              </ul>
+            </section>
+
+            {/* Section 9 */}
+            <section id="security-measures" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                9. Security Safeguards & Compliance (SOC 2 / HIPAA)
+              </h2>
+              <p>
+                We enforce multi-layered defense mechanisms to protect data against unauthorized access, disclosure, or alteration:
+              </p>
+              <ul style={{ paddingLeft: 22, marginBottom: 16 }}>
+                <li><strong>Encryption Standards:</strong> TLS 1.3 for all web and WebSocket communication; AES-256 encryption at rest.</li>
+                <li><strong>Access Control:</strong> Strict Role-Based Access Control (RBAC), multi-factor authentication (MFA), and zero-trust network access for engineering staff.</li>
+                <li><strong>HIPAA Alignment:</strong> Enterprise Healthcare tier subscribers can execute a Business Associate Agreement (BAA) ensuring PHI compliance.</li>
+              </ul>
+            </section>
+
+            {/* Section 10 */}
+            <section id="user-rights" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                10. Your Privacy Rights (GDPR, CCPA & DPDP)
+              </h2>
+              <p>Depending on your location, you hold the following rights regarding your personal information:</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
+                <div style={{ background: '#FAFBFD', padding: 16, borderRadius: 12, border: `1px solid ${HAIRLINE}` }}>
+                  <strong style={{ color: INK }}>Right to Access / Portability:</strong> Request a copy of all personal data held about you in JSON/CSV format.
+                </div>
+                <div style={{ background: '#FAFBFD', padding: 16, borderRadius: 12, border: `1px solid ${HAIRLINE}` }}>
+                  <strong style={{ color: INK }}>Right to Erasure (Be Forgotten):</strong> Request permanent deletion of your account and call transcripts.
+                </div>
+                <div style={{ background: '#FAFBFD', padding: 16, borderRadius: 12, border: `1px solid ${HAIRLINE}` }}>
+                  <strong style={{ color: INK }}>Right to Rectification:</strong> Update inaccurate contact or business profile information in your settings dashboard.
+                </div>
+                <div style={{ background: '#FAFBFD', padding: 16, borderRadius: 12, border: `1px solid ${HAIRLINE}` }}>
+                  <strong style={{ color: INK }}>Opt-Out of Communications:</strong> Unsubscribe from marketing communications at any time via the link in emails.
+                </div>
+              </div>
+              <p>To exercise any of these rights, email our DPO at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#2563EB', fontWeight: 600 }}>{CONTACT_EMAIL}</a>.</p>
+            </section>
+
+            {/* Section 11 */}
+            <section id="cookies-policy" style={{ marginBottom: 48 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                11. Cookies & Tracking Preferences
+              </h2>
+              <p>
+                We use essential session cookies to maintain secure authentication and preferences. We do not use third-party cross-site advertising cookies. You can manage or disable cookies at any time through your browser settings.
+              </p>
+            </section>
+
+            {/* Section 12 */}
+            <section id="updates-contact" style={{ marginBottom: 32 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: INK, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${HAIRLINE}` }}>
+                12. Updates to This Policy & Contact Information
+              </h2>
+              <p>
+                We may update this Privacy Policy periodically to reflect new features or legal requirements. Material changes will be communicated via email or platform notifications 30 days prior to taking effect.
+              </p>
+              <div style={{ background: SURFACE, padding: 24, borderRadius: 16, border: `1px solid ${HAIRLINE}`, marginTop: 20 }}>
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: INK, marginBottom: 8 }}>Data Protection Office (DPO)</h4>
+                <p style={{ margin: '0 0 6px' }}><strong>Autoniv Technologies</strong></p>
+                <p style={{ margin: '0 0 6px' }}>Email: <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#2563EB' }}>{CONTACT_EMAIL}</a></p>
+                <p style={{ margin: '0 0 6px' }}>Phone: <span style={{ color: INK }}>{CONTACT_PHONE}</span></p>
+                <p style={{ margin: 0 }}>Website: <span style={{ color: INK }}>{CONTACT_WEBSITE}</span></p>
+              </div>
+            </section>
+
+          </main>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }
