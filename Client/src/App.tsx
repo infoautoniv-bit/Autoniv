@@ -499,12 +499,12 @@ function AppRoutes() {
     }
   }, [location.pathname]);
 
-  if (token && !initialized) return <LoadingScreen />;
-
   const home = useMemo(
     () => (user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace /> : <Landing />),
     [user]
   );
+
+  if (token && !initialized) return <LoadingScreen />;
 
   return (
     <Suspense fallback={<LoadingScreen />}>
