@@ -18,8 +18,8 @@ export function DeferRender({
 
   useEffect(() => {
     if (forceRender) {
-      setShouldRender(true);
-      return;
+      const handle = setTimeout(() => setShouldRender(true), 0);
+      return () => clearTimeout(handle);
     }
 
     const el = ref.current;

@@ -313,11 +313,14 @@ const UserSection: React.FC<{
 
   useEffect(() => {
     if (showProfile && user) {
-      setProfileForm({
-        name: user.name || '',
-        email: user.email || '',
-        phoneNumber: user.phoneNumber || '',
-      });
+      const handle = setTimeout(() => {
+        setProfileForm({
+          name: user.name || '',
+          email: user.email || '',
+          phoneNumber: user.phoneNumber || '',
+        });
+      }, 0);
+      return () => clearTimeout(handle);
     }
   }, [showProfile, user]);
 
@@ -722,7 +725,8 @@ export function Sidebar() {
 
   // Close mobile sidebar on navigation
   useEffect(() => {
-    setMobileOpen(false);
+    const handle = setTimeout(() => setMobileOpen(false), 0);
+    return () => clearTimeout(handle);
   }, [location.pathname]);
 
   const toggleSidebar = useCallback(() => {

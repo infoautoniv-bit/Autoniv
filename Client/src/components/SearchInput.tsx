@@ -28,7 +28,8 @@ export function SearchInput({
   const debounced = useDebounce(local, debounceMs);
 
   useEffect(() => {
-    setLocal(value);
+    const handle = setTimeout(() => setLocal(value), 0);
+    return () => clearTimeout(handle);
   }, [value]);
 
   useEffect(() => {

@@ -36,16 +36,21 @@ const AnimatedCounter = memo(({ value, className = '' }: { value: number; classN
   const [display, setDisplay] = useState(0);
   const prefersReduced = useReducedMotion();
   useEffect(() => {
-    if (prefersReduced) { setDisplay(value); return; }
+    if (prefersReduced) {
+      const handle = setTimeout(() => setDisplay(value), 0);
+      return () => clearTimeout(handle);
+    }
     let frame = 0;
     const total = 35;
+    let animId: number;
     const tick = () => {
       frame++;
       const eased = 1 - Math.pow(1 - frame / total, 3);
       setDisplay(Math.round(eased * value));
-      if (frame < total) requestAnimationFrame(tick);
+      if (frame < total) animId = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
   }, [value, prefersReduced]);
   return <span className={className}>{display.toLocaleString()}</span>;
 });
@@ -372,7 +377,10 @@ export function AdminUsers() {
     };
   }, [dispatch, timeRange, page]);
 
-  useEffect(() => { setPage(1); }, [timeRange, searchTerm, statusFilter]);
+  useEffect(() => {
+    const handle = setTimeout(() => setPage(1), 0);
+    return () => clearTimeout(handle);
+  }, [timeRange, searchTerm, statusFilter]);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

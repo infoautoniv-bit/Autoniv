@@ -131,17 +131,22 @@ const AnimatedCounter = memo(({ value, suffix = '', prefix = '', className = '' 
   const prefersReduced = useReducedMotion();
 
   useEffect(() => {
-    if (prefersReduced) { setDisplay(value); return; }
+    if (prefersReduced) {
+      const handle = setTimeout(() => setDisplay(value), 0);
+      return () => clearTimeout(handle);
+    }
     let frame = 0;
     const total = 35;
+    let animId: number;
     const tick = () => {
       frame++;
       const progress = frame / total;
       const eased = 1 - Math.pow(1 - progress, 3);
       setDisplay(Math.round(eased * value));
-      if (frame < total) requestAnimationFrame(tick);
+      if (frame < total) animId = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
   }, [value, prefersReduced]);
 
   return <span className={className}>{prefix}{display.toLocaleString()}{suffix}</span>;
@@ -332,23 +337,6 @@ export function AdminDashboard() {
     },
   ];
 
-  // Custom chart tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-xl border border-slate-200/60 p-3 bg-white/95 backdrop-blur-md shadow-xl">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
-          <p className="text-xs font-bold text-slate-800 mt-1">
-            {chartTab === 'calls'
-              ? `${payload[0].value} calls total`
-              : `${payload[0].value} minutes billed`}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   const isLoading = analyticsLoading && !stats;
 
   // Loading skeleton
@@ -514,7 +502,21 @@ export function AdminDashboard() {
                     allowDecimals={false}
                     tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={({ active, payload, label }: any) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="rounded-xl border border-slate-200/60 p-3 bg-white/95 backdrop-blur-md shadow-xl">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+                          <p className="text-xs font-bold text-slate-800 mt-1">
+                            {chartTab === 'calls'
+                              ? `${payload[0].value} calls total`
+                              : `${payload[0].value} minutes billed`}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }} />
                   <Area
                     type="monotone"
                     dataKey={chartTab === 'calls' ? 'Call Volume' : 'Minutes Used'}

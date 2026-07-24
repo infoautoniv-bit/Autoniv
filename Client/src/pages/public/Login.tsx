@@ -1,7 +1,7 @@
 import { type FormEvent, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { useAuth } from '../../App';
+import { useAuth } from '../../hooks/useAuth';
 import { authService } from '../../services/api';
 import logoAutonivFull from '../../assets/autoniv-full-logo.webp';
 import logoAutonivBrand from '../../assets/autoniv-brand-logo.webp';

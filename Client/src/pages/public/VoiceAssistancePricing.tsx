@@ -279,8 +279,8 @@ export function VoiceAssistancePricing() {
   };
 
   // Compute ROI
-  let roiPlan = 'Growth';
-  let roiCost: number | null = 14999;
+  let roiPlan: string;
+  let roiCost: number | null;
 
   if (calls <= 200) {
     roiPlan = 'Launch';

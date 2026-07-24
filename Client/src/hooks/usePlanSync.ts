@@ -48,5 +48,5 @@ export function usePlanSync() {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [token, user?.id, poll]);
+  }, [token, user, poll]);
 }

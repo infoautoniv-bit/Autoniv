@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { chatService } from '../../services/api';
 
@@ -65,15 +65,16 @@ export function AdminChat() {
     inputRef.current?.focus();
   }, []);
 
-  const sendMessage = async (text: string) => {
-    const msg = text.trim();
+  const handleSend = useCallback(async (text?: string) => {
+    const msg = (text || input).trim();
     if (!msg || loading) return;
 
+    const now = Date.now();
     const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${now}`,
       role: 'user',
       text: msg,
-      timestamp: new Date(),
+      timestamp: new Date(now),
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -103,17 +104,17 @@ export function AdminChat() {
       setLoading(false);
       inputRef.current?.focus();
     }
-  };
+  }, [input, loading]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage(input);
+    handleSend();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage(input);
+      handleSend(input);
     }
   };
 
@@ -182,7 +183,7 @@ export function AdminChat() {
                 {suggestedPrompts.map((prompt) => (
                   <button
                     key={prompt}
-                    onClick={() => sendMessage(prompt)}
+                    onClick={() => handleSend(prompt)}
                     className="px-3 py-2 text-xs font-medium text-[var(--primary)] bg-[var(--primary-soft)]/10 border border-[var(--border)] rounded-lg hover:bg-[var(--primary-soft)]/20 transition-colors min-h-[36px]"
                   >
                     {prompt}

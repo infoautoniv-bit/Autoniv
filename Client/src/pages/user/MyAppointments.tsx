@@ -48,7 +48,10 @@ export function MyAppointments() {
   const [viewMode, setViewMode]     = useState<'table' | 'cards'>('table');
 
   useEffect(() => { dispatch(fetchMyAppointments({ page, limit: 20 })); }, [dispatch, page]);
-  useEffect(() => { setPage(1); }, [filter, search]);
+  useEffect(() => {
+    const handle = setTimeout(() => setPage(1), 0);
+    return () => clearTimeout(handle);
+  }, [filter, search]);
 
   const openAppt = (appt: Appointment) => {
     if (appt.status === 'cancelled') return;

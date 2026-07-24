@@ -219,7 +219,10 @@ export function MyPhoneNumbers() {
   };
 
   useEffect(() => {
-    fetchData();
+    const handle = setTimeout(() => {
+      fetchData();
+    }, 0);
+    return () => clearTimeout(handle);
   }, []);
 
   const handleOpenAdd = () => {

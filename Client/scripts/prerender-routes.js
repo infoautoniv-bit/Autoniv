@@ -12,26 +12,87 @@ const EXACT_META = {
   '/': {
     title: 'Autoniv | 24/7 AI Assistance for Businesses in 20+ Languages',
     description: 'Autoniv provides 24/7 AI assistance for businesses with AI voice agents and chatbots, supporting customer calls, support, sales, & inquiries in 20+ languages. Start free.',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'What is Autoniv?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Autoniv is an AI platform providing 24/7 voice agents and chatbots that handle customer calls, support, lead qualification, and appointment scheduling in 20+ languages.' }
+        },
+        {
+          '@type': 'Question',
+          name: 'Does Autoniv support Indian languages?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Yes, Autoniv supports English, Hindi, Tamil, Telugu, Kannada, Bengali, and 20+ international languages with natural inflection and low latency.' }
+        },
+        {
+          '@type': 'Question',
+          name: 'How does Autoniv pricing compare to traditional call centers?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Autoniv reduces customer support and lead qualification costs by up to 70% with transparent monthly plans starting at ₹4,999/month ($49/month).' }
+        }
+      ]
+    }
   },
   '/ai-voice-agent': {
     title: 'AI Voice Agents for Business Automation | Autoniv',
     description: 'Deploy intelligent, natural-sounding AI voice agents to automate inbound & outbound customer calls, qualify leads, and schedule appointments 24/7.',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      serviceType: 'AI Voice Agent',
+      provider: { '@type': 'Organization', name: 'Autoniv' },
+      description: 'AI-powered voice agents that answer calls, book appointments, and capture leads 24/7.',
+      areaServed: 'Global'
+    }
   },
   '/ai-chatbot': {
     title: 'Intelligent AI Chatbots & Customer Assistants | Autoniv',
     description: 'Engage website visitors and automate customer support with AI chatbots that handle sales inquiries, support tickets, and leads in 20+ languages.',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      serviceType: 'AI Chatbot',
+      provider: { '@type': 'Organization', name: 'Autoniv' },
+      description: 'AI chatbots that engage website visitors, answer questions, and convert leads automatically.',
+      areaServed: 'Global'
+    }
   },
   '/ai-phone-answering': {
     title: '24/7 AI Phone Answering Service & Receptionist | Autoniv',
     description: 'Automate your front desk with an intelligent AI phone receptionist. Handle unlimited concurrent calls, filter spam, and transfer to humans when needed.',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      serviceType: 'AI Phone Answering',
+      provider: { '@type': 'Organization', name: 'Autoniv' },
+      description: 'Automated phone answering service that handles calls, takes messages, and routes inquiries.',
+      areaServed: 'Global'
+    }
   },
   '/appointment-booking': {
     title: 'Automated AI Appointment Booking & Scheduling | Autoniv',
     description: 'Let AI schedule, reschedule, and manage client bookings directly over voice calls and chat. Direct real-time calendar and CRM integrations.',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      serviceType: 'AI Appointment Booking',
+      provider: { '@type': 'Organization', name: 'Autoniv' },
+      description: 'AI-powered appointment scheduling that books meetings, sends confirmations, and manages calendars.',
+      areaServed: 'Global'
+    }
   },
   '/customer-support': {
     title: 'AI-Powered Customer Support Automation | Autoniv',
     description: 'Streamline support workflows with AI voice and chat assistants that resolve up to 80% of customer FAQs instantly, reducing operations cost by 70%.',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      serviceType: 'Customer Support Automation',
+      provider: { '@type': 'Organization', name: 'Autoniv' },
+      description: 'Automate tier-1 support tickets and FAQs across voice and chat channels.',
+      areaServed: 'Global'
+    }
   },
   '/industries/real-estate': {
     title: 'AI Agents for Real Estate Automation | Autoniv',
@@ -156,6 +217,28 @@ function swapMeta(html, routePath, meta) {
     /<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/,
     `<meta name="twitter:description" content="${escapedDesc}" />`
   );
+
+  // Clean up verification placeholders if environment variables are missing
+  const googleVerification = process.env.VITE_GOOGLE_SITE_VERIFICATION || '';
+  const bingVerification = process.env.VITE_BING_VERIFICATION || '';
+
+  if (googleVerification) {
+    result = result.replace('%VITE_GOOGLE_SITE_VERIFICATION%', googleVerification);
+  } else {
+    result = result.replace(/<meta\s+name="google-site-verification"\s+content="%VITE_GOOGLE_SITE_VERIFICATION%"\s*\/?>\n?/g, '');
+  }
+
+  if (bingVerification) {
+    result = result.replace('%VITE_BING_VERIFICATION%', bingVerification);
+  } else {
+    result = result.replace(/<meta\s+name="msvalidate\.01"\s+content="%VITE_BING_VERIFICATION%"\s*\/?>\n?/g, '');
+  }
+
+  // Inject route-specific JSON-LD Schema
+  if (meta.schema) {
+    const schemaScript = `  <script type="application/ld+json">\n${JSON.stringify(meta.schema, null, 2)}\n  </script>`;
+    result = result.replace('</head>', `${schemaScript}\n</head>`);
+  }
 
   return result;
 }

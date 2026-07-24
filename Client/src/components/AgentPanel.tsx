@@ -275,7 +275,7 @@ export function AgentPanel({
   const [twilioToken, setTwilioToken] = useState('');
 
   const fetchPhoneNumbers = useCallback(async () => {
-    setPhoneLoading(true);
+    setTimeout(() => setPhoneLoading(true), 0);
     try {
       const [vapiRes, savedRes] = await Promise.all([
         agentService.getPhoneNumbers().catch(() => ({ data: { phoneNumbers: [] } })),
@@ -312,20 +312,27 @@ export function AgentPanel({
   }, [editing, formData.useCustomEngine]);
 
   useEffect(() => {
-    if (open) setTab('identity');
+    if (open) {
+      const handle = setTimeout(() => setTab('identity'), 0);
+      return () => clearTimeout(handle);
+    }
   }, [open]);
 
   useEffect(() => {
     if (open && editing && onAssignPhone) {
-      fetchPhoneNumbers();
+      const handle = setTimeout(() => fetchPhoneNumbers(), 0);
+      return () => clearTimeout(handle);
     }
   }, [open, editing, fetchPhoneNumbers, onAssignPhone]);
 
   useEffect(() => {
     if (!filteredVoices.some(v => v.value === formData.voiceId)) {
-      setFormData((prev: any) => ({ ...prev, voiceId: filteredVoices[0]?.value || '' }));
+      const handle = setTimeout(() => {
+        setFormData((prev: any) => ({ ...prev, voiceId: filteredVoices[0]?.value || '' }));
+      }, 0);
+      return () => clearTimeout(handle);
     }
-  }, [formData.language]);
+  }, [formData.language, filteredVoices, formData.voiceId, setFormData]);
 
 
 

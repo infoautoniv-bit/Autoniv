@@ -284,7 +284,10 @@ export function DataTable<T extends Record<string, any>>({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => { setVisibleColumns(columns.map(c => c.key)); }, [columns]);
+  useEffect(() => {
+    const handle = setTimeout(() => setVisibleColumns(columns.map(c => c.key)), 0);
+    return () => clearTimeout(handle);
+  }, [columns]);
 
   const selectedItems = useMemo(() => data.filter(item => selectedKeys.has(keyExtractor(item))), [data, selectedKeys, keyExtractor]);
   useEffect(() => { onSelectionChange?.(selectedItems); }, [selectedItems, onSelectionChange]);
@@ -337,7 +340,11 @@ export function DataTable<T extends Record<string, any>>({
   const handleSelectRow = (key: string) => {
     setSelectedKeys(prev => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
       return next;
     });
   };
@@ -347,7 +354,11 @@ export function DataTable<T extends Record<string, any>>({
     const allSelected = visibleKeys.every(k => selectedKeys.has(k));
     setSelectedKeys(prev => {
       const next = new Set(prev);
-      allSelected ? visibleKeys.forEach(k => next.delete(k)) : visibleKeys.forEach(k => next.add(k));
+      if (allSelected) {
+        visibleKeys.forEach(k => next.delete(k));
+      } else {
+        visibleKeys.forEach(k => next.add(k));
+      }
       return next;
     });
   };
@@ -428,11 +439,18 @@ export function DataTable<T extends Record<string, any>>({
                   type="text"
                   placeholder={searchPlaceholder}
                   value={activeSearch}
-                  onChange={e => { onSearchChange ? onSearchChange(e.target.value) : setLocalSearch(e.target.value); handlePageChange(1); }}
+                  onChange={e => {
+                    if (onSearchChange) onSearchChange(e.target.value);
+                    else setLocalSearch(e.target.value);
+                    handlePageChange(1);
+                  }}
                   className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl bg-slate-50/80 border border-slate-200/60 text-slate-700 placeholder-slate-400 outline-none focus:border-[var(--primary-blue)]/40 focus:ring-2 focus:ring-[var(--primary-blue)]/10 focus:bg-white transition-all duration-200"
                 />
                 {activeSearch && (
-                  <button onClick={() => { onSearchChange ? onSearchChange('') : setLocalSearch(''); }}
+                  <button onClick={() => {
+                    if (onSearchChange) onSearchChange('');
+                    else setLocalSearch('');
+                  }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200/80 hover:bg-slate-300 flex items-center justify-center transition-colors">
                     <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

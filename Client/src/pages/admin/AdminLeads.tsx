@@ -34,16 +34,21 @@ const AnimatedCounter = memo(({ value, className = '' }: { value: number; classN
   const [display, setDisplay] = useState(0);
   const prefersReduced = useReducedMotion();
   useEffect(() => {
-    if (prefersReduced) { setDisplay(value); return; }
+    if (prefersReduced) {
+      const handle = setTimeout(() => setDisplay(value), 0);
+      return () => clearTimeout(handle);
+    }
     let frame = 0;
     const total = 35;
+    let animId: number;
     const tick = () => {
       frame++;
       const eased = 1 - Math.pow(1 - frame / total, 3);
       setDisplay(Math.round(eased * value));
-      if (frame < total) requestAnimationFrame(tick);
+      if (frame < total) animId = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
   }, [value, prefersReduced]);
   return <span className={className}>{display.toLocaleString()}</span>;
 });
@@ -193,15 +198,19 @@ export function AdminLeads() {
     if (activeTab === 'all') {
       dispatch(fetchAllLeads({ page, limit: 20 }));
     } else {
-      setPublicLoading(true);
+      const handle = setTimeout(() => setPublicLoading(true), 0);
       leadService.getPublic({ page, limit: 20 }).then((res) => {
         setPublicLeads(res.data.items || []);
         setPublicPagination(res.data.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false });
       }).finally(() => setPublicLoading(false));
+      return () => clearTimeout(handle);
     }
   }, [dispatch, page, activeTab]);
 
-  useEffect(() => { setPage(1); }, [filter, search, activeTab]);
+  useEffect(() => {
+    const handle = setTimeout(() => setPage(1), 0);
+    return () => clearTimeout(handle);
+  }, [filter, search, activeTab]);
 
   const displayLeads = activeTab === 'all' ? leads : publicLeads;
 

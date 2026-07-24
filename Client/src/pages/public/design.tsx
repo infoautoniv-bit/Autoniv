@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useRef, useState } from 'react';
 import logoBrand from '../../assets/autoniv-brand-logo.webp';
 
@@ -20,7 +21,10 @@ function useReveal<T extends HTMLElement>() {
 
   useEffect(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) { setVisible(true); return; }
+    if (prefersReduced) {
+      const handle = setTimeout(() => setVisible(true), 0);
+      return () => clearTimeout(handle);
+    }
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(

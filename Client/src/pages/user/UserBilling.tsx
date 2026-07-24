@@ -280,15 +280,18 @@ function WhiteLabelSection({ user, onUnlockPlan }: { user: any; onUnlockPlan: ()
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
-    if (user?.whiteLabelSettings) {
-      setCompanyName(user.whiteLabelSettings.companyName || '');
-      setLogoUrl(user.whiteLabelSettings.logoUrl || '');
-      setFaviconUrl(user.whiteLabelSettings.faviconUrl || '');
-      setCustomDomain(user.whiteLabelSettings.customDomain || '');
-      setHidePoweredBy(user.whiteLabelSettings.hidePoweredBy || false);
-      setSupportEmail(user.whiteLabelSettings.supportEmail || '');
-      setAccentColor(user.whiteLabelSettings.accentColor || '#2563EB');
-    }
+    const handle = setTimeout(() => {
+      if (user?.whiteLabelSettings) {
+        setCompanyName(user.whiteLabelSettings.companyName || '');
+        setLogoUrl(user.whiteLabelSettings.logoUrl || '');
+        setFaviconUrl(user.whiteLabelSettings.faviconUrl || '');
+        setCustomDomain(user.whiteLabelSettings.customDomain || '');
+        setHidePoweredBy(user.whiteLabelSettings.hidePoweredBy || false);
+        setSupportEmail(user.whiteLabelSettings.supportEmail || '');
+        setAccentColor(user.whiteLabelSettings.accentColor || '#2563EB');
+      }
+    }, 0);
+    return () => clearTimeout(handle);
   }, [user?.whiteLabelSettings]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -476,10 +479,13 @@ export function UserBilling() {
 
   // Synchronize upgrade modal default tab
   useEffect(() => {
-    if (showUpgrade) {
-      setModalTab(activePlanType);
-      setSelectedPlan(null);
-    }
+    const handle = setTimeout(() => {
+      if (showUpgrade) {
+        setModalTab(activePlanType);
+        setSelectedPlan(null);
+      }
+    }, 0);
+    return () => clearTimeout(handle);
   }, [showUpgrade, activePlanType]);
 
   const chatLimit = user?.chatLimit || activePlanConfig.callsPerMonth || 100;

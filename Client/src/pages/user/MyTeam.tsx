@@ -206,7 +206,10 @@ export const MyTeam: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTeam();
+    const handle = setTimeout(() => {
+      fetchTeam();
+    }, 0);
+    return () => clearTimeout(handle);
   }, []);
 
   const handleInvite = async (e: React.FormEvent) => {

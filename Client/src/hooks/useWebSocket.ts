@@ -18,36 +18,60 @@ export interface UseWebSocketOptions {
   onReconnectAttempt?: (attempt: number, delay: number) => void;
 }
 
-export function useWebSocket({
+export interface UseWebSocketReturn {
+  status: WebSocketStatus;
+  reconnectAttempt: number;
+  lastMessage: MessageEvent | null;
+  socket: WebSocket | null;
+  send: (data: string | Blob | BufferSource) => boolean;
+  connect: () => void;
+  disconnect: () => void;
+}
+
+export const useWebSocket = ({
   url,
   enabled = true,
   autoReconnect = true,
   initialDelayMs = 1000,
   maxDelayMs = 30000,
-  backoffFactor = 2,
+  backoffFactor = 1.5,
   maxRetries = 10,
-  pingIntervalMs = 25000,
+  pingIntervalMs = 30000,
   onOpen,
   onMessage,
-  onError,
   onClose,
+  onError,
   onReconnectAttempt,
-}: UseWebSocketOptions) {
-  const [status, setStatus] = useState<WebSocketStatus>('idle');
-  const [reconnectAttempt, setReconnectAttempt] = useState(0);
+}: UseWebSocketOptions): UseWebSocketReturn => {
+  const [status, setStatus] = useState<WebSocketStatus>('disconnected');
+  const [reconnectAttempt, setReconnectAttempt] = useState<number>(0);
   const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
+  const [socketInstance, setSocketInstance] = useState<WebSocket | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const retryCountRef = useRef(0);
-  const isManuallyClosedRef = useRef(false);
+  const retryCountRef = useRef<number>(0);
+  const isManuallyClosedRef = useRef<boolean>(false);
+  const connectRef = useRef<() => void>(() => {});
 
-  // Store options in refs so callbacks can change without re-triggering connection
-  const callbacksRef = useRef({ onOpen, onMessage, onError, onClose, onReconnectAttempt });
-  useEffect(() => {
-    callbacksRef.current = { onOpen, onMessage, onError, onClose, onReconnectAttempt };
+  const callbacksRef = useRef({
+    onOpen,
+    onMessage,
+    onClose,
+    onError,
+    onReconnectAttempt,
   });
+
+  useEffect(() => {
+    callbacksRef.current = {
+      onOpen,
+      onMessage,
+      onClose,
+      onError,
+      onReconnectAttempt,
+    };
+  }, [onOpen, onMessage, onClose, onError, onReconnectAttempt]);
 
   const clearTimers = useCallback(() => {
     if (reconnectTimerRef.current) {
@@ -70,6 +94,7 @@ export function useWebSocket({
     try {
       const ws = new WebSocket(url);
       socketRef.current = ws;
+      setSocketInstance(ws);
 
       ws.onopen = (event) => {
         setStatus('connected');
@@ -104,6 +129,7 @@ export function useWebSocket({
 
       ws.onclose = (event) => {
         clearTimers();
+        setSocketInstance(null);
         callbacksRef.current.onClose?.(event);
 
         if (isManuallyClosedRef.current) {
@@ -124,16 +150,20 @@ export function useWebSocket({
           callbacksRef.current.onReconnectAttempt?.(retryCountRef.current, delay);
 
           reconnectTimerRef.current = setTimeout(() => {
-            connect();
+            connectRef.current();
           }, delay);
         } else {
           setStatus('disconnected');
         }
       };
-    } catch (err) {
+    } catch {
       setStatus('error');
     }
   }, [url, enabled, autoReconnect, initialDelayMs, maxDelayMs, backoffFactor, maxRetries, pingIntervalMs, clearTimers]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const disconnect = useCallback(() => {
     isManuallyClosedRef.current = true;
@@ -141,6 +171,7 @@ export function useWebSocket({
     if (socketRef.current) {
       socketRef.current.close();
       socketRef.current = null;
+      setSocketInstance(null);
     }
     setStatus('disconnected');
   }, [clearTimers]);
@@ -157,7 +188,8 @@ export function useWebSocket({
     if (enabled && url) {
       connect();
     } else {
-      disconnect();
+      const handle = setTimeout(() => disconnect(), 0);
+      return () => clearTimeout(handle);
     }
 
     return () => {
@@ -169,9 +201,9 @@ export function useWebSocket({
     status,
     reconnectAttempt,
     lastMessage,
-    socket: socketRef.current,
+    socket: socketInstance,
     send,
     connect,
     disconnect,
   };
-}
+};

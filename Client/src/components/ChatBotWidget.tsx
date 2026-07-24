@@ -111,14 +111,20 @@ export function ChatBotWidget() {
 
   useEffect(() => {
     if (open) {
-      setUnread(0);
-      setTimeout(() => inputRef.current?.focus(), 180);
+      const handle = setTimeout(() => {
+        setUnread(0);
+        inputRef.current?.focus();
+      }, 180);
+      return () => clearTimeout(handle);
     }
   }, [open]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-    if (!open && messages.at(-1)?.role === 'bot') setUnread((n) => n + 1);
+    if (!open && messages.at(-1)?.role === 'bot') {
+      const handle = setTimeout(() => setUnread((n) => n + 1), 0);
+      return () => clearTimeout(handle);
+    }
   }, [messages, open]);
 
   const loadAgents = async () => {

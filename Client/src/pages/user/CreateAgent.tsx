@@ -306,7 +306,7 @@ export function CreateAgent() {
 
   useEffect(() => {
     const fetchPhoneNumbers = async () => {
-      setPhoneLoading(true);
+      setTimeout(() => setPhoneLoading(true), 0);
       try {
         const [vapiRes, savedRes] = await Promise.all([
           agentService.getPhoneNumbers().catch(() => ({ data: { phoneNumbers: [] } })),
@@ -334,9 +334,12 @@ export function CreateAgent() {
   }
 
   useEffect(() => {
-    if (!filteredVoices.some(v => v.value === formData.voiceId)) {
-      setFormData(prev => ({ ...prev, voiceId: filteredVoices[0]?.value || '' }));
-    }
+    const handle = setTimeout(() => {
+      if (!filteredVoices.some(v => v.value === formData.voiceId)) {
+        setFormData(prev => ({ ...prev, voiceId: filteredVoices[0]?.value || '' }));
+      }
+    }, 0);
+    return () => clearTimeout(handle);
   }, [formData.language, filteredVoices, formData.voiceId]);
 
   const handleSubmit = useCallback(async () => {

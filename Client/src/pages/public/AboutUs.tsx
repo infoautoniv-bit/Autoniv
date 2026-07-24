@@ -33,8 +33,8 @@ function useReveal<T extends HTMLElement>() {
   useEffect(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) {
-      setVisible(true);
-      return;
+      const handle = setTimeout(() => setVisible(true), 0);
+      return () => clearTimeout(handle);
     }
     const el = ref.current;
     if (!el) return;
@@ -73,7 +73,6 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 /* ─── FAQ Item ─── */
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
@@ -121,12 +120,12 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       </button>
       <div
         style={{
-          maxHeight: open ? contentRef.current?.scrollHeight ?? 400 : 0,
+          maxHeight: open ? 500 : 0,
           overflow: 'hidden',
           transition: 'max-height 0.35s cubic-bezier(0.16,1,0.3,1)',
         }}
       >
-        <div ref={contentRef} className="px-6 pb-5" style={{ borderTop: '1px solid rgba(37,99,235,0.08)' }}>
+        <div className="px-6 pb-5" style={{ borderTop: '1px solid rgba(37,99,235,0.08)' }}>
           <p className="text-sm leading-relaxed pt-4" style={{ color: SLATE }}>
             {answer}
           </p>

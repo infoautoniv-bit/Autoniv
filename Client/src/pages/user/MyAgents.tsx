@@ -115,9 +115,9 @@ function WebCallDialog({
                       <motion.div
                         key={idx}
                         className="w-[3px] bg-blue-500 rounded-full"
-                        animate={{ height: [6, Math.random() * 28 + 6, 6] }}
+                        animate={{ height: [6, ((idx * 7) % 22) + 8, 6] }}
                         transition={{
-                          duration: 0.5 + Math.random() * 0.5,
+                          duration: 0.5 + ((idx * 3) % 5) * 0.1,
                           repeat: Infinity,
                           repeatType: 'reverse',
                           delay: idx * 0.04
@@ -195,10 +195,13 @@ function CallMeDialog({
   const [countrySearch, setCountrySearch] = useState('');
 
   useEffect(() => {
-    if (open) {
-      setCalleeName(''); setPhone(''); setError(''); setCopied(false);
-      setCountryCode('+91'); setShowCountryDropdown(false); setCountrySearch('');
-    }
+    const handle = setTimeout(() => {
+      if (open) {
+        setCalleeName(''); setPhone(''); setError(''); setCopied(false);
+        setCountryCode('+91'); setShowCountryDropdown(false); setCountrySearch('');
+      }
+    }, 0);
+    return () => clearTimeout(handle);
   }, [open]);
 
   useEffect(() => {
@@ -498,7 +501,8 @@ function CallMeDialog({
 
 export function MyAgents() {
   const dispatch = useAppDispatch();
-  const agents = useAppSelector((s) => s.agents.myAgents) ?? [];
+  const rawAgents = useAppSelector((s) => s.agents.myAgents);
+  const agents = useMemo(() => rawAgents ?? [], [rawAgents]);
   const loading = useAppSelector((s) => s.agents.loading);
   const pagination = useAppSelector((s) => s.agents.myPagination);
   const user = useAppSelector((s) => s.auth.user);

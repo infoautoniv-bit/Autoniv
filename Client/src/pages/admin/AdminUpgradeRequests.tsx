@@ -36,16 +36,21 @@ const AnimatedCounter = memo(({ value, className = '' }: { value: number; classN
   const [display, setDisplay] = useState(0);
   const prefersReduced = useReducedMotion();
   useEffect(() => {
-    if (prefersReduced) { setDisplay(value); return; }
+    if (prefersReduced) {
+      const handle = setTimeout(() => setDisplay(value), 0);
+      return () => clearTimeout(handle);
+    }
     let frame = 0;
     const total = 35;
+    let animId: number;
     const tick = () => {
       frame++;
       const eased = 1 - Math.pow(1 - frame / total, 3);
       setDisplay(Math.round(eased * value));
-      if (frame < total) requestAnimationFrame(tick);
+      if (frame < total) animId = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
   }, [value, prefersReduced]);
   return <span className={className}>{display.toLocaleString()}</span>;
 });
@@ -102,24 +107,12 @@ export function AdminUpgradeRequests() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards'); // ✅ Changed to cards by default on mobile
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>(() => typeof window !== 'undefined' && window.innerWidth < 640 ? 'cards' : 'table');
 
-  // ✅ Use useEffect to detect mobile and set view mode
   useEffect(() => {
-    const isMobile = window.innerWidth < 640;
-    if (isMobile) {
-      setViewMode('cards');
-    } else {
-      setViewMode('table');
-    }
-
     const handleResize = () => {
       const isMobileNow = window.innerWidth < 640;
-      if (isMobileNow && viewMode !== 'cards') {
-        setViewMode('cards');
-      } else if (!isMobileNow && viewMode === 'cards') {
-        setViewMode('table');
-      }
+      setViewMode(isMobileNow ? 'cards' : 'table');
     };
 
     window.addEventListener('resize', handleResize);
@@ -130,7 +123,10 @@ export function AdminUpgradeRequests() {
     dispatch(fetchAllUpgradeRequests({ status: filter || undefined, page, limit: 20 }));
   }, [dispatch, filter, page]);
 
-  useEffect(() => { setPage(1); }, [filter, search]);
+  useEffect(() => {
+    const handle = setTimeout(() => setPage(1), 0);
+    return () => clearTimeout(handle);
+  }, [filter, search]);
 
   const handleProcess = async (id: string, status: 'approved' | 'rejected') => {
     setProcessing(id);

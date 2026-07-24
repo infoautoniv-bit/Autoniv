@@ -114,52 +114,64 @@ function formatText(text: string): React.ReactNode[] {
   );
 }
 
+function renderList(items: { key: number; text: string }[], listType: 'ul' | 'ol', key: number) {
+  if (!items.length) return null;
+  const isOrdered = listType === 'ol';
+  const listElements = items.map((item, idx) => (
+    <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, lineHeight: 1.65, color: 'var(--text-secondary)', marginBottom: 2 }}>
+      {!isOrdered
+        ? <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginTop: 7 }} />
+        : <span style={{ color: 'var(--primary)', fontWeight: 500, fontSize: 11, flexShrink: 0, minWidth: 14, marginTop: 1 }}>{idx + 1}.</span>
+      }
+      <span>{formatText(item.text)}</span>
+    </li>
+  ));
+  const Tag = isOrdered ? 'ol' : 'ul';
+  return <Tag key={`list-${key}`} style={{ listStyle: 'none', padding: 0, margin: '6px 0' }}>{listElements}</Tag>;
+}
+
 function BulletText({ text }: { text: string }) {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
   let listType: 'ul' | 'ol' | null = null;
   let listItems: { key: number; text: string }[] = [];
 
-  const flushList = (key: number) => {
-    if (!listItems.length) return null;
-    const isOrdered = listType === 'ol';
-    const items = listItems.map((item, idx) => (
-      <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, lineHeight: 1.65, color: 'var(--text-secondary)', marginBottom: 2 }}>
-        {!isOrdered
-          ? <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginTop: 7 }} />
-          : <span style={{ color: 'var(--primary)', fontWeight: 500, fontSize: 11, flexShrink: 0, minWidth: 14, marginTop: 1 }}>{idx + 1}.</span>
-        }
-        <span>{formatText(item.text)}</span>
-      </li>
-    ));
-    listItems = [];
-    listType = null;
-    const Tag = isOrdered ? 'ol' : 'ul';
-    return <Tag key={`list-${key}`} style={{ listStyle: 'none', padding: 0, margin: '6px 0' }}>{items}</Tag>;
-  };
-
   for (let i = 0; i < lines.length; i++) {
     const line   = lines[i];
     const trimmed = line.trim();
 
     if (!trimmed) {
-      const l = flushList(i); if (l) elements.push(l);
+      if (listItems.length && listType) {
+        elements.push(renderList(listItems, listType, i));
+        listItems = [];
+        listType = null;
+      }
       elements.push(<div key={`sp-${i}`} style={{ height: 6 }} />);
       continue;
     }
     if (/^[-*•]\s/.test(trimmed)) {
-      if (listType !== 'ul') { const l = flushList(i); if (l) elements.push(l); }
+      if (listType && listType !== 'ul' && listItems.length) {
+        elements.push(renderList(listItems, listType, i));
+        listItems = [];
+      }
       listType = 'ul';
       listItems.push({ key: i, text: trimmed.replace(/^[-*•]\s/, '') });
       continue;
     }
     if (/^\d+[.)]\s/.test(trimmed)) {
-      if (listType !== 'ol') { const l = flushList(i); if (l) elements.push(l); }
+      if (listType && listType !== 'ol' && listItems.length) {
+        elements.push(renderList(listItems, listType, i));
+        listItems = [];
+      }
       listType = 'ol';
       listItems.push({ key: i, text: trimmed.replace(/^\d+[.)]\s/, '') });
       continue;
     }
-    const l = flushList(i); if (l) elements.push(l);
+    if (listItems.length && listType) {
+      elements.push(renderList(listItems, listType, i));
+      listItems = [];
+      listType = null;
+    }
     if (/^#{1,3}\s/.test(trimmed)) {
       elements.push(
         <p key={`h-${i}`} style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13, margin: '4px 0 2px' }}>
@@ -174,7 +186,11 @@ function BulletText({ text }: { text: string }) {
       );
     }
   }
-  const l = flushList(9999); if (l) elements.push(l);
+
+  if (listItems.length && listType) {
+    elements.push(renderList(listItems, listType, lines.length));
+  }
+
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>{elements}</div>;
 }
 
@@ -274,7 +290,12 @@ export function MyChat() {
     } catch { /* ignore */ }
   }, [dispatch, chatLimit]);
 
-  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchSessions();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchSessions]);
 
   // Save current messages to backend session
   const saveToBackend = useCallback(async (msgs: Message[]) => {

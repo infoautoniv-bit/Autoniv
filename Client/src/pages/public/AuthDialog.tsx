@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Modal } from '../../components/Modal';
-import { useAuth } from '../../App';
+import { useAuth } from '../../hooks/useAuth';
 import { authService } from '../../services/api';
 // import { useAppDispatch } from '../../hooks/useStore';
 // import { checkAuth } from '../../store/slices/authSlice';
@@ -209,26 +209,29 @@ export function AuthDialog({ mode, isOpen, onClose, onSwitch }: AuthDialogProps)
 
   // Reset form on mode change
   useEffect(() => {
-    if (mode !== 'reset_password') {
-      setEmail('');
-      setName('');
-      setPassword('');
-      setConfirmPassword('');
-      setPhoneNumber('');
-      setCompany('');
-    }
-    setError(''); setLoading(false);
-    setFieldErrors({}); setTouched({});
-    setShowPassword(false);
-    setShowResetPassword(false);
-    setShowResetConfirm(false);
-    setResetPassword('');
-    setResetConfirm('');
-    setSuccess('');
-    setShowOtp(false);
-    setOtp(Array(6).fill(''));
-    setTimer(30);
-    setOtpPurpose(null);
+    const handle = setTimeout(() => {
+      if (mode !== 'reset_password') {
+        setEmail('');
+        setName('');
+        setPassword('');
+        setConfirmPassword('');
+        setPhoneNumber('');
+        setCompany('');
+      }
+      setError(''); setLoading(false);
+      setFieldErrors({}); setTouched({});
+      setShowPassword(false);
+      setShowResetPassword(false);
+      setShowResetConfirm(false);
+      setResetPassword('');
+      setResetConfirm('');
+      setSuccess('');
+      setShowOtp(false);
+      setOtp(Array(6).fill(''));
+      setTimer(30);
+      setOtpPurpose(null);
+    }, 0);
+    return () => clearTimeout(handle);
   }, [mode, isOpen]);
 
   useEffect(() => {

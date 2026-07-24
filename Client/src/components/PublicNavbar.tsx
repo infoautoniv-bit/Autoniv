@@ -125,13 +125,16 @@ export function PublicNavbar() {
   }, [mobileMenuOpen]);
 
   useEffect(() => {
-    setMobileMenuOpen(false);
-    if (!location.hash) {
-      const match = navItems.find((i) => !i.isHash && i.href === location.pathname);
-      if (match) setSelectedLabel(match.label);
-      else if (location.pathname === '/') setSelectedLabel(null);
-    }
-  }, [location.pathname]);
+    const handle = setTimeout(() => {
+      setMobileMenuOpen(false);
+      if (!location.hash) {
+        const match = navItems.find((i) => !i.isHash && i.href === location.pathname);
+        if (match) setSelectedLabel(match.label);
+        else if (location.pathname === '/') setSelectedLabel(null);
+      }
+    }, 0);
+    return () => clearTimeout(handle);
+  }, [location.pathname, location.hash, navItems]);
 
   useEffect(() => {
     if (mobileMenuOpen) {

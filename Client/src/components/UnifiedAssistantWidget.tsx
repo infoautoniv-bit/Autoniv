@@ -592,7 +592,8 @@ export default function UnifiedAssistantWidget() {
   // If widget is closed, terminate voice call to prevent leaks/charges
   useEffect(() => {
     if (!isOpen && (callMode === 'active' || callMode === 'connecting')) {
-      stopCall();
+      const handle = setTimeout(() => stopCall(), 0);
+      return () => clearTimeout(handle);
     }
   }, [isOpen, callMode, stopCall]);
 

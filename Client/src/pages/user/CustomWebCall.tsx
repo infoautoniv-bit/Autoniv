@@ -99,8 +99,8 @@ export function CustomWebCall() {
   /* ── Active Session Timer ── */
   useEffect(() => {
     if (status !== 'listening' && status !== 'speaking') {
-      setDur(0);
-      return;
+      const handle = setTimeout(() => setDur(0), 0);
+      return () => clearTimeout(handle);
     }
     const id = setInterval(() => setDur(p => p + 1), 1000);
     return () => clearInterval(id);

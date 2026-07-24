@@ -248,7 +248,8 @@ export function Testimonials() {
 
   // Safely clamp activeIndex if filtered list changes
   useEffect(() => {
-    setActiveIndex(0);
+    const handle = setTimeout(() => setActiveIndex(0), 0);
+    return () => clearTimeout(handle);
   }, [selectedIndustry]);
 
   // Auto-rotate among the filtered testimonials

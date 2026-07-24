@@ -119,17 +119,22 @@ const AnimatedCounter = memo(({ value, suffix = '', prefix = '', className = '' 
   const prefersReduced = useReducedMotion();
 
   useEffect(() => {
-    if (prefersReduced) { setDisplay(value); return; }
+    if (prefersReduced) {
+      const handle = setTimeout(() => setDisplay(value), 0);
+      return () => clearTimeout(handle);
+    }
     let frame = 0;
     const total = 35;
+    let animId: number;
     const tick = () => {
       frame++;
       const progress = frame / total;
       const eased = 1 - Math.pow(1 - progress, 3);
       setDisplay(Math.round(eased * value));
-      if (frame < total) requestAnimationFrame(tick);
+      if (frame < total) animId = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
   }, [value, prefersReduced]);
 
   return <span className={className}>{prefix}{display.toLocaleString()}{suffix}</span>;
@@ -148,13 +153,12 @@ const DonutChart = memo(({ data, rate }: {
   );
 
   const r = 42; const cx = 50; const cy = 50;
-  let angle = -90;
-  const segments = data.map(d => {
+  const segments = data.reduce<Array<{ name: string; value: number; color: string; startAngle: number; sweep: number }>>((acc, d) => {
+    const prevAngle = acc.length > 0 ? acc[acc.length - 1].startAngle + acc[acc.length - 1].sweep : -90;
     const sweep = (d.value / total) * 360;
-    const s = { ...d, startAngle: angle, sweep };
-    angle += sweep;
-    return s;
-  });
+    acc.push({ ...d, startAngle: prevAngle, sweep });
+    return acc;
+  }, []);
 
   const arc = (startDeg: number, endDeg: number) => {
     const rad = (d: number) => (d * Math.PI) / 180;
@@ -359,9 +363,8 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
 
   useEffect(() => {
     if (!call) return;
-    setLoadingTranscript(true);
-    // Simulate fetching / formatting transcript dialog
     const timer = setTimeout(() => {
+      setLoadingTranscript(true);
       const dialogue = call.transcript
         ? call.transcript.split('\n').filter(Boolean)
         : [
@@ -587,9 +590,9 @@ function WebCallDialog({
                       <motion.div
                         key={idx}
                         className="w-[3px] bg-blue-500 rounded-full"
-                        animate={{ height: [6, Math.random() * 28 + 6, 6] }}
+                        animate={{ height: [6, ((idx * 7) % 22) + 8, 6] }}
                         transition={{
-                          duration: 0.5 + Math.random() * 0.5,
+                          duration: 0.5 + ((idx * 3) % 5) * 0.1,
                           repeat: Infinity,
                           repeatType: 'reverse',
                           delay: idx * 0.04
@@ -671,10 +674,13 @@ function CallMeDialog({
   const [countrySearch, setCountrySearch] = useState('');
 
   useEffect(() => {
-    if (open) {
-      setCalleeName(''); setPhone(''); setError(''); setCopied(false);
-      setCountryCode('+91'); setShowCountryDropdown(false); setCountrySearch('');
-    }
+    const handle = setTimeout(() => {
+      if (open) {
+        setCalleeName(''); setPhone(''); setError(''); setCopied(false);
+        setCountryCode('+91'); setShowCountryDropdown(false); setCountrySearch('');
+      }
+    }, 0);
+    return () => clearTimeout(handle);
   }, [open]);
 
   useEffect(() => {
@@ -1109,17 +1115,18 @@ export function UserDashboard() {
   }), [myAgents]);
  
   // Synchronized time filtering logic for calls
+  const [nowTimestamp] = useState(() => Date.now());
+
   const filteredCalls = useMemo(() => {
-    const now = Date.now();
     const dayMs = 86400000;
     return calls.filter(c => {
       if (!c.startedAt) return timeFilter === 'all';
-      const diff = now - new Date(c.startedAt).getTime();
+      const diff = nowTimestamp - new Date(c.startedAt).getTime();
       if (timeFilter === '7d') return diff <= 7 * dayMs;
       if (timeFilter === '30d') return diff <= 30 * dayMs;
       return true; // 'all'
     });
-  }, [calls, timeFilter]);
+  }, [calls, timeFilter, nowTimestamp]);
 
   const minutesUsed = useMemo(() => {
     const total = filteredCalls.reduce((acc, c) => acc + getCallDurSec(c), 0);
@@ -1162,12 +1169,11 @@ export function UserDashboard() {
 
   // Dynamic daily bucketing for the Trend Chart Area block
   const performanceTrendData = useMemo(() => {
-    const now = Date.now();
     const dayMs = 86400000;
     const pointsCount = timeFilter === '7d' ? 7 : timeFilter === '30d' ? 15 : 20;
     
     const buckets = Array.from({ length: pointsCount }).map((_, idx) => {
-      const d = new Date(now - (pointsCount - 1 - idx) * dayMs * (timeFilter === 'all' ? 2.5 : 1));
+      const d = new Date(nowTimestamp - (pointsCount - 1 - idx) * dayMs * (timeFilter === 'all' ? 2.5 : 1));
       return {
         dateStr: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
         timestamp: d.getTime(),
@@ -1183,7 +1189,7 @@ export function UserDashboard() {
       
       // Find matching date bucket
       for (let i = 0; i < buckets.length; i++) {
-        const nextTime = buckets[i + 1]?.timestamp ?? now + dayMs;
+        const nextTime = buckets[i + 1]?.timestamp ?? nowTimestamp + dayMs;
         if (t >= buckets[i].timestamp && t < nextTime) {
           matchIdx = i;
           break;
@@ -1201,7 +1207,7 @@ export function UserDashboard() {
       'Calls Volume': b.calls,
       'Minutes Used': Math.round(b.minutes * 10) / 10,
     }));
-  }, [filteredCalls, timeFilter]);
+  }, [filteredCalls, timeFilter, nowTimestamp]);
 
   const s = stats || (cachedStats as MyStats | null) || { agentCount: 0, callCount: 0, minuteUsed: 0, leadCount: 0 };
   const planColors = getPlanColor(user?.plan || 'free');
@@ -1292,22 +1298,7 @@ export function UserDashboard() {
   const hasAgents      = myAgents.length > 0 && isVoice;
   const hasRecentCalls = recentCalls.length > 0 && isVoice;
 
-  // Custom Chart Tooltip styling
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-xl border border-slate-200/60 p-3 bg-white/95 backdrop-blur-md shadow-xl">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
-          <p className="text-xs font-bold text-slate-800 mt-1">
-            {chartTab === 'volume' 
-              ? `${payload[0].value} calls placed` 
-              : `${payload[0].value} mins of usage`}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+
 
   const clearWebCallTimers = useCallback(() => {
     if (webCallTimerRef.current) { clearInterval(webCallTimerRef.current); webCallTimerRef.current = null; }
@@ -1823,7 +1814,21 @@ export function UserDashboard() {
                   allowDecimals={false}
                   tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} 
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={({ active, payload, label }: any) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="rounded-xl border border-slate-200/60 p-3 bg-white/95 backdrop-blur-md shadow-xl">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+                        <p className="text-xs font-bold text-slate-800 mt-1">
+                          {chartTab === 'volume' 
+                            ? `${payload[0].value} calls placed` 
+                            : `${payload[0].value} mins of usage`}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }} />
                 <Area 
                   type="monotone" 
                   dataKey={chartTab === 'volume' ? 'Calls Volume' : 'Minutes Used'} 

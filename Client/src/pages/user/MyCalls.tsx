@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, memo } from 'react';
+import { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -129,10 +129,10 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
 
   useEffect(() => {
     if (!call) return;
-    setActiveTab(call.recordingUrl ? 'recording' : 'transcript');
-    setLoadingText(true);
 
     const timer = setTimeout(() => {
+      setActiveTab(call.recordingUrl ? 'recording' : 'transcript');
+      setLoadingText(true);
       if (call.transcript) {
         const lines = call.transcript.split('\n').filter(Boolean);
         const bubbles = lines.map((line, idx) => {
@@ -455,7 +455,8 @@ export function MyCalls() {
   }, [dispatch, page]);
 
   useEffect(() => { 
-    setPage(1); 
+    const handle = setTimeout(() => setPage(1), 0);
+    return () => clearTimeout(handle);
   }, [filter, search]);
 
   const handleSync = async () => {
@@ -470,9 +471,9 @@ export function MyCalls() {
     }
   };
 
-  const openCall = (call: Call) => {
+  const openCall = useCallback((call: Call) => {
     setSelectedCall(call);
-  };
+  }, []);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -540,21 +541,7 @@ export function MyCalls() {
     return Object.values(dateMap).sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
   }, [filteredCalls]);
 
-  const ChartTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-xl border border-slate-200/60 p-3 bg-white/95 backdrop-blur-md shadow-xl">
-          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{label}</p>
-          <p className="text-xs font-bold text-slate-800 mt-1">
-            {chartTab === 'volume' 
-              ? `${payload[0].value} calls placed` 
-              : `${payload[0].value} mins of usage`}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+
 
   const columns: Column<Call>[] = useMemo(() => [
     {
@@ -692,7 +679,7 @@ export function MyCalls() {
         );
       },
     },
-  ], [openCall, dispatch]);
+  ], [openCall]);
 
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden pb-10 pr-2">
@@ -820,7 +807,21 @@ export function MyCalls() {
                       allowDecimals={false}
                       tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} 
                     />
-                    <Tooltip content={<ChartTooltip />} />
+                    <Tooltip content={({ active, payload, label }: any) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="rounded-xl border border-slate-200/60 p-3 bg-white/95 backdrop-blur-md shadow-xl">
+                            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{label}</p>
+                            <p className="text-xs font-bold text-slate-800 mt-1">
+                              {chartTab === 'volume' 
+                                ? `${payload[0].value} calls placed` 
+                                : `${payload[0].value} mins of usage`}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }} />
                     <Area 
                       type="monotone" 
                       dataKey={chartTab === 'volume' ? 'Calls Volume' : 'Minutes Used'} 

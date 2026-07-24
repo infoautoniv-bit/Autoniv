@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatbotService } from '../../services/api';
-import { useAuth } from '../../App';
+import { useAuth } from '../../hooks/useAuth';
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const fadeUp = {

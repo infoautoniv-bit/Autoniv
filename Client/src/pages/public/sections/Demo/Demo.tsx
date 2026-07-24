@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { CONVERSATION } from "../data";
 import { Orb } from "./Orb";
 import { ChatWindow } from "./ChatWindow";
@@ -29,18 +29,10 @@ export function Demo() {
     }
   }, []);
 
-  const startDemo = () => {
-    if (playTimer.current) clearTimeout(playTimer.current);
-    setDemoRunning(true);
-    demoRunningRef.current = true;
-    setDemoDone(false);
-    demoDoneRef.current = false;
-    setCurrentIdx(-1);
-    setSpeaking("idle");
-    runTurn(0);
-  };
+  const startDemoRef = useRef<() => void>(() => {});
+  const runTurnRef = useRef<(idx: number) => void>(() => {});
 
-  const stopDemo = () => {
+  const stopDemo = useCallback(() => {
     if (playTimer.current) {
       clearTimeout(playTimer.current);
       playTimer.current = null;
@@ -51,9 +43,9 @@ export function Demo() {
     demoDoneRef.current = false;
     setCurrentIdx(-1);
     setSpeaking("idle");
-  };
+  }, []);
 
-  const runTurn = (index: number) => {
+  const runTurn = useCallback((index: number) => {
     if (index >= CONVERSATION.length) {
       setSpeaking("idle");
       setDemoDone(true);
@@ -62,7 +54,7 @@ export function Demo() {
       demoRunningRef.current = false;
       // Auto-restart after 2.5 seconds
       playTimer.current = setTimeout(() => {
-        if (isIntersectingRef.current) startDemo();
+        if (isIntersectingRef.current) startDemoRef.current();
       }, 2500);
       return;
     }
@@ -72,7 +64,6 @@ export function Demo() {
     const prevDelay = prevMsg ? prevMsg.delay : 0;
     const interval = msg.delay - prevDelay;
 
-    // Trigger speaking state slightly before message prints
     const speakingDelay = Math.max(0, interval - 350);
 
     playTimer.current = setTimeout(() => {
@@ -83,7 +74,6 @@ export function Demo() {
         if (!isIntersectingRef.current) return;
         setCurrentIdx(index);
 
-        // Turn off speaking indicator shortly if there's a gap before next message
         const nextMsg = CONVERSATION[index + 1];
         if (nextMsg) {
           const nextGap = nextMsg.delay - msg.delay;
@@ -94,11 +84,30 @@ export function Demo() {
           }
         }
 
-        runTurn(index + 1);
+        runTurnRef.current(index + 1);
       }, 350);
 
     }, speakingDelay);
-  };
+  }, []);
+
+  useEffect(() => {
+    runTurnRef.current = runTurn;
+  }, [runTurn]);
+
+  const startDemo = useCallback(() => {
+    if (playTimer.current) clearTimeout(playTimer.current);
+    setDemoRunning(true);
+    demoRunningRef.current = true;
+    setDemoDone(false);
+    demoDoneRef.current = false;
+    setCurrentIdx(-1);
+    setSpeaking("idle");
+    runTurnRef.current(0);
+  }, []);
+
+  useEffect(() => {
+    startDemoRef.current = startDemo;
+  }, [startDemo]);
 
   useEffect(() => {
     const el = demoSectionRef.current;
@@ -108,7 +117,7 @@ export function Demo() {
         isIntersectingRef.current = entry.isIntersecting;
         if (entry.isIntersecting) {
           if (!demoRunningRef.current && !demoDoneRef.current) {
-            startDemo();
+            startDemoRef.current();
           }
         } else {
           stopDemo();
@@ -121,7 +130,7 @@ export function Demo() {
       obs.disconnect();
       if (playTimer.current) clearTimeout(playTimer.current);
     };
-  }, []);
+  }, [stopDemo]);
 
   // Compute sliced message array
   const msgs = useMemo(() => {
