@@ -10,6 +10,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { MetaRobots, PUBLIC_ROBOTS, PRIVATE_ROBOTS } from './components/MetaRobots';
 import { isChatPlan, isVoicePlan } from './utils/plan';
 import UnifiedAssistantWidget from './components/UnifiedAssistantWidget';
+import { STUDIES } from './pages/public/caseStudiesData';
+import { injectSchema, ORGANIZATION_SCHEMA, WEBSITE_SCHEMA, SOFTWARE_APPLICATION_SCHEMA } from './utils/schema';
 
 const Landing = lazy(() => import('./pages/public').then(m => ({ default: m.Landing })));
 const Login = lazy(() => import('./pages/public').then(m => ({ default: m.Login })));
@@ -81,6 +83,11 @@ const DEFAULT_META: Meta = {
 
 // Exact-path matches (marketing + auth + legal pages)
 const EXACT_META: Record<string, Meta> = {
+  '/': {
+    title: 'Autoniv | 24/7 AI Assistance for Businesses in 20+ Languages',
+    description:
+      'Autoniv provides 24/7 AI assistance for businesses with AI voice agents and chatbots, supporting customer calls, support, sales, & inquiries in 20+ languages. Start free.',
+  },
   '/ai-voice-agent': {
     title: 'AI Voice Agents for Business Automation | Autoniv',
     description:
@@ -233,7 +240,18 @@ function resolveMeta(path: string): Meta {
   if (path in EXACT_META) return EXACT_META[path];
 
   if (path.startsWith('/case-studies/')) {
-    return { title: 'Case Study Details - Autoniv', description: 'Explore detail outcomes, metrics, and implementations of our AI voice and chatbot deployment.' };
+    const parts = path.split('/');
+    const idStr = parts[2];
+    const index = parseInt(idStr, 10);
+    if (!isNaN(index) && STUDIES[index]) {
+      const study = STUDIES[index];
+      const name = study.subcategory || study.category;
+      return {
+        title: `${name} Case Study (${study.metric} ${study.metricLabel}) | Autoniv`,
+        description: `Discover how ${name} achieved ${study.metric} ${study.metricLabel} using Autoniv AI voice agents and chatbots. Read full results.`,
+      };
+    }
+    return { title: 'Case Study Details - Autoniv', description: 'Explore detailed outcomes, metrics, and implementations of our AI voice and chatbot deployment.' };
   }
   if (path.startsWith('/dashboard')) {
     const title = DASHBOARD_TITLES[path] ?? (path.includes('/ai-voice-agent/new') ? 'Create Voice Agent - Autoniv' : path.includes('/ai-phone-answering') ? 'Custom Call Test - Autoniv' : 'User Dashboard - Autoniv');
@@ -367,7 +385,7 @@ function AppRoutes() {
   useEffect(() => {
     const path = location.pathname;
     const { title, description } = resolveMeta(path);
-    const url = 'https://autoniv.com' + path;
+    const url = path === '/' ? 'https://autoniv.com/' : `https://autoniv.com${path.startsWith('/') ? path : '/' + path}`;
 
     document.title = title;
 
@@ -383,18 +401,79 @@ function AppRoutes() {
       return m;
     }, 'content', description);
 
-    // OG/Twitter tags only get updated if they already exist in index.html
-    document.querySelector('meta[property="og:title"]')?.setAttribute('content', title);
-    document.querySelector('meta[property="og:description"]')?.setAttribute('content', description);
-    document.querySelector('meta[property="og:url"]')?.setAttribute('content', url);
-    document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', title);
-    document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', description);
+    // Open Graph
+    setMetaTag('meta[property="og:title"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('property', 'og:title');
+      return m;
+    }, 'content', title);
 
+    setMetaTag('meta[property="og:description"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('property', 'og:description');
+      return m;
+    }, 'content', description);
+
+    setMetaTag('meta[property="og:url"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('property', 'og:url');
+      return m;
+    }, 'content', url);
+
+    setMetaTag('meta[property="og:image"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('property', 'og:image');
+      return m;
+    }, 'content', 'https://autoniv.com/og-image.png');
+
+    setMetaTag('meta[property="og:type"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('property', 'og:type');
+      return m;
+    }, 'content', 'website');
+
+    setMetaTag('meta[property="og:site_name"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('property', 'og:site_name');
+      return m;
+    }, 'content', 'Autoniv');
+
+    // Twitter
+    setMetaTag('meta[name="twitter:card"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('name', 'twitter:card');
+      return m;
+    }, 'content', 'summary_large_image');
+
+    setMetaTag('meta[name="twitter:title"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('name', 'twitter:title');
+      return m;
+    }, 'content', title);
+
+    setMetaTag('meta[name="twitter:description"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('name', 'twitter:description');
+      return m;
+    }, 'content', description);
+
+    setMetaTag('meta[name="twitter:image"]', () => {
+      const m = document.createElement('meta');
+      m.setAttribute('name', 'twitter:image');
+      return m;
+    }, 'content', 'https://autoniv.com/og-image.png');
+
+    // Canonical link
     setMetaTag('link[rel="canonical"]', () => {
       const l = document.createElement('link');
       l.setAttribute('rel', 'canonical');
       return l;
     }, 'href', url);
+
+    // Dynamic JSON-LD Structured Data
+    injectSchema('organization-jsonld', ORGANIZATION_SCHEMA);
+    injectSchema('website-jsonld', WEBSITE_SCHEMA);
+    injectSchema('software-app-jsonld', SOFTWARE_APPLICATION_SCHEMA);
 
     // Breadcrumb JSON-LD
     const pathParts = path.split('/').filter(Boolean);
