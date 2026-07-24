@@ -69,29 +69,34 @@ function SortIcon({ direction, active }: { direction: 'asc' | 'desc'; active: bo
   );
 }
 
-function Skeleton({ w = '60%', h = 'h-3' }: { w?: string; h?: string }) {
-  return <div className={`${h} rounded-lg bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 animate-pulse`} style={{ width: w }} />;
+function Skeleton({ w = '60%', h = 'h-3.5', className = '' }: { w?: string; h?: string; className?: string }) {
+  return (
+    <div
+      className={`${h} rounded-xl bg-gradient-to-r from-slate-200/60 via-slate-100/90 to-slate-200/60 animate-pulse ${className}`}
+      style={{ width: w }}
+    />
+  );
 }
 
-function LoadingSkeleton({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
+function LoadingSkeleton({ rows = 6, columns = 5 }: { rows?: number; columns?: number }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[500px] border-collapse">
         <thead>
-          <tr className="border-b border-slate-100">
+          <tr className="border-b border-slate-100 bg-slate-50/40">
             {Array.from({ length: columns }).map((_, i) => (
-              <th key={i} className="px-5 py-4 text-left bg-slate-50/50">
-                <Skeleton w="64px" h="h-2.5" />
+              <th key={i} className="px-5 py-4 text-left">
+                <Skeleton w="72px" h="h-3" />
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {Array.from({ length: rows }).map((_, r) => (
-            <tr key={r} className="border-b border-slate-50 last:border-0">
+            <tr key={r} className="border-b border-slate-50/80 last:border-0 hover:bg-slate-50/30 transition-colors">
               {Array.from({ length: columns }).map((_, c) => (
                 <td key={c} className="px-5 py-4">
-                  <Skeleton w={`${55 + Math.sin(c * 7 + r) * 25}%`} h="h-3" />
+                  <Skeleton w={`${45 + Math.abs(Math.sin(c * 5 + r * 3)) * 40}%`} h="h-3.5" />
                 </td>
               ))}
             </tr>
@@ -106,14 +111,17 @@ function CardSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-2xl p-5 space-y-4 bg-white border border-slate-100 animate-pulse shadow-sm">
+        <div key={i} className="rounded-2xl p-5 space-y-4 bg-white/80 border border-slate-200/60 animate-pulse shadow-sm backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <Skeleton w="40%" h="h-4" />
-            <Skeleton w="20%" h="h-5" />
+            <Skeleton w="45%" h="h-4.5" />
+            <Skeleton w="25%" h="h-6" className="rounded-full" />
           </div>
-          <Skeleton w="100%" h="h-3" />
-          <Skeleton w="75%" h="h-3" />
-          <Skeleton w="50%" h="h-3" />
+          <Skeleton w="100%" h="h-3.5" />
+          <Skeleton w="80%" h="h-3.5" />
+          <div className="pt-2 flex justify-between items-center border-t border-slate-100">
+            <Skeleton w="30%" h="h-3" />
+            <Skeleton w="20%" h="h-4" />
+          </div>
         </div>
       ))}
     </div>

@@ -1374,7 +1374,7 @@ export function UserDashboard() {
 
       setWebCallMode('active');
       webCallTimerRef.current = setInterval(() => setWebCallSeconds(prev => prev + 1), 1000);
-      webCallMaxDurationRef.current = setTimeout(() => stopWebCall(), 180_000); // 3 min duration
+      webCallMaxDurationRef.current = setTimeout(() => stopWebCall(), 210_000); // 3.5 min duration
       addToast(`Connected with ${agent.name} via Web Call`, 'success');
     } catch (err: any) {
       logger.error('[UserDashboard] Web call failed:', err);

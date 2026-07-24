@@ -296,13 +296,42 @@ export function CustomWebCall() {
       };
 
       socket.onerror = () => {
-        setError('WebSocket stream connection error. Verify backend server logs.');
-        kill();
+        setError('WebSocket stream connection error. Attempting auto-reconnect...');
       };
 
-      socket.onclose = () => {
-        setStatus('ended');
-        setLogs(p => [...p, { role: 'system', text: 'Call stream disconnected.', time: getNowTimeString() }]);
+      socket.onclose = (event) => {
+        // If closed abnormally during an active call, attempt exponential backoff reconnect
+        if (!event.wasClean && (status === 'listening' || status === 'speaking')) {
+          setLogs(p => [...p, { role: 'system', text: 'Stream interrupted. Attempting auto-reconnect with backoff...', time: getNowTimeString() }]);
+          let attempts = 0;
+          const maxAttempts = 3;
+          const retryReconnect = () => {
+            if (attempts >= maxAttempts) {
+              setStatus('ended');
+              setLogs(p => [...p, { role: 'system', text: 'Connection failed after 3 retries.', time: getNowTimeString() }]);
+              kill();
+              return;
+            }
+            attempts += 1;
+            const backoffMs = Math.min(1000 * Math.pow(2, attempts - 1), 8000);
+            setLogs(p => [...p, { role: 'system', text: `Reconnection attempt ${attempts}/${maxAttempts} in ${backoffMs}ms...`, time: getNowTimeString() }]);
+            setTimeout(() => {
+              if (ws.current?.readyState !== WebSocket.OPEN) {
+                try {
+                  const newSocket = new WebSocket(url);
+                  ws.current = newSocket;
+                  setLogs(p => [...p, { role: 'system', text: 'Connection restored successfully.', time: getNowTimeString() }]);
+                } catch {
+                  retryReconnect();
+                }
+              }
+            }, backoffMs);
+          };
+          retryReconnect();
+        } else {
+          setStatus('ended');
+          setLogs(p => [...p, { role: 'system', text: 'Call stream disconnected.', time: getNowTimeString() }]);
+        }
       };
     } catch (e: any) {
       setError(`Microphone permission error: ${e.message}`);

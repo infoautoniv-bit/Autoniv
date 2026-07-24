@@ -736,14 +736,26 @@ export function MyCalls() {
 
         {/* ── Glass metrics cards ── */}
         <motion.div variants={fadeUp} className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          {[
-            { label: 'Total Calls', value: stats.total, accentColor: '37,99,235', icon: <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>, colorHex: '#2563EB' },
-            { label: 'Answered', value: stats.completed, accentColor: '0,163,255', icon: <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>, colorHex: '#00A3FF' },
-            { label: 'Missed Calls', value: stats.missed, accentColor: '20,184,166', icon: <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>, colorHex: '#10B981' },
-            { label: 'Answer Rate', value: `${stats.rate}%`, accentColor: '245,158,11', icon: <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>, colorHex: '#f59e0b' },
-          ].map(c => (
-            <StatCard key={c.label} {...c} />
-          ))}
+          {loading && calls.length === 0 ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-2xl p-4.5 border border-slate-200/60 bg-white/70 shadow-sm backdrop-blur-md animate-pulse space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-16 h-2.5 rounded-lg bg-slate-200" />
+                  <div className="w-6 h-6 rounded-xl bg-slate-200" />
+                </div>
+                <div className="w-24 h-6 rounded-xl bg-slate-300" />
+              </div>
+            ))
+          ) : (
+            [
+              { label: 'Total Calls', value: stats.total, accentColor: '37,99,235', icon: <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>, colorHex: '#2563EB' },
+              { label: 'Answered', value: stats.completed, accentColor: '0,163,255', icon: <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>, colorHex: '#00A3FF' },
+              { label: 'Missed Calls', value: stats.missed, accentColor: '20,184,166', icon: <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>, colorHex: '#10B981' },
+              { label: 'Answer Rate', value: `${stats.rate}%`, accentColor: '245,158,11', icon: <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>, colorHex: '#f59e0b' },
+            ].map(c => (
+              <StatCard key={c.label} {...c} />
+            ))
+          )}
         </motion.div>
 
         {/* ── Call Analytics Trend Panel ── */}
