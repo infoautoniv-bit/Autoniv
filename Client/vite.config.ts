@@ -29,7 +29,10 @@ export default defineConfig({
           if (id.includes('pages/public/Landing') || id.includes('pages/public/AuthDialog')) {
             return 'landing';
           }
-
+          // Admin pages — only loaded by admins
+          if (id.includes('pages/admin/')) {
+            return 'admin';
+          }
         },
       },
     },
