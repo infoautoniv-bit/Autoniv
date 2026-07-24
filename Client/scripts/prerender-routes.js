@@ -218,22 +218,6 @@ function swapMeta(html, routePath, meta) {
     `<meta name="twitter:description" content="${escapedDesc}" />`
   );
 
-  // Clean up verification placeholders if environment variables are missing
-  const googleVerification = process.env.VITE_GOOGLE_SITE_VERIFICATION || '';
-  const bingVerification = process.env.VITE_BING_VERIFICATION || '';
-
-  if (googleVerification) {
-    result = result.replace('%VITE_GOOGLE_SITE_VERIFICATION%', googleVerification);
-  } else {
-    result = result.replace(/<meta\s+name="google-site-verification"\s+content="%VITE_GOOGLE_SITE_VERIFICATION%"\s*\/?>\n?/g, '');
-  }
-
-  if (bingVerification) {
-    result = result.replace('%VITE_BING_VERIFICATION%', bingVerification);
-  } else {
-    result = result.replace(/<meta\s+name="msvalidate\.01"\s+content="%VITE_BING_VERIFICATION%"\s*\/?>\n?/g, '');
-  }
-
   // Inject route-specific JSON-LD Schema
   if (meta.schema) {
     const schemaScript = `  <script type="application/ld+json">\n${JSON.stringify(meta.schema, null, 2)}\n  </script>`;
