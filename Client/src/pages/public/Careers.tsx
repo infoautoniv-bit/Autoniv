@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import Footer from './Footer';
-import { BRAND, INK, SLATE, HAIRLINE, SURFACE, MONO, Reveal, SectionLabel, GradientText } from './design';
+import { BRAND, INK, SLATE, HAIRLINE, SURFACE, MONO, SANS, Reveal, SectionLabel, GradientText } from './design';
 
 interface JobRole {
   id: string;
