@@ -48,6 +48,13 @@
   <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
   <link rel="preconnect" href="https://www.google-analytics.com" crossorigin />
 
+  <!-- font-display:swap — prevents FOIT when webfonts are deferred -->
+  <style>
+    @font-face { font-family: 'Inter'; font-display: swap; src: local('Inter'); }
+    @font-face { font-family: 'Plus Jakarta Sans'; font-display: swap; src: local('Plus Jakarta Sans'); }
+    @font-face { font-family: 'JetBrains Mono'; font-display: swap; src: local('Courier New'); }
+  </style>
+
   <!-- Schema.org JSON-LD -->
   <script type="application/ld+json">
     {

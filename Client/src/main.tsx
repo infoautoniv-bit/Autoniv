@@ -5,18 +5,24 @@ import { store } from './store';
 import App from './App.tsx';
 import { PlanSyncProvider } from './components/PlanSyncProvider';
 import './index.css';
-
-// Self-hosted fonts (Latin subset only for optimal bundle size)
-import "@fontsource/inter/latin-400.css";
-import "@fontsource/inter/latin-500.css";
-import "@fontsource/inter/latin-600.css";
-import "@fontsource/inter/latin-700.css";
-
-import "@fontsource/plus-jakarta-sans/latin-400.css";
-import "@fontsource/plus-jakarta-sans/latin-600.css";
-import "@fontsource/plus-jakarta-sans/latin-700.css";
-
-import "@fontsource/jetbrains-mono/latin-400.css";
+function loadFonts() {
+  const sheets = [
+    '@fontsource/inter/latin-400.css',
+    '@fontsource/inter/latin-500.css',
+    '@fontsource/inter/latin-600.css',
+    '@fontsource/inter/latin-700.css',
+    '@fontsource/plus-jakarta-sans/latin-400.css',
+    '@fontsource/plus-jakarta-sans/latin-600.css',
+    '@fontsource/plus-jakarta-sans/latin-700.css',
+    '@fontsource/jetbrains-mono/latin-400.css',
+  ];
+  sheets.forEach((href) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  });
+}
 
 // ─── Dynamic tracking script loaders — deferred until page is idle ────────────
 // Wrapping in requestIdleCallback (with setTimeout fallback) ensures these
@@ -51,8 +57,10 @@ function loadTrackers() {
 
 if ('requestIdleCallback' in window) {
   (window as any).requestIdleCallback(loadTrackers, { timeout: 4000 });
+  (window as any).requestIdleCallback(loadFonts, { timeout: 2000 });
 } else {
   setTimeout(loadTrackers, 3000);
+  setTimeout(loadFonts, 500);
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

@@ -253,6 +253,16 @@ function swapMeta(html, routePath, meta) {
       const logoPreload = `  <link rel="preload" href="/assets/${brandLogo}" as="image" type="image/webp" fetchpriority="high" />`;
       result = result.replace('</head>', `${logoPreload}\n</head>`);
     }
+    // Inject font-display:swap override so deferred fonts never cause FOIT
+    const fontDisplayStyle = `  <style id="font-display-swap">
+    /* Deferred @fontsource sheets inherit font-display:auto which can block paint.
+       Override to swap so system fonts show immediately, webfonts swap in. */
+    @font-face { font-family: 'Inter'; font-display: swap; src: local('Inter'); }
+    @font-face { font-family: 'Plus Jakarta Sans'; font-display: swap; src: local('Plus Jakarta Sans'); }
+    @font-face { font-family: 'JetBrains Mono'; font-display: swap; src: local('Courier New'); }
+  </style>`;
+    result = result.replace('</head>', `${fontDisplayStyle}\n</head>`);
+
   } catch (_) {
     /* ignore */
   }
