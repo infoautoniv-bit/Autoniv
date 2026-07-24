@@ -52,8 +52,8 @@ export const FloatingCards = React.memo(function FloatingCards({ lowPower }: Flo
             <p className="text-[5px] sm:text-[9px] text-[var(--muted)] mt-0.5 m-0">
               May 24, 2025
             </p>
-            <p className="text-[5px] sm:text-[9px] text-[#2563EB] font-medium m-0">
-              10:00 AM
+            <p className="text-[5px] sm:text-[9px] font-medium m-0" style={{ color: '#1d4ed8' }}>
+               10:00 AM
             </p>
           </div>
         </div>
@@ -96,7 +96,7 @@ export const FloatingCards = React.memo(function FloatingCards({ lowPower }: Flo
               <span className="text-sm sm:text-lg font-bold text-[var(--text)]">
                 <CountUp to={2847} />
               </span>
-              <span className="text-[5px] sm:text-[9px] font-semibold text-[var(--primary)]">
+              <span className="text-[5px] sm:text-[9px] font-semibold" style={{ color: '#047857' }}>
                 +32.6%
               </span>
             </div>

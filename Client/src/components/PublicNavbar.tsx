@@ -23,15 +23,22 @@ function MagBtn({
   style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const rectRef = useRef<DOMRect | null>(null);
+
+  const onEnter = () => {
+    if (ref.current) rectRef.current = ref.current.getBoundingClientRect();
+  };
 
   const onMove = (e: React.MouseEvent) => {
     const el = ref.current;
     if (!el) return;
-    const r = el.getBoundingClientRect();
+    if (!rectRef.current) rectRef.current = el.getBoundingClientRect();
+    const r = rectRef.current;
     el.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * 0.35}px,${(e.clientY - r.top - r.height / 2) * 0.35}px)`;
   };
 
   const onLeave = () => {
+    rectRef.current = null;
     if (ref.current) ref.current.style.transform = 'none';
   };
 
@@ -48,6 +55,7 @@ function MagBtn({
   return (
     <div
       ref={ref}
+      onMouseEnter={onEnter}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
       style={{ transition: 'transform .28s cubic-bezier(.23,1,.32,1)', display: 'inline-block' }}
@@ -59,6 +67,34 @@ function MagBtn({
 
 type AuthMode = 'login' | 'register' | 'forgot_password' | 'reset_password';
 
+export type NavItem = {
+  label: string;
+  href: string;
+  isHash?: boolean;
+  badge?: string;
+  hasDropdown?: boolean;
+  dropdownItems?: { label: string; href: string }[];
+};
+
+const NAV_ITEMS: NavItem[] = [
+  { label: 'How It Works', href: '#how-it-works', isHash: true },
+  { label: 'Features', href: '#features', isHash: true },
+  { label: 'Services', href: '/services' },
+  { label: 'Case Studies', href: '/case-studies' },
+  {
+    label: 'Pricing',
+    href: '/pricing',
+    hasDropdown: true,
+    dropdownItems: [
+      { label: 'AI Voice Assistance', href: '/pricing/voice-assistance' },
+      { label: 'AI Chatbots', href: '/pricing/ai-chatbot' },
+    ],
+  },
+  { label: 'News', href: '/news', badge: 'NEW' },
+  { label: 'Contact', href: '#contact', isHash: true },
+  { label: 'About Us', href: '/about' },
+];
+
 export function PublicNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -69,34 +105,10 @@ export function PublicNavbar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navItems: {
-    label: string;
-    href: string;
-    isHash?: boolean;
-    badge?: string;
-    hasDropdown?: boolean;
-    dropdownItems?: { label: string; href: string }[];
-  }[] = [
-    { label: 'How It Works', href: '#how-it-works', isHash: true },
-    { label: 'Features', href: '#features', isHash: true },
-    { label: 'Services', href: '/services' },
-    { label: 'Case Studies', href: '/case-studies' },
-    {
-      label: 'Pricing',
-      href: '/pricing',
-      hasDropdown: true,
-      dropdownItems: [
-        { label: 'AI Voice Assistance', href: '/pricing/voice-assistance' },
-        { label: 'AI Chatbots', href: '/pricing/ai-chatbot' },
-      ],
-    },
-    { label: 'News', href: '/news', badge: 'NEW' },
-    { label: 'Contact', href: '#contact', isHash: true },
-    { label: 'About Us', href: '/about' },
-  ];
+  const navItems = NAV_ITEMS;
 
   const [selectedLabel, setSelectedLabel] = useState<string | null>(() => {
-    const match = navItems.find((i) => !i.isHash && i.href === location.pathname);
+    const match = NAV_ITEMS.find((i) => !i.isHash && i.href === location.pathname);
     return match ? match.label : null;
   });
 
@@ -128,13 +140,13 @@ export function PublicNavbar() {
     const handle = setTimeout(() => {
       setMobileMenuOpen(false);
       if (!location.hash) {
-        const match = navItems.find((i) => !i.isHash && i.href === location.pathname);
+        const match = NAV_ITEMS.find((i) => !i.isHash && i.href === location.pathname);
         if (match) setSelectedLabel(match.label);
         else if (location.pathname === '/') setSelectedLabel(null);
       }
     }, 0);
     return () => clearTimeout(handle);
-  }, [location.pathname, location.hash, navItems]);
+  }, [location.pathname, location.hash]);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -197,6 +209,7 @@ export function PublicNavbar() {
               width={180}
               height={120}
               fetchPriority="high"
+              decoding="sync"
               className="h-30 sm:h-30 w-auto object-contain transition-transform hover:scale-105"
             />
           </Link>

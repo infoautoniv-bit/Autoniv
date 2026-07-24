@@ -18,36 +18,41 @@ import "@fontsource/plus-jakarta-sans/latin-700.css";
 
 import "@fontsource/jetbrains-mono/latin-400.css";
 
-// ─── Dynamic tracking script loaders (read from VITE env at runtime) ─────────
-const gaId = import.meta.env.VITE_GA_ID;
-if (gaId && gaId.startsWith('G-')) {
-  const gaScript = document.createElement('script');
-  gaScript.async = true;
-  gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
-  document.head.appendChild(gaScript);
+// ─── Dynamic tracking script loaders — deferred until page is idle ────────────
+// Wrapping in requestIdleCallback (with setTimeout fallback) ensures these
+// 158 kB third-party scripts never block LCP or FCP on the critical path.
+function loadTrackers() {
+  const gaId = import.meta.env.VITE_GA_ID;
+  if (gaId && gaId.startsWith('G-')) {
+    const gaScript = document.createElement('script');
+    gaScript.async = true;
+    gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+    document.head.appendChild(gaScript);
 
-  const w = window as any;
-  w.dataLayer = w.dataLayer || [];
-  w.gtag = function (...args: any[]) { w.dataLayer.push(args); };
-  w.gtag('js', new Date());
-  w.gtag('config', gaId);
-}
+    const w = window as any;
+    w.dataLayer = w.dataLayer || [];
+    w.gtag = function (...args: any[]) { w.dataLayer.push(args); };
+    w.gtag('js', new Date());
+    w.gtag('config', gaId);
+  }
 
-const clarityId = import.meta.env.VITE_CLARITY_ID;
-if (clarityId && clarityId.length > 5 && !clarityId.includes('%')) {
-  const w = window as any;
-  w.clarity = w.clarity || function (...args: any[]) {
-    (w.clarity.q = w.clarity.q || []).push(args);
-  };
-  const clarityScript = document.createElement('script');
-  clarityScript.async = true;
-  clarityScript.src = 'https://www.clarity.ms/tag/' + clarityId;
-  const firstScript = document.getElementsByTagName('script')[0];
-  if (firstScript?.parentNode) {
-    firstScript.parentNode.insertBefore(clarityScript, firstScript);
-  } else {
+  const clarityId = import.meta.env.VITE_CLARITY_ID;
+  if (clarityId && clarityId.length > 5 && !clarityId.includes('%')) {
+    const w = window as any;
+    w.clarity = w.clarity || function (...args: any[]) {
+      (w.clarity.q = w.clarity.q || []).push(args);
+    };
+    const clarityScript = document.createElement('script');
+    clarityScript.async = true;
+    clarityScript.src = 'https://www.clarity.ms/tag/' + clarityId;
     document.head.appendChild(clarityScript);
   }
+}
+
+if ('requestIdleCallback' in window) {
+  (window as any).requestIdleCallback(loadTrackers, { timeout: 4000 });
+} else {
+  setTimeout(loadTrackers, 3000);
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

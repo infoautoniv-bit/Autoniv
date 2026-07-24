@@ -172,45 +172,48 @@ export function WordReveal({
   const reduced = useReducedMotion() ?? false;
   const words = text.split(" ");
   return (
-    <motion.span
-      className={className}
-      style={{ display: "inline", ...style }}
-      initial="hidden"
-      whileInView="show"
-      viewport={VIEWPORT}
-      variants={{
-        hidden: {},
-        show: { transition: { staggerChildren: stagger, delayChildren: delay } },
-      }}
-    >
-      {words.map((word, i) => (
-        <span
-          key={i}
-          style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom" }}
-        >
-          <motion.span
-            className={wordClassName}
-            style={{ display: "inline-block", willChange: "transform" }}
-            variants={
-              reduced
-                ? { hidden: { opacity: 0 }, show: { opacity: 1 } }
-                : {
-                    hidden: { opacity: 0, y: "0.9em" },
-                    show: {
-                      opacity: 1,
-                      y: 0,
-                      transition: { duration: 0.6, ease: EXPO_OUT },
-                    },
-                  }
-            }
-            aria-hidden
+    // Outer plain span carries the accessible name — role="img" permits aria-label on a span.
+    // All animated children are aria-hidden so screen readers only see the label once.
+    <span role="img" aria-label={text} className={className} style={{ display: "inline", ...style }}>
+      <motion.span
+        style={{ display: "inline" }}
+        aria-hidden="true"
+        initial="hidden"
+        whileInView="show"
+        viewport={VIEWPORT}
+        variants={{
+          hidden: {},
+          show: { transition: { staggerChildren: stagger, delayChildren: delay } },
+        }}
+      >
+        {words.map((word, i) => (
+          <span
+            key={i}
+            style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom" }}
           >
-            {word}
-          </motion.span>
-          {i < words.length - 1 ? " " : ""}
-        </span>
-      ))}
-    </motion.span>
+            <motion.span
+              className={wordClassName}
+              style={{ display: "inline-block", willChange: "transform" }}
+              variants={
+                reduced
+                  ? { hidden: { opacity: 0 }, show: { opacity: 1 } }
+                  : {
+                      hidden: { opacity: 0, y: "0.9em" },
+                      show: {
+                        opacity: 1,
+                        y: 0,
+                        transition: { duration: 0.6, ease: EXPO_OUT },
+                      },
+                    }
+              }
+            >
+              {word}
+            </motion.span>
+            {i < words.length - 1 ? "\u00a0" : ""}
+          </span>
+        ))}
+      </motion.span>
+    </span>
   );
 }
 

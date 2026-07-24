@@ -218,10 +218,43 @@ function swapMeta(html, routePath, meta) {
     `<meta name="twitter:description" content="${escapedDesc}" />`
   );
 
+  // Optimize CSS loading for non-blocking initial paint (LCP & FCP)
+  const cssMatch = result.match(/<link\s+rel="stylesheet"\s+crossorigin\s+href="(\/assets\/[^"]+\.css)"\s*\/?>/);
+  if (cssMatch) {
+    const cssPath = cssMatch[1];
+    const optimizedCssTags = `<link rel="preload" href="${cssPath}" as="style" />\n  <link rel="stylesheet" href="${cssPath}" fetchpriority="high" crossorigin />`;
+    result = result.replace(cssMatch[0], optimizedCssTags);
+  }
+
   // Inject route-specific JSON-LD Schema
   if (meta.schema) {
     const schemaScript = `  <script type="application/ld+json">\n${JSON.stringify(meta.schema, null, 2)}\n  </script>`;
     result = result.replace('</head>', `${schemaScript}\n</head>`);
+  }
+
+  // Preload primary woff2 fonts to eliminate critical request chain delay
+  try {
+    const assetsDir = path.join(distDir, 'assets');
+    const assetsFiles = fs.readdirSync(assetsDir);
+    const primaryFonts = assetsFiles.filter((f) =>
+      f.endsWith('.woff2') && (f.includes('inter-latin-400') || f.includes('inter-latin-700') || f.includes('plus-jakarta-sans-latin-600'))
+    );
+    if (primaryFonts.length > 0) {
+      const fontPreloadTags = primaryFonts
+        .map((f) => `  <link rel="preload" href="/assets/${f}" as="font" type="font/woff2" crossorigin />`)
+        .join('\n');
+      result = result.replace('</head>', `${fontPreloadTags}\n</head>`);
+    }
+
+    // Preload the navbar brand logo (LCP image) so it's discoverable in the initial HTML document
+    // This prevents the browser from waiting for JS to execute before discovering the image.
+    const brandLogo = assetsFiles.find((f) => f.startsWith('autoniv-brand-logo') && f.endsWith('.webp'));
+    if (brandLogo) {
+      const logoPreload = `  <link rel="preload" href="/assets/${brandLogo}" as="image" type="image/webp" fetchpriority="high" />`;
+      result = result.replace('</head>', `${logoPreload}\n</head>`);
+    }
+  } catch (_) {
+    /* ignore */
   }
 
   return result;

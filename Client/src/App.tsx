@@ -523,17 +523,18 @@ function AppRoutes() {
         <Route path="/dashboard/add-ons" element={<ProtectedRoute><MyAddOns /></ProtectedRoute>} />
         <Route path="/dashboard/support" element={<CustomerSupport />} />
 
-        <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
-        <Route path="/admin/users/new" element={<ProtectedRoute adminOnly><CreateUser /></ProtectedRoute>} />
-        <Route path="/admin/agents" element={<ProtectedRoute adminOnly><AdminAgents /></ProtectedRoute>} />
-        <Route path="/admin/calls" element={<ProtectedRoute adminOnly><AdminCalls /></ProtectedRoute>} />
-        <Route path="/admin/leads" element={<ProtectedRoute adminOnly><AdminLeads /></ProtectedRoute>} />
-        <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><AdminAppointments /></ProtectedRoute>} />
-        <Route path="/admin/billing" element={<ProtectedRoute adminOnly><AdminBilling /></ProtectedRoute>} />
-        <Route path="/admin/upgrade-requests" element={<ProtectedRoute adminOnly><AdminUpgradeRequests /></ProtectedRoute>} />
-        <Route path="/admin/add-ons" element={<ProtectedRoute adminOnly><AdminAddOns /></ProtectedRoute>} />
-        <Route path="/admin/chat" element={<ProtectedRoute adminOnly><AdminChat /></ProtectedRoute>} />
+        {/* Admin routes — isolated Suspense so admin.js chunk is never fetched on public pages */}
+        <Route path="/admin" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/users" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/users/new" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><CreateUser /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/agents" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAgents /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/calls" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminCalls /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/leads" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminLeads /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/appointments" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAppointments /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/billing" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminBilling /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/upgrade-requests" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminUpgradeRequests /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/add-ons" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAddOns /></ProtectedRoute></Suspense>} />
+        <Route path="/admin/chat" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminChat /></ProtectedRoute></Suspense>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

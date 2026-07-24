@@ -150,7 +150,7 @@ export const HeroContent = React.memo(function HeroContent({
 
           <motion.button
             onClick={() => openAuth("register")}
-            whileHover={reduced ? undefined : 
+            whileHover={reduced ? undefined :
               { y: -3, scale: 1.02, boxShadow: "0 10px 24px rgba(37,99,235,0.18)" }}
             whileTap={reduced ? undefined : { scale: 0.97 }}
             className="font-bold flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl relative overflow-hidden cursor-pointer backdrop-blur-md"

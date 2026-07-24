@@ -1343,6 +1343,8 @@ export default function UnifiedAssistantWidget() {
         transition={{ y: { duration: 3, repeat: isOpen ? 0 : Infinity, ease: 'easeInOut' } }}
         onClick={() => setIsOpen(!isOpen)}
         className="relative w-14 h-14 rounded-full flex items-center justify-center"
+        aria-label={isOpen ? "Close AI assistant" : "Open AI assistant"}
+        aria-expanded={isOpen}
         style={{
           background: T.gradPrimary,
           boxShadow: '0 6px 28px rgba(59,130,246,0.4)',
