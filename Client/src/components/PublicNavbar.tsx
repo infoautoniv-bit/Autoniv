@@ -364,7 +364,6 @@ export function PublicNavbar() {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        aria-hidden={!mobileMenuOpen}
       >
         {/* Drawer header */}
         <div
