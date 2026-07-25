@@ -55,35 +55,57 @@ The experience is designed as a premium enterprise SaaS tool — clean, powerful
 
 ```
 Saas/
-├── backend/                 # Node.js / Express API + WebSocket orchestrator
+├── backend/                         # Express ESM API & Real-time WebSocket Voice/Chat Orchestrator
 │   ├── db/
-│   │   ├── connection.js     # Mongoose connection
-│   │   └── models/           # Mongoose schemas
-│   ├── routes/               # Express route handlers (REST API)
-│   ├── middleware/           # Auth, security, rate limiting, validators
-│   ├── services/             # Business logic (vapi, tts, orchestrator, email…)
-│   ├── scripts/              # Utility / maintenance scripts
-│   ├── recordings/           # Stored call recordings (.wav)
-│   ├── seed.js               # Database seeding
-│   └── index.js              # App entry point
+│   │   ├── connection.js             # Mongoose database connection
+│   │   └── models/                   # Schemas (User, Agent, Call, Lead, Appointment, ChatSession, AddOn, etc.)
+│   ├── middleware/                   # Security (Helmet, CORS), Auth (JWT), Rate limiters, Webhook validators
+│   ├── routes/                       # REST API endpoints & Webhooks
+│   │   ├── auth.js                   # Auth, OTP, Google login & token refresh
+│   │   ├── agents.js / chatbots.js   # AI Agent & Chatbot management
+│   │   ├── calls.js / bulkCalls.js   # Voice Call logs & bulk calling engine
+│   │   ├── leads.js / appointments.js# Lead management & appointment booking
+│   │   ├── webhooks.js               # Vapi, WhatsApp, Facebook & Telegram webhook handlers
+│   │   └── ...                       # Users, AddOns, Widget, Reports, Analytics
+│   ├── services/                     # Core Business Logic & Real-Time Orchestrators
+│   │   ├── vapi.js / vapiProxy.js    # Managed Vapi voice integration
+│   │   ├── orchestrator.js           # Custom voice pipeline (Deepgram STT + LLM + ElevenLabs TTS)
+│   │   ├── whatsappService.js        # Meta WhatsApp Cloud API integration
+│   │   ├── emailService.js           # Transactional Email (Resend / MailerSend / Nodemailer)
+│   │   ├── reportGenerator.js        # PDF report generator (PDFKit)
+│   │   └── ...                       # Encryption, tokens, CRM integration, Audio Recorder
+│   ├── recordings/                   # Local stored call recordings (.wav)
+│   ├── seed.js                       # Database seeder script
+│   └── index.js                      # Server bootstrap & WebSocket server setup
 │
-├── Client/                  # React + TypeScript SPA (Vite)
+├── Client/                          # Vite + React 19 + TypeScript Frontend SPA
 │   └── src/
+│       ├── components/               # Reusable UI components & Interactive Widgets
+│       │   ├── PublicNavbar.tsx      # Floating glassmorphism navbar with popover dropdowns
+│       │   ├── GoogleTranslate.tsx   # 130+ languages modal with search & portal overlay
+│       │   ├── UnifiedAssistantWidget.tsx # Floating site-wide AI Voice + Chat widget
+│       │   ├── LandingCallWidget.tsx # Interactive in-browser real-time call sandbox
+│       │   └── DataTable.tsx / Sidebar.tsx / Modal.tsx / FormElements.tsx / ...
 │       ├── pages/
-│       │   ├── public/       # Landing, auth, marketing pages
-│       │   ├── admin/        # Admin dashboard pages
-│       │   └── user/         # User dashboard pages
-│       ├── components/       # Reusable UI components
-│       ├── store/            # Redux Toolkit slices
-│       ├── services/         # API clients (axios)
-│       ├── hooks/            # Custom React hooks
-│       ├── config/           # Static config (voices, agents, constants)
-│       ├── data/             # Static catalogs (add-ons)
-│       ├── types/            # Shared TypeScript types
-│       └── utils/            # Helpers (plan resolution, etc.)
+│       │   ├── public/               # Marketing & Public pages
+│       │   │   ├── sections/         # Landing components (Hero, Features, FAQ, ROI Estimator, Spectrum)
+│       │   │   ├── Pricing.tsx       # Main pricing view with USD/INR & Monthly/Yearly toggles
+│       │   │   ├── VoiceAssistancePricing.tsx # Dedicated AI Voice plan matrix
+│       │   │   ├── AiChatbotPricing.tsx       # Dedicated AI Chatbot plan matrix
+│       │   │   └── CaseStudies.tsx / Blog.tsx / News.tsx / AboutUs.tsx / ...
+│       │   ├── user/                 # Multi-tenant User Dashboard pages
+│       │   │   └── UserDashboard.tsx / MyAgents.tsx / MyCalls.tsx / MyLeads.tsx / MyChatbots.tsx / ...
+│       │   └── admin/                # Platform Administrator Dashboard pages
+│       │       └── AdminDashboard.tsx / AdminUsers.tsx / AdminAgents.tsx / AdminBilling.tsx / ...
+│       ├── store/                    # Redux Toolkit store & feature slices
+│       ├── services/                 # Axios HTTP clients & API wrappers
+│       ├── config/                   # System constants, voices & agent configurations
+│       ├── hooks/                    # Custom React hooks
+│       ├── types/                    # Shared TypeScript interfaces & type definitions
+│       └── utils/                    # Helper functions (plan resolution, formatting)
 │
-├── CLAUDE.md                # Guidance for AI coding agents
-└── README.md               # This file
+├── CLAUDE.md                        # Guidance for AI coding agents
+└── README.md                       # Master platform documentation
 ```
 
 ---
