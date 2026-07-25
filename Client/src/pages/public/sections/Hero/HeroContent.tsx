@@ -84,9 +84,9 @@ export const HeroContent = React.memo(function HeroContent({
 
       <motion.div variants={fadeUp}>
         <h1
-          className="font-extrabold leading-[1.08] tracking-tight"
+          className="font-bold leading-[1.08] tracking-tight"
           style={{
-            fontSize: "clamp(32px,8vw,66px)",
+            fontSize: "clamp(32px,8vw,62px)",
             color: "#0a0a0a",
           }}
         >
