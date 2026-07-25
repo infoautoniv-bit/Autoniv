@@ -32,6 +32,9 @@ The experience is designed as a premium enterprise SaaS tool — clean, powerful
 - [Website Content & Feature Breakdown](#website-content--feature-breakdown)
 - [Plan System](#plan-system)
 - [Vapi Integration](#vapi-integration)
+- [Multi-Channel Chatbots & Social Integrations](#multi-channel-chatbots--social-integrations)
+- [Team Management & Collaboration](#team-management--collaboration)
+- [SEO & Prerendering Build Pipeline](#seo--prerendering-build-pipeline)
 - [Design System](#design-system)
 
 ---
@@ -46,8 +49,9 @@ The experience is designed as a premium enterprise SaaS tool — clean, powerful
 | **Voice** | Vapi (managed) + a custom in-house WebSocket orchestrator (Deepgram STT, LLM, TTS) |
 | **AI / LLM** | OpenAI, Groq, ElevenLabs TTS |
 | **Localization** | Google Translate integration with 130+ world languages modal, auto-detection & cookie persistence |
-| **Messaging** | WhatsApp, Twilio (media streams), Resend / MailerSend / Nodemailer (email) |
-| **Docs / Reports** | PDFKit (PDF report generation) |
+| **Messaging & Social** | Meta WhatsApp Cloud API, Telegram Bot Webhooks, Facebook Messenger, Twilio Media Streams, Resend / MailerSend / Nodemailer |
+| **Integrations** | Automated CRM Lead Sync (`crmService`), Automated Plan Limit Notifier (`planNotifier`) |
+| **Docs & SEO** | PDFKit (PDF generation), Static Prerendering pipeline (`prerender-routes.js`), Automated Sitemap generator (`generate-sitemap.js`) |
 
 ---
 
@@ -448,6 +452,56 @@ Helper methods on the User model: `getResolvedPlans()`, `getPlanConfig()`, `hasF
 - **Receptionist** — greets callers, collects name/phone/purpose, saves a lead.
 - **Appointment** — collects service + preferred date/time and books an appointment.
 - **FAQ** — answers common questions from a knowledge base and escalates when needed.
+
+---
+
+## Multi-Channel Chatbots & Social Integrations
+
+Autoniv provides a unified AI Chatbot engine allowing businesses to deploy a single AI agent across multiple messaging platforms simultaneously.
+
+### Data Models & Controllers
+- **`backend/db/models/Chatbot.js`** — Stores custom chatbot configurations, fallback replies, knowledge base documents, branding preferences, and channel tokens.
+- **`backend/db/models/ChatbotConversation.js`** — Tracks multi-turn conversational history across all integrated social messaging channels.
+- **`backend/services/whatsappChatbot.js`** — Real-time NLP response processor and dialog manager for inbound chat events.
+
+### Social Channel Connectors
+- **Meta WhatsApp Cloud API (`backend/services/metaWhatsApp.js`, `routes/whatsappConnect.js`, `routes/whatsappWebhook.js`)**:
+  - Direct connection using Meta Business Cloud API.
+  - Supports automated interactive button templates, quick replies, and phone verification.
+- **Telegram Bot Webhooks (`backend/routes/telegramWebhook.js`, `set_tg_webhook.js`, `fix-telegram-webhooks.js`)**:
+  - Automatic webhook initialization and payload handling for Telegram bot conversations.
+- **Facebook Messenger Webhooks (`backend/routes/facebookWebhook.js`)**:
+  - Inbound page message handling and automated response routing.
+- **Embeddable Website Widget (`backend/routes/chatbotWidget.js`, `Client/src/components/ChatBotWidget.tsx`)**:
+  - Customizable floating web widget with custom branding, initial popovers, and sound alerts.
+
+### Automated CRM & Plan Services
+- **Automated CRM Sync (`backend/services/crmService.js`)**:
+  - Automatically exports leads, customer contact details, and transcripts gathered by chatbot conversations directly into external CRM tools.
+- **Plan Usage Notifier (`backend/services/planNotifier.js`)**:
+  - Sends real-time email alerts when a tenant approaches 80% or 100% of their conversation/minute allocations.
+
+---
+
+## Team Management & Collaboration
+
+Autoniv supports multi-seat enterprise account workspaces (`Client/src/pages/user/MyTeam.tsx` & `backend/routes/team.js`):
+
+- **Seat Allocations**: Plan-based seat limits allowing primary account owners to invite team members.
+- **Role Permissions**: Assign team members specific roles (`admin`, `manager`, `agent`, `viewer`) with granular workspace controls.
+- **Shared Inboxes & Conversation Logs**: Team members can inspect live call recordings, read transcripts, review captured leads, and monitor active chatbot sessions.
+
+---
+
+## SEO & Prerendering Build Pipeline
+
+To guarantee sub-second page loads and optimal search engine crawlability, Autoniv implements a custom build-time prerendering pipeline:
+
+- **Static Prerender Script (`Client/scripts/prerender-routes.js`)**:
+  - Runs during `npm run build` to pre-render static HTML snapshots for all public marketing, industry, pricing, and case study routes.
+  - Generates meta title, description, Open Graph, and Twitter Card headers for social sharing previews.
+- **Automated Sitemap Generator (`Client/scripts/generate-sitemap.js`)**:
+  - Automatically generates `Client/public/sitemap.xml` with all active application routes, priority weights, and change frequencies.
 
 ---
 
