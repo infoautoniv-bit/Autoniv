@@ -901,3 +901,35 @@ textarea::placeholder {
   50% { top: 100%; }
 }
 .scan-vertical-anim { animation: scanVertical 4s ease-in-out infinite; }
+
+/* ─── Google Translate UI Overrides ─── */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-te-menu-frame,
+.goog-te-menu2,
+.goog-te-menu,
+.skiptranslate:not(.google-translate-compact) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+body {
+  top: 0px !important;
+  position: static !important;
+}
+
+.goog-text-highlight {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+
+

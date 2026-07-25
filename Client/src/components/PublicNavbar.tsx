@@ -6,6 +6,7 @@ const AuthDialog = lazy(() =>
 );
 
 import logoBrand from '../assets/autoniv-brand-logo.webp';
+import { GoogleTranslate } from './GoogleTranslate';
 
 const LOGO_SRC = logoBrand;
 
@@ -199,7 +200,7 @@ export function PublicNavbar() {
           {/* Logo */}
           <Link
             to="/"
-            className="flex-shrink-0 flex items-center h-full"
+            className="flex-shrink-0 flex items-center h-full notranslate"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             aria-label="Autoniv home"
           >
@@ -215,21 +216,21 @@ export function PublicNavbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden lg:flex items-center gap-1 xl:gap-2 flex-1 justify-center h-full">
+          <div className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 flex-1 justify-center h-full overflow-hidden">
             {navItems.map((item) => {
               if (item.dropdownItems) {
                 return (
-                  <div key={item.label} className="relative group flex items-center h-full py-2">
+                  <div key={item.label} className="relative group flex items-center h-full py-2 flex-shrink-0">
                     <Link
                       to={item.href}
                       onClick={(e) => handleNavClick(e, item)}
-                      className="relative px-2 xl:px-3 py-1.5 text-xs xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center gap-1"
+                      className="relative px-1.5 xl:px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center gap-1"
                       style={{ color: '#475569' }}
                       onMouseEnter={(e) => { e.currentTarget.style.color = '#0a0a0a'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
                     >
                       <span>{item.label}</span>
-                      <svg className="w-2.5 h-2.5 ml-1 inline text-slate-400 transition-transform duration-200 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-2.5 h-2.5 ml-0.5 inline text-slate-400 transition-transform duration-200 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </Link>
@@ -253,14 +254,14 @@ export function PublicNavbar() {
                   key={item.label}
                   to={item.isHash ? `/${item.href}` : item.href}
                   onClick={(e) => handleNavClick(e, item)}
-                  className="relative px-2 xl:px-3 py-1.5 text-xs xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center"
+                  className="relative px-1.5 xl:px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center flex-shrink-0"
                   style={{ color: '#475569' }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = '#0a0a0a'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
                 >
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className="ml-1.5 text-[8px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90 origin-left">
+                    <span className="ml-1 text-[8px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90 origin-left">
                       {item.badge}
                     </span>
                   )}
@@ -270,7 +271,8 @@ export function PublicNavbar() {
           </div>
 
           {/* Desktop CTA buttons */}
-          <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5 xl:gap-2 flex-shrink-0">
+            <GoogleTranslate />
             <button
               onClick={() => openAuth('login')}
               className="px-4 py-2 text-xs xl:text-sm font-semibold rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer"
@@ -436,9 +438,12 @@ export function PublicNavbar() {
 
         {/* Drawer footer CTAs */}
         <div
-          className="mb-10 px-4 py-4 space-y-2 flex-shrink-0"
+          className="mb-10 px-4 py-4 space-y-2 flex-shrink-0 flex flex-col items-center"
           style={{ borderTop: '1px solid rgba(37,99,235,0.10)' }}
         >
+          <div className="w-full flex justify-center pb-2">
+            <GoogleTranslate />
+          </div>
           <button
             onClick={() => {
               openAuth('login');
