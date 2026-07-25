@@ -74,7 +74,7 @@ export type NavItem = {
   isHash?: boolean;
   badge?: string;
   hasDropdown?: boolean;
-  dropdownItems?: { label: string; href: string }[];
+  dropdownItems?: { label: string; href: string; icon?: string }[];
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -87,8 +87,8 @@ const NAV_ITEMS: NavItem[] = [
     href: '/pricing',
     hasDropdown: true,
     dropdownItems: [
-      { label: 'AI Voice Assistance', href: '/pricing/voice-assistance' },
-      { label: 'AI Chatbots', href: '/pricing/ai-chatbot' },
+      { label: 'AI Voice Assistance', href: '/pricing/voice-assistance', icon: '🎙️' },
+      { label: 'AI Chatbots', href: '/pricing/ai-chatbot', icon: '💬' },
     ],
   },
   { label: 'News', href: '/news', badge: 'NEW' },
@@ -216,7 +216,7 @@ export function PublicNavbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 flex-1 justify-center h-full overflow-hidden">
+          <div className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 flex-1 justify-center h-full">
             {navItems.map((item) => {
               if (item.dropdownItems) {
                 return (
@@ -235,16 +235,19 @@ export function PublicNavbar() {
                       </svg>
                     </Link>
                     {/* Dropdown Menu */}
-                    <div className="absolute top-[80%] left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block w-48 bg-white border border-slate-200/80 rounded-2xl shadow-xl py-2 z-50">
-                      {item.dropdownItems.map((subItem) => (
-                        <Link
-                          key={subItem.label}
-                          to={subItem.href}
-                          className="block px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors"
-                        >
-                          {subItem.label}
-                        </Link>
-                      ))}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 hidden group-hover:block w-52 z-50">
+                      <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl shadow-xl p-1.5">
+                        {item.dropdownItems.map((subItem) => (
+                          <Link
+                            key={subItem.label}
+                            to={subItem.href}
+                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-50/90 rounded-xl transition-all"
+                          >
+                            {subItem.icon && <span className="text-sm">{subItem.icon}</span>}
+                            <span>{subItem.label}</span>
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 );
@@ -424,9 +427,10 @@ export function PublicNavbar() {
                         key={subItem.label}
                         to={subItem.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center min-h-[40px] px-4 py-2 text-xs font-semibold text-slate-500 rounded-lg hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-2 min-h-[40px] px-4 py-2 text-xs font-semibold text-slate-500 rounded-lg hover:bg-slate-50 transition-colors"
                       >
-                        {subItem.label}
+                        {subItem.icon && <span>{subItem.icon}</span>}
+                        <span>{subItem.label}</span>
                       </Link>
                     ))}
                   </div>
