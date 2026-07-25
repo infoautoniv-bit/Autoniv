@@ -1,6 +1,6 @@
 # Autoniv — AI Voice Agent & Chatbot SaaS Platform
 
-Autoniv is a professional **multi-tenant SaaS platform** for managing AI voice agents (powered by [Vapi](https://vapi.ai)) and AI chatbots. It lets businesses deploy intelligent voice assistants and chat widgets while administrators retain full platform control — usage limits, plans, billing, and add-ons.
+Autoniv is a professional **multi-tenant SaaS platform** for managing AI voice agents and AI chatbots. It lets businesses deploy intelligent voice assistants and chat widgets while administrators retain full platform control — usage limits, plans, billing, and add-ons.
 
 The product ships with two distinct feature families:
 
