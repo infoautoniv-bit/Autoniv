@@ -29,6 +29,7 @@ The experience is designed as a premium enterprise SaaS tool — clean, powerful
   - [Pages](#pages)
   - [Components](#components)
   - [State Management](#state-management)
+- [Website Content & Feature Breakdown](#website-content--feature-breakdown)
 - [Plan System](#plan-system)
 - [Vapi Integration](#vapi-integration)
 - [Design System](#design-system)
@@ -44,6 +45,7 @@ The experience is designed as a premium enterprise SaaS tool — clean, powerful
 | **Auth** | JWT access + refresh tokens (httpOnly cookies), bcrypt, OTP verification, Google login |
 | **Voice** | Vapi (managed) + a custom in-house WebSocket orchestrator (Deepgram STT, LLM, TTS) |
 | **AI / LLM** | OpenAI, Groq, ElevenLabs TTS |
+| **Localization** | Google Translate integration with 130+ world languages modal, auto-detection & cookie persistence |
 | **Messaging** | WhatsApp, Twilio (media streams), Resend / MailerSend / Nodemailer (email) |
 | **Docs / Reports** | PDFKit (PDF report generation) |
 
@@ -305,7 +307,7 @@ Access control is enforced by `<ProtectedRoute>` in `App.tsx`:
 
 ### Pages
 
-**Public** (`pages/public/`) — Landing (composed of `sections/`: Hero, Features, Pricing, Testimonials, FAQ, Industry, Comparison, CTA…), Login, Register, ForgotPassword, Pricing, Agents/Services, Case Studies (+ detail), Blog, News, Press, Careers, About, Help Center, Privacy, Terms, 404.
+**Public** (`pages/public/`) — Landing (composed of `sections/`: Hero, Features, Pricing, Testimonials, FAQ, Industry, Comparison, CTA…), Login, Register, ForgotPassword, Pricing (Main pricing overview with USD/INR & Monthly/Yearly toggles + ROI Estimator), `VoiceAssistancePricing` (Dedicated AI Voice Agent plans), `AiChatbotPricing` (Dedicated AI Chatbot plans), Agents/Services, Case Studies (+ detail), Blog, News, Press, Careers, About, Help Center, Privacy, Terms, 404.
 
 **User dashboard** (`pages/user/`) — UserDashboard, MyAgents, CreateAgent, CreateCustomAgent, CustomWebCall, MyCalls, MyLeads, MyAppointments, MyChat, UserBilling, MyAddOns.
 
@@ -313,7 +315,7 @@ Access control is enforced by `<ProtectedRoute>` in `App.tsx`:
 
 ### Components
 
-Reusable UI in `components/`: `Sidebar`, `Breadcrumbs`, `StatCard`, `DataTable`, `Pagination`, `Modal`, `ConfirmDialog`, `Dropdown`, `Badge`, `FormElements`, `SearchInput`, `Toast`/`ToastContainer`, `Tooltip`, `LoadingScreen`, `ErrorBoundary`, `EmptyStateGuide`, `OnboardingTour`, `WelcomeOnboarding`, chart blocks (`AreaChartBlock`, `PieChartBlock`), and voice/chat widgets (`ChatBotWidget`, `UnifiedAssistantWidget`, `LandingCallWidget`, `VoicePreviewButton`, `AgentPanel`, `AIAssistantChat`).
+Reusable UI in `components/`: `PublicNavbar` (Floating responsive glassmorphism navbar with multi-level popover dropdowns), `GoogleTranslate` (130+ languages translation selector with search & portal overlay), `Sidebar`, `Breadcrumbs`, `StatCard`, `DataTable`, `Pagination`, `Modal`, `ConfirmDialog`, `Dropdown`, `Badge`, `FormElements`, `SearchInput`, `Toast`/`ToastContainer`, `Tooltip`, `LoadingScreen`, `ErrorBoundary`, `EmptyStateGuide`, `OnboardingTour`, `WelcomeOnboarding`, chart blocks (`AreaChartBlock`, `PieChartBlock`), and voice/chat widgets (`ChatBotWidget`, `UnifiedAssistantWidget`, `LandingCallWidget`, `VoicePreviewButton`, `AgentPanel`, `AIAssistantChat`).
 
 ### State Management
 
@@ -322,6 +324,70 @@ Redux Toolkit store (`store/index.ts`) with slices in `store/slices/`:
 `auth`, `agents`, `calls`, `leads`, `users`, `analytics`, `upgradeRequests`, `appointments`, `addOns`.
 
 API access via axios clients in `services/` (`api.ts`, `orchestratorApi.ts`, `cookies.ts`). Session storage caches user and dashboard stats for persistence across reloads.
+
+---
+
+## Website Content & Feature Breakdown
+
+Autoniv provides a comprehensive enterprise marketing site and SaaS portal experience designed to showcase multi-channel AI voice and chatbot automation capabilities.
+
+### 1. Header & Navigation (`PublicNavbar`)
+- **Glassmorphism Floating Bar**: Fixed top pill navigation container with dynamic scroll styling, backdrop blur (`blur-md`), and high contrast branding.
+- **Nested Popover Dropdowns**: Interactive hover dropdown menu under **Pricing** providing direct access to specialized plan views:
+  - 🎙️ **AI Voice Assistance** (`/pricing/voice-assistance`)
+  - 💬 **AI Chatbots** (`/pricing/ai-chatbot`)
+- **Global Localization (`GoogleTranslate`)**: Integrated language switcher featuring:
+  - 130+ world languages modal with instant live filter search.
+  - Automatic browser locale detection with cookie fallback (`googtrans`).
+  - Rendered via React Portals directly onto `document.body` to avoid overflow clipping issues.
+- **Mobile Drawer**: Slide-in mobile menu drawer with smooth animations and keyboard accessibility (`Escape` key support).
+
+### 2. Public Marketing & Product Pages
+- **Landing Page (`/`)**:
+  - **Hero Section**: Animated gradient typography, drifting ambient lighting, trust badges, and primary trial CTAs.
+  - **USP Slider & Value Props**: Highlights setup speed, DPDP Act 2023 compliance, 20+ accent variations, and live uptime guarantees.
+  - **Interactive Demos**:
+    - `LandingCallWidget` — Live in-browser WebRTC call sandbox to test AI voice responses in real time.
+    - `Spectrum` & `PhoneMockup` — Visual simulation of active inbound/outbound calls and real-time speech synthesis.
+  - **Interactive ROI Estimator**: Range slider computing monthly call volume savings between traditional human call centers and Autoniv AI voice agents.
+  - **Comparison Matrix**: Detailed feature comparison contrasting human agent overhead against Autoniv AI agents.
+  - **Customer Proof & Testimonials**: Enterprise brand showcases and verified customer ratings (4.9/5 stars).
+  - **Interactive FAQ Accordion**: Expandable answers addressing setup times, pricing, integrations, and telephony numbers.
+
+- **Services & AI Solutions (`/services`)**:
+  - Full product catalog featuring Receptionist, Appointment Booking, Lead Capture, and Customer Support agent presets.
+
+- **Feature-Specific Deep Dives**:
+  - `/ai-voice-agent` — Inbound/outbound telephony agents, latency metrics, and custom prompt configuration.
+  - `/ai-chatbot` — Multi-channel messaging automation across Web, WhatsApp, Instagram, Messenger, and Telegram.
+  - `/ai-phone-answering` — 24/7 AI virtual receptionist, concurrent call scaling, spam filtering, and human handoff.
+  - `/appointment-booking` — Autonomous calendar scheduling, real-time availability checks, and SMS/WhatsApp booking reminders.
+  - `/customer-support` — Automated Tier-1 inquiry resolution reducing support operating costs by up to 70%.
+
+- **Vertical Industry Solutions**:
+  - `/industries/real-estate` — Tailored lead qualification, property tour scheduling, and buyer follow-up.
+  - `/industries/healthcare` — HIPAA/DPDP-compliant patient intake, prescription refills, and appointment scheduling.
+
+### 3. Transparent Pricing Experience
+- **Unified Pricing Overview (`/pricing`)**:
+  - **Billing Cycle Toggle**: Instant toggle between **Monthly** and **Yearly** billing with 20% annual savings highlighted.
+  - **Currency Toggle**: Real-time price conversion between **$ USD** and **₹ INR**.
+  - **Interactive ROI Estimator**: Embedded savings calculator letting prospective buyers estimate monthly ROI.
+- **Dedicated Voice Pricing (`/pricing/voice-assistance`)**:
+  - Tiers: Launch, Growth, Scale, and Enterprise plans with minute allocations, extra minute rates, setup fees, and phone number options.
+- **Dedicated Chat Pricing (`/pricing/ai-chatbot`)**:
+  - Tiers: Free, Starter, Growth, and Enterprise plans detailing channel access, chatbot limits, and conversation quotas.
+
+### 4. Case Studies & Corporate Info
+- **Case Studies (`/case-studies` & `/case-studies/:id`)**:
+  - Real customer outcomes (e.g. 70% cost reduction, 3x lead growth) filterable by industry with detailed implementation breakdowns.
+- **Company & News (`/about`, `/careers`, `/press`, `/news`, `/blog`)**:
+  - Corporate background, open career listings, media press kit, latest news, and technical blog posts.
+- **Support & Legal (`/help`, `/privacy`, `/terms`)**:
+  - Searchable Help Center documentation, comprehensive Privacy Policy, and Terms & Conditions.
+
+### 5. Floating Interactive Widgets
+- **`UnifiedAssistantWidget`**: Site-wide persistent chat and voice widget enabling website visitors to interact directly with an AI assistant from any public page.
 
 ---
 
