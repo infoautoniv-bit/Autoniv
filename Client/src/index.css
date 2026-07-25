@@ -931,5 +931,38 @@ body {
   box-shadow: none !important;
 }
 
+/* ─── Universal Preservation of Gradient Text & Bold Fonts Under Any Translation Engine ─── */
+font[style*="vertical-align"] {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+}
+
+.bg-clip-text,
+[class*="bg-clip-text"],
+.text-transparent {
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+
+.bg-clip-text *,
+[class*="bg-clip-text"] *,
+.text-transparent * {
+  color: transparent !important;
+  background: inherit !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  display: inline !important;
+}
+
+
+
 
 

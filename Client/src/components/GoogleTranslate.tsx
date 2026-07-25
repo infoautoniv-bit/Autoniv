@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 declare global {
   interface Window {
     googleTranslateElementInit?: () => void;
-    google?: any;
   }
 }
 
@@ -192,8 +191,9 @@ export function GoogleTranslate() {
     // 3. Load Google Translate script
     if (!document.getElementById('google-translate-script')) {
       window.googleTranslateElementInit = () => {
-        if (window.google?.translate?.TranslateElement) {
-          new window.google.translate.TranslateElement(
+        const win = window as any;
+        if (win.google?.translate?.TranslateElement) {
+          new win.google.translate.TranslateElement(
             { pageLanguage: 'en', autoDisplay: false },
             'google_translate_element_hidden'
           );
