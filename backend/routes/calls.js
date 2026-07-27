@@ -486,16 +486,16 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
         });
       }
 
-      // Calculate callback URLs
+      // Calculate callback URLs with explicit agentId binding
       const baseWebhookUrl = process.env.WEBHOOK_URL || `https://${req.headers.host}`;
       let webhookUrl;
       let statusCallbackUrl;
       if (baseWebhookUrl.endsWith('/api/webhooks/vapi')) {
-        webhookUrl = baseWebhookUrl.replace('/vapi', '/incoming-call');
+        webhookUrl = `${baseWebhookUrl.replace('/vapi', '/incoming-call')}?agentId=${agent._id}`;
         statusCallbackUrl = baseWebhookUrl.replace('/vapi', '/twilio/status');
       } else {
         const base = baseWebhookUrl.replace(/\/$/, '');
-        webhookUrl = `${base}/api/webhooks/incoming-call`;
+        webhookUrl = `${base}/api/webhooks/incoming-call?agentId=${agent._id}`;
         statusCallbackUrl = `${base}/api/webhooks/twilio/status`;
       }
 

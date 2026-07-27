@@ -242,19 +242,20 @@ function getUsageBarColor(pct: number) {
 
 function LockedSectionOverlay({ title, desc, onUnlock }: { title: string; desc: string; onUnlock: () => void }) {
   return (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-slate-900/65 backdrop-blur-[4px] rounded-2xl text-center select-none border border-white/5 animate-fadeIn">
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-white mb-4 shadow-lg animate-pulse">
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-slate-950/92 rounded-2xl text-center select-none border border-slate-700 shadow-2xl animate-fadeIn">
+      <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-400/30 flex items-center justify-center text-blue-400 mb-3 shadow-md">
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
       </div>
-      <h3 className="text-sm font-extrabold text-white tracking-tight">{title}</h3>
-      <p className="text-[11px] text-slate-300 max-w-xs mt-1.5 font-semibold leading-relaxed">{desc}</p>
+      <h3 className="text-sm font-black text-white tracking-tight">{title}</h3>
+      <p className="text-xs text-slate-300 max-w-xs mt-1 font-semibold leading-relaxed">{desc}</p>
       <button
+        type="button"
         onClick={onUnlock}
-        className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-white bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-500 hover:to-indigo-550 transition-all hover:scale-[1.02] shadow-md hover:shadow-indigo-500/10 cursor-pointer border-none"
+        className="mt-4 inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all shadow-lg shadow-blue-600/30 cursor-pointer border border-blue-400/40"
       >
-        Unlock Plan
+        Unlock Plan ✨
       </button>
     </div>
   );

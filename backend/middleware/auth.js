@@ -1,13 +1,13 @@
 import { verifyAccessToken, authSecurityEvent } from '../services/tokenService.js';
 import { extractTokenFromCookie } from '../services/cookieService.js';
-import User from '../db/models/User.js';
+import User, { hashApiKey } from '../db/models/User.js';
 import { resolvePlans, PLAN_CONFIG } from '../services/planResolver.js';
 
 function extractToken(req) {
   const authHeader = req.headers.authorization;
   if (authHeader && typeof authHeader === 'string') {
     const [scheme, token] = authHeader.split(' ');
-    if (scheme === 'Bearer' && token) return token.trim();
+    if (scheme === 'Bearer' && token && !token.startsWith('ak_')) return token.trim();
   }
   return extractTokenFromCookie(req);
 }
@@ -45,6 +45,40 @@ export function authenticate(req, res, next) {
     authSecurityEvent('jwt_verify_failed', { ip: req.ip, reason: err.message });
     return res.status(401).json({ message: 'Invalid token' });
   }
+}
+
+export async function authenticateApiKeyOrJwt(req, res, next) {
+  const apiKeyHeader = req.headers['x-api-key'] || req.query.apiKey;
+  const authHeader = req.headers.authorization;
+  let apiKey = apiKeyHeader;
+
+  if (!apiKey && authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ak_')) {
+    apiKey = authHeader.split(' ')[1]?.trim();
+  }
+
+  if (apiKey) {
+    try {
+      const hashedKey = hashApiKey(apiKey);
+      const user = await User.findOne({ apiKey: hashedKey }).select('+apiKey').lean();
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid API key' });
+      }
+      if (user.isActive === false) {
+        return res.status(403).json({ message: 'Account is inactive' });
+      }
+      req.user = {
+        userId: String(user._id),
+        role: user.role || 'user',
+        isApiKeyAuth: true,
+      };
+      req.widgetUser = user;
+      return next();
+    } catch (err) {
+      return res.status(500).json({ message: 'API key authentication failed' });
+    }
+  }
+
+  return authenticate(req, res, next);
 }
 
 export function requireAdmin(req, res, next) {

@@ -9,12 +9,22 @@ let csrfToken: string | null = null;
 let csrfTokenExpiry: number = 0;
 let pendingCsrfPromise: Promise<string> | null = null;
 
-async function fetchCsrfToken(): Promise<string> {
-  if (csrfToken && Date.now() < csrfTokenExpiry) {
-    return csrfToken;
-  }
-  if (pendingCsrfPromise) {
-    return pendingCsrfPromise;
+export function resetCsrfToken() {
+  csrfToken = null;
+  csrfTokenExpiry = 0;
+  pendingCsrfPromise = null;
+}
+
+async function fetchCsrfToken(forceRefresh = false): Promise<string> {
+  if (forceRefresh) {
+    resetCsrfToken();
+  } else {
+    if (csrfToken && Date.now() < csrfTokenExpiry) {
+      return csrfToken;
+    }
+    if (pendingCsrfPromise) {
+      return pendingCsrfPromise;
+    }
   }
 
   pendingCsrfPromise = (async () => {
@@ -153,6 +163,7 @@ function clearSession() {
   deleteCookie('accessToken');
   deleteCookie('refreshToken');
   sessionStorage.removeItem('user');
+  resetCsrfToken();
 }
 
 api.interceptors.response.use(
@@ -168,8 +179,7 @@ api.interceptors.response.use(
     ) {
       originalRequest._csrfRetry = true;
       try {
-        csrfToken = null; // force fetch of a new token
-        const newToken = await fetchCsrfToken();
+        const newToken = await fetchCsrfToken(true); // force refresh of CSRF token
         if (newToken && originalRequest.headers) {
           delete originalRequest.headers['X-CSRF-Token'];
           delete originalRequest.headers['x-csrf-token'];
@@ -588,7 +598,11 @@ export const contactService = {
     company?: string;
     message: string;
   }) =>
-    api.post('/contact', data),
+    api.post<{ message: string; contactId?: string }>('/contact', data),
+  getAll: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
+    api.get<{ items: any[]; pagination: any }>('/contact', { params }),
+  updateStatus: (id: string, status: string) =>
+    api.put<{ message: string; contact: any }>(`/contact/${id}`, { status }),
 };
 
 // ── Support ────────────────────────────────────────────────────────────────

@@ -21,6 +21,7 @@ import { fetchMyAgents } from '../../store/slices/agentsSlice';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import { OnboardingTour } from '../../components/OnboardingTour';
 import { EmptyStateGuide } from '../../components/EmptyStateGuide';
+import { HRCrmVoiceIntegrationCard } from '../../components/HRCrmVoiceIntegrationCard';
 import VapiModule from '@vapi-ai/web';
 import { callService, apiKeyService } from '../../services/api';
 import { logger } from '../../utils/logger';
@@ -1133,11 +1134,9 @@ export function UserDashboard() {
     return Math.round(total / 60);
   }, [filteredCalls]);
 
-  const minutesLimit  = user?.minutesLimit ?? 0;
+  const minutesLimit = user?.minutesLimit ?? 0;
   const isUnlimitedMinutes = minutesLimit === -1;
-  const billingMinutesUsed = user?.minutesUsed ?? 0;
-  const billingUsagePercent = isUnlimitedMinutes ? 0 : minutesLimit > 0 ? Math.min((billingMinutesUsed / minutesLimit) * 100, 100) : 0;
-  const usagePercent  = isUnlimitedMinutes ? 0 : minutesLimit > 0 ? Math.min((minutesUsed / minutesLimit) * 100, 100) : 0;
+  const usagePercent = isUnlimitedMinutes ? 0 : minutesLimit > 0 ? Math.min((minutesUsed / minutesLimit) * 100, 100) : 0;
 
   const callBreakdown = useMemo(() => {
     const total     = filteredCalls.length;
@@ -1604,8 +1603,9 @@ export function UserDashboard() {
                 </div>
               ) : widgetApiKey && !widgetApiKey.startsWith('ak_••••') ? (
                 <div className="space-y-3">
-                  <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-3 text-[11px] text-amber-400">
-                    ⚠️ Save this key now. It won't be shown again after you leave this page.
+                  <div className="bg-amber-500/10 border-2 border-amber-500/50 rounded-xl p-3.5 text-xs font-bold text-amber-950 flex items-center gap-2.5 shadow-sm">
+                    <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white font-black text-[10px] uppercase tracking-wider shrink-0 shadow-sm">Important</span>
+                    <span className="text-amber-950 font-black">Save this key now. It won't be shown again after you leave this page.</span>
                   </div>
                   <div className="bg-slate-900 rounded-xl p-4 font-mono text-[11px] text-green-400 overflow-x-auto">
                     <code>{`<script src="${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/widget/widget.js"\n  data-api-key="${widgetApiKey}"\n  data-position="bottom-right">\n</script>`}</code>
@@ -1843,133 +1843,68 @@ export function UserDashboard() {
         </motion.div>
         )}
 
-        {/* ── Breakdown & Billing Row ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          
-          {/* Call status breakdown — voice only */}
-          {isVoice && (
-          <motion.div variants={fadeUp} className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md" style={{ borderColor: 'var(--slate-border)' }}>
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <h2 className="text-sm font-bold text-slate-800">Call Breakdown</h2>
-                <Link to="/dashboard/calls" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
-                  All Logs →
-                </Link>
-              </div>
-              <p className="text-[10px] font-semibold text-slate-400 mb-5">
-                {callBreakdown.total} calls filtered for the chosen range
-              </p>
+        {/* ── Breakdown Row ── */}
+        {isVoice && (
+          <div className="grid grid-cols-1 gap-4">
+            {/* Call status breakdown — voice only */}
+            <motion.div variants={fadeUp} className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md" style={{ borderColor: 'var(--slate-border)' }}>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h2 className="text-sm font-bold text-slate-800">Call Breakdown</h2>
+                  <Link to="/dashboard/calls" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
+                    All Logs →
+                  </Link>
+                </div>
+                <p className="text-[10px] font-semibold text-slate-400 mb-5">
+                  {callBreakdown.total} calls filtered for the chosen range
+                </p>
 
-              {hasCallData ? (
-                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <DonutChart data={callBreakdown.chartData} rate={callBreakdown.answerRate} />
-                  <div className="flex-1 w-full space-y-3.5">
-                    {callBreakdown.listItems.map(item => (
-                      <div key={item.name}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                            <span className="text-xs font-semibold text-slate-600">{item.name}</span>
+                {hasCallData ? (
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <DonutChart data={callBreakdown.chartData} rate={callBreakdown.answerRate} />
+                    <div className="flex-1 w-full space-y-3.5">
+                      {callBreakdown.listItems.map(item => (
+                        <div key={item.name}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                              <span className="text-xs font-semibold text-slate-600">{item.name}</span>
+                            </div>
+                            <span className="text-xs font-bold text-slate-800">
+                              {item.value} <span className="text-slate-400 font-medium">({item.pct}%)</span>
+                            </span>
                           </div>
-                          <span className="text-xs font-bold text-slate-800">
-                            {item.value} <span className="text-slate-400 font-medium">({item.pct}%)</span>
-                          </span>
+                          <div className="h-1.5 rounded-full overflow-hidden bg-slate-100">
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }}
+                              transition={{ delay: 0.2, duration: 0.65, ease: 'easeOut' }}
+                              className="h-full rounded-full" style={{ backgroundColor: item.color }} />
+                          </div>
                         </div>
-                        <div className="h-1.5 rounded-full overflow-hidden bg-slate-100">
-                          <motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }}
-                            transition={{ delay: 0.2, duration: 0.65, ease: 'easeOut' }}
-                            className="h-full rounded-full" style={{ backgroundColor: item.color }} />
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4 py-6">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-50 border border-slate-200">
-                    <CallIcon />
+                ) : (
+                  <div className="flex items-center gap-4 py-6">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-50 border border-slate-200">
+                      <CallIcon />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No call history matches range</p>
+                      <Link to="/dashboard/ai-voice-agent" className="text-xs text-[var(--primary-blue)] hover:underline font-bold mt-1 block">
+                        Create agent & dial test call →
+                      </Link>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No call history matches range</p>
-                    <Link to="/dashboard/ai-voice-agent" className="text-xs text-[var(--primary-blue)] hover:underline font-bold mt-1 block">
-                      Create agent & dial test call →
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-          )}
-
-          {/* Usage limit card */}
-          <motion.div variants={fadeUp} className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md" style={{ borderColor: 'var(--slate-border)' }}>
-            <h2 className="text-sm font-bold text-slate-800 mb-3.5">Usage & Resource Limit</h2>
-
-            <div className="rounded-xl p-4 mb-4 bg-slate-50/70 border border-slate-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-slate-600 font-bold">{isVoice ? 'Billing Minutes' : 'Chat Conversations'}</span>
-                <span className={`text-xs font-extrabold ${(isVoice ? billingUsagePercent : (user?.chatLimit === -1 ? 0 : ((user?.chatUsed || 0) / (user?.chatLimit || 1)) * 100)) > 80 ? 'text-rose-600' : 'text-slate-800'}`}>
-                  <AnimatedCounter value={isVoice ? billingMinutesUsed : (user?.chatUsed || 0)} />
-                  {isVoice ? (
-                    isUnlimitedMinutes
-                      ? <span className="text-slate-400 font-semibold"> / ∞ mins</span>
-                      : <span className="text-slate-400 font-semibold"> / {minutesLimit > 0 ? minutesLimit.toLocaleString() : '—'} mins</span>
-                  ) : (
-                    user?.chatLimit === -1
-                      ? <span className="text-slate-400 font-semibold"> / ∞ chats</span>
-                      : user?.chatLimit ? <span className="text-slate-400 font-semibold"> / {user.chatLimit.toLocaleString()} chats</span> : null
-                  )}
-                </span>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden bg-slate-200">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${isVoice ? billingUsagePercent : (user?.chatLimit === -1 ? 0 : ((user?.chatUsed || 0) / (user?.chatLimit || 1)) * 100)}%` }}
-                  transition={{ delay: 0.2, duration: 0.75, ease: 'easeOut' }}
-                  className={`h-full rounded-full ${(isVoice ? billingUsagePercent : (user?.chatLimit === -1 ? 0 : ((user?.chatUsed || 0) / (user?.chatLimit || 1)) * 100)) > 80 ? 'bg-gradient-to-r from-rose-500 to-amber-500' : 'bg-gradient-to-r from-[var(--primary-blue)] to-[#10B981]'}`} />
-              </div>
-              <div className="flex items-center justify-between mt-1.5">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{Math.round(isVoice ? billingUsagePercent : (user?.chatLimit === -1 ? 0 : ((user?.chatUsed || 0) / (user?.chatLimit || 1)) * 100))}% metrics consumed</span>
-                {(isVoice ? billingUsagePercent : (user?.chatLimit === -1 ? 0 : ((user?.chatUsed || 0) / (user?.chatLimit || 1)) * 100)) > 80 && (
-                  <span className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 text-rose-500">
-                    ⚠ quota critical
-                  </span>
                 )}
               </div>
-            </div>
+            </motion.div>
+          </div>
+        )}
 
-            <div className="grid grid-cols-2 gap-2.5">
-              {(isVoice ? [
-                { label: 'Active Agents',   value: myAgentStats.active,   dotColor: 'bg-emerald-500 animate-pulse' },
-                { label: 'Muted Agents',    value: myAgentStats.inactive,  dotColor: 'bg-slate-400' },
-                { label: 'All Agents Count', value: myAgentStats.total,     dotColor: 'bg-blue-500' },
-                { label: 'Captured Leads',  value: s.leadCount || 0,       dotColor: 'bg-amber-500', to: '/dashboard/leads' },
-              ] : [
-                { label: 'Chats Used',      value: user?.chatUsed || 0,   dotColor: 'bg-blue-500' },
-                { label: 'Chats Available', value: user?.chatLimit === -1 ? 'Unlimited' : Math.max(0, (user?.chatLimit || 0) - (user?.chatUsed || 0)), dotColor: 'bg-emerald-500' },
-                { label: 'Monthly Quota',   value: user?.chatLimit === -1 ? 'Unlimited' : (user?.chatLimit || 0), dotColor: 'bg-blue-500' },
-                { label: 'Captured Leads',  value: s.leadCount || 0,       dotColor: 'bg-amber-500', to: '/dashboard/leads' },
-              ]).map(item => {
-                const inner = (
-                  <div className="rounded-xl p-3 border transition-all bg-slate-50/50 border-slate-100 hover:border-slate-200/80 hover:bg-slate-50/80 hover:shadow-[0_2px_8px_rgba(0,0,0,0.01)] flex flex-col justify-between h-full cursor-pointer">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className={`w-1.5 h-1.5 rounded-full ${item.dotColor}`} />
-                      <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400">{item.label}</p>
-                    </div>
-                    <p className="text-xl font-black text-slate-800">
-                      {typeof item.value === 'number' ? (
-                        <AnimatedCounter value={item.value} />
-                      ) : (
-                        item.value
-                      )}
-                    </p>
-                  </div>
-                );
-                return item.to
-                  ? <Link key={item.label} to={item.to}>{inner}</Link>
-                  : <div key={item.label}>{inner}</div>;
-              })}
-            </div>
-          </motion.div>
-        </div>
+        {/* ── HR CRM Voice Integration & Web Widget Card (Plan Gated) ── */}
+        <motion.div variants={fadeUp}>
+          <HRCrmVoiceIntegrationCard user={user} />
+        </motion.div>
 
         {/* ── My Agents Grid ── */}
         {hasAgents ? (

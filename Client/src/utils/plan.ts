@@ -105,10 +105,10 @@ export function getPlanConfigByKey(key: string): PlanConfig {
   return PLAN_CONFIG[key] || PLAN_CONFIG.chat_free;
 }
 
-/** Check if user has an active chat plan */
+/** Check if user has an active chat plan (defaults to true for Chat Free access) */
 export function isChatPlan(user: Pick<User, 'chatPlan' | 'chatEnabled' | 'role'>): boolean {
   if (user.role === 'admin') return true;
-  if (user.chatPlan) return user.chatPlan !== 'none' && user.chatPlan.startsWith('chat_');
+  if (user.chatPlan && user.chatPlan !== 'none') return true;
   return user.chatEnabled !== undefined ? user.chatEnabled : true;
 }
 
@@ -117,6 +117,14 @@ export function isVoicePlan(user: Pick<User, 'voicePlan' | 'voiceEnabled' | 'rol
   if (user.role === 'admin') return true;
   if (user.voicePlan) return user.voicePlan !== 'none' && user.voicePlan.startsWith('voice_');
   return user.voiceEnabled !== undefined ? user.voiceEnabled : false;
+}
+
+/** Check if user plan tier is higher than Starter (e.g. Growth, Scale, Enterprise) */
+export function isGreaterThanStarter(user?: Pick<User, 'plan' | 'chatPlan' | 'voicePlan' | 'role'> | null): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  const tier = getTierFromPlan(user.voicePlan || user.plan || user.chatPlan);
+  return getTierOrder(tier) > 1; // 0=free, 1=starter, 2=growth, 3=enterprise
 }
 
 /** Check if user has a specific feature */

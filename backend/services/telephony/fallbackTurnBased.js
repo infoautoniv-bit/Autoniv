@@ -37,10 +37,12 @@ export function buildTurnBasedResponse({ platform, responseText, actionUrl, spea
   const escapedText = String(responseText || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   if (p === 'exotel') {
-    // Exotel XML: Native <Say> / <Play> response compatible with Exotel Passthru applet
+    // Exotel XML: Native <Gather> + <Say> response for interactive multi-turn AI conversation
     return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say>${escapedText}</Say>
+    <Gather action="${escapedAction}" method="POST" input="speech" timeout="6">
+        <Say>${escapedText}</Say>
+    </Gather>
 </Response>`;
   }
 
