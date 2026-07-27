@@ -478,16 +478,29 @@ export function UserBilling() {
 
   const { plan: activePlanConfig, type: activePlanType } = getPlanConfig(user?.plan);
 
+  // Determine if user can upgrade chat or voice independently
+  const userChatPlan = user?.chatPlan || 'chat_free';
+  const userVoicePlan = user?.voicePlan || 'none';
+  const chatTierOrder: Record<string, number> = { free: 0, starter: 1, growth: 2, enterprise: 3 };
+  const chatTier = userChatPlan.replace('chat_', '') || 'free';
+  const voiceTier = userVoicePlan.replace('voice_', '') || 'free';
+  const canUpgradeChat = (chatTierOrder[chatTier] ?? 0) < 3;
+  const canUpgradeVoice = userVoicePlan !== 'none' && (chatTierOrder[voiceTier] ?? 0) < 3;
+  const canUpgrade = canUpgradeChat || canUpgradeVoice;
+
   // Synchronize upgrade modal default tab
   useEffect(() => {
     const handle = setTimeout(() => {
       if (showUpgrade) {
-        setModalTab(activePlanType);
+        // Default to the tab where upgrade is possible
+        if (canUpgradeChat && !canUpgradeVoice) setModalTab('chat');
+        else if (canUpgradeVoice && !canUpgradeChat) setModalTab('voice');
+        else setModalTab(activePlanType);
         setSelectedPlan(null);
       }
     }, 0);
     return () => clearTimeout(handle);
-  }, [showUpgrade, activePlanType]);
+  }, [showUpgrade, activePlanType, canUpgradeChat, canUpgradeVoice]);
 
   const chatLimit = user?.chatLimit || activePlanConfig.callsPerMonth || 100;
   const rawMinutesLimit = user?.minutesLimit ?? activePlanConfig.minutesPerMonth ?? 0;
@@ -619,7 +632,7 @@ export function UserBilling() {
                 </svg>
                 Upgrade request to {getPlanConfig(pendingRequest.requestedPlan).plan.name} is pending admin review
               </div>
-            ) : activePlanConfig.id.endsWith('enterprise') ? (
+            ) : !canUpgrade ? (
               <div className="w-full py-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-xs text-slate-500">
                 Enterprise Plan — Contact support for custom volume quotas
               </div>
@@ -1084,7 +1097,8 @@ export function UserBilling() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {planCategories[modalTab as 'chat' | 'voice'].map((p) => {
-                          const isCurrent = p.id === user?.plan;
+                          const currentPlanForTab = modalTab === 'chat' ? userChatPlan : userVoicePlan;
+                          const isCurrent = p.id === currentPlanForTab;
                           const isSelected = selectedPlan === p.id;
                           const isFeatured = p.style === 'featured';
                           return (

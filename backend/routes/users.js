@@ -391,6 +391,11 @@ router.put('/:id/plan', requireValidObjectId('id'), async (req, res) => {
     const finalChat = updates.chatPlan !== undefined ? updates.chatPlan : (user.chatPlan || 'chat_free');
     const finalVoice = updates.voicePlan !== undefined ? updates.voicePlan : (user.voicePlan || 'none');
 
+    // Check if user is trying to activate the same plan
+    if (finalChat === (user.chatPlan || 'chat_free') && finalVoice === (user.voicePlan || 'none')) {
+      return res.status(400).json({ message: 'You are already on this plan' });
+    }
+
     if (planFromRequest) {
       updates.plan = planFromRequest;
     } else if (finalChat !== 'none' && finalVoice !== 'none') {
