@@ -136,12 +136,15 @@ function extractToken(req) {
   const authHeader = req.headers.authorization;
   if (authHeader && typeof authHeader === 'string') {
     const [scheme, token] = authHeader.split(' ');
-    if (scheme === 'Bearer' && token) return token.trim();
+    if (scheme === 'Bearer' && token && !token.startsWith('ak_')) return token.trim();
   }
   return extractTokenFromCookie(req);
 }
 
 function resolveSessionId(req) {
+  if (req.user?.userId) {
+    return String(req.user.userId);
+  }
   try {
     const token = extractToken(req);
     if (token) {

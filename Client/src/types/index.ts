@@ -29,6 +29,7 @@ export interface User {
   voiceEnabled?: boolean;
   activeAddOns?: string[];
   whiteLabelSettings?: WhiteLabelSettings;
+  apiKey?: string;
   features?: {
     chat: Record<string, boolean | number>;
     voice: Record<string, boolean | number>;

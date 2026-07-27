@@ -10,6 +10,7 @@ import Appointment from '../db/models/Appointment.js';
 import User from '../db/models/User.js';
 import { log } from '../services/logger.js';
 import { parsePhoneWordsToDigits } from './validators.js';
+import { sendCrmWebhook } from './crmService.js';
 
 // Handle tool calls from voice agent (saveLead, saveAppointment)
 process.on('voiceAgentToolCall', async ({ callSid, toolName, args }) => {
@@ -113,15 +114,35 @@ process.on('voiceCallEnded', async ({ callSid, transcript, leadData }) => {
       }
     );
 
+    const call = await Call.findOne({ vapiCallId: callSid });
+
     // Update user minutes
-    if (duration > 0) {
-      const call = await Call.findOne({ vapiCallId: callSid });
-      if (call) {
-        const minutes = Math.ceil(duration / 60);
-        await User.findByIdAndUpdate(call.userId, {
-          $inc: { minutesUsed: minutes, callsUsed: 1 },
-        });
-      }
+    if (duration > 0 && call) {
+      const minutes = Math.ceil(duration / 60);
+      await User.findByIdAndUpdate(call.userId, {
+        $inc: { minutesUsed: minutes, callsUsed: 1 },
+      });
+    }
+
+    // Deliver post-call candidate transcript & screening evaluation results to CRM webhook
+    if (call?.metadata?.webhookUrl) {
+      sendCrmWebhook(
+        call.metadata.webhookUrl,
+        'candidate_call_completed',
+        {
+          callId: String(call._id),
+          candidateName: call.metadata.candidateName || 'Candidate',
+          phone: call.callerNumber,
+          status: 'completed',
+          duration,
+          recordingUrl: call.recordingUrl || null,
+          transcript: transcriptText,
+          summary: call.summary || null,
+          endedReason: 'completed',
+          timestamp: new Date().toISOString(),
+        },
+        call.metadata.webhookSecret
+      );
     }
 
     log.info('orchestrator_call_ended', { callSid, duration });

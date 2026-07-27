@@ -18,6 +18,7 @@ import { safeString } from '../services/validators.js';
 import { decrypt } from '../services/encryption.js';
 import { signMediaStreamToken } from '../services/mediaStreamToken.js';
 import { executeTool } from '../services/appointmentTools.js';
+import { sendCrmWebhook } from '../services/crmService.js';
 
 let _groqClient = null;
 function getGroqClient() {
@@ -297,6 +298,27 @@ async function handleCallEnded(call) {
       log.info('webhook_call_already_billed', { callId: call.id });
     }
   }
+
+  // Deliver post-call candidate transcript & screening evaluation results to CRM webhook
+  if (existing?.metadata?.webhookUrl) {
+    sendCrmWebhook(
+      existing.metadata.webhookUrl,
+      'candidate_call_completed',
+      {
+        callId: String(existing._id),
+        candidateName: existing.metadata.candidateName || 'Candidate',
+        phone: existing.callerNumber,
+        status: updates.status || 'completed',
+        duration: duration || 0,
+        recordingUrl: recordingUrl || null,
+        transcript: existing.transcript || null,
+        summary: existing.summary || null,
+        endedReason: endedReason || 'normal_clearing',
+        timestamp: new Date().toISOString(),
+      },
+      existing.metadata.webhookSecret
+    );
+  }
 }
 
 async function handleTranscript(call, transcript) {
@@ -367,8 +389,12 @@ router.post('/incoming-call', async (req, res) => {
 
   let agent = null;
   try {
-    if (callSid) {
-      const existingCall = await Call.findOne({ vapiCallId: callSid }).populate('agentId').lean();
+    if (req.query?.agentId && mongoose.Types.ObjectId.isValid(req.query.agentId)) {
+      agent = await Agent.findById(req.query.agentId).lean();
+    }
+
+    if (!agent && callSid) {
+      const existingCall = await Call.findOne({ $or: [{ vapiCallId: callSid }, { orchestratorCallId: callSid }, { _id: mongoose.Types.ObjectId.isValid(callSid) ? callSid : null }] }).populate('agentId').lean();
       if (existingCall?.agentId) {
         agent = existingCall.agentId;
       }
@@ -514,24 +540,39 @@ router.post('/incoming-call', async (req, res) => {
       try {
         const groq = getGroqClient();
         if (groq) {
-          const sysPrompt = agent.prompt || `You are ${agent.name}, a helpful voice assistant for phone calls. Keep answers very concise (under 2 sentences).`;
+          const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          const basePrompt = agent.prompt || `You are ${agent.name}, a friendly scheduling assistant for Smile Dental.`;
+          const sysPrompt = `${basePrompt}\n\nCRITICAL CONTEXT:\n- Today's date is ${todayStr}.\n- You must follow this step-by-step flow:\n  1. Full name & spell back\n  2. 10-digit phone number & repeat digits back\n  3. Email address & spell back\n  4. Reason for visit (cleaning, checkup, pain, emergency)\n  5. Preferred date and time\n- Before finalizing, check what details the user has already provided in conversation history. If preferred date and time is not yet collected, ALWAYS ask for their preferred date and time. Keep answers brief (1-2 short sentences).`;
+
+          // Retrieve conversation history from DB Call record
+          let history = [];
+          const existingCallDoc = callSid ? await Call.findOne({ $or: [{ vapiCallId: callSid }, { orchestratorCallId: callSid }] }) : null;
+          if (existingCallDoc?.metadata?.history && Array.isArray(existingCallDoc.metadata.history)) {
+            history = existingCallDoc.metadata.history;
+          }
+
+          history.push({ role: 'user', content: userSpeech });
+          const messages = [{ role: 'system', content: sysPrompt }, ...history.slice(-10)];
+
           const completion = await groq.chat.completions.create({
             model: 'llama-3.1-8b-instant',
-            messages: [
-              { role: 'system', content: sysPrompt },
-              { role: 'user', content: userSpeech },
-            ],
+            messages,
             max_tokens: 150,
             temperature: 0.3,
           });
           responseText = completion.choices[0]?.message?.content?.trim() || responseText;
+          history.push({ role: 'assistant', content: responseText });
+
+          if (existingCallDoc) {
+            await Call.updateOne({ _id: existingCallDoc._id }, { 'metadata.history': history });
+          }
         }
       } catch (err) {
         log.error('gather_llm_error', { error: err.message });
       }
     }
 
-    const actionUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/vapi', '/incoming-call') : `https://${host}/api/webhooks/incoming-call`}`;
+    const actionUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/vapi', '/incoming-call') : `https://${host}/api/webhooks/incoming-call`}?agentId=${agentId}`;
     const speakUrl = `${process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/webhooks/vapi', '/tts/speak').replace('/vapi', '/tts/speak') : `https://${host}/api/tts/speak`}?agentId=${agentId}&text=${encodeURIComponent(responseText)}`;
     const effectivePlatform = isExotel ? 'exotel' : platform;
     return res.send(buildTurnBasedResponse({ platform: effectivePlatform, responseText, actionUrl, speakUrl }));
@@ -597,6 +638,27 @@ router.post('/twilio/status', async (req, res) => {
         await User.findByIdAndUpdate(existing.userId, { $inc: { minutesUsed: billingMinutes, callsUsed: 1 } });
         log.info('twilio_status_call_billed', { callSid: CallSid, billingMinutes, userId: existing.userId });
       }
+    }
+
+    // Deliver post-call candidate transcript & screening evaluation results to CRM webhook
+    if (existing?.metadata?.webhookUrl) {
+      sendCrmWebhook(
+        existing.metadata.webhookUrl,
+        'candidate_call_completed',
+        {
+          callId: String(existing._id),
+          candidateName: existing.metadata.candidateName || 'Candidate',
+          phone: existing.callerNumber || To || From,
+          status: mappedStatus,
+          duration,
+          recordingUrl: existing.recordingUrl || null,
+          transcript: existing.transcript || null,
+          summary: existing.summary || null,
+          endedReason: CallStatus,
+          timestamp: new Date().toISOString(),
+        },
+        existing.metadata.webhookSecret
+      );
     }
   } catch (error) {
     log.error('twilio_status_callback_error', { error: error.message });
