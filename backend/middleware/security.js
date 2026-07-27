@@ -254,6 +254,7 @@ export function csrfProtection(req, res, next) {
     url.includes('/api/contact') ||
     url.includes('/api/public-demo') ||
     url.includes('/api/public-lead') ||
+    url.includes('/api/leads/public') ||
     url.includes('/api/support')
   ) {
     return next();
