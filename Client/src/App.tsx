@@ -39,6 +39,7 @@ const Pricing = lazy(() => import('./pages/public/Pricing').then(m => ({ default
 const VoiceAssistancePricing = lazy(() => import('./pages/public/VoiceAssistancePricing').then(m => ({ default: m.VoiceAssistancePricing })));
 const AiChatbotPricing = lazy(() => import('./pages/public/AiChatbotPricing').then(m => ({ default: m.AiChatbotPricing })));
 const News = lazy(() => import('./pages/public/News').then(m => ({ default: m.News })));
+const ContactAdPage = lazy(() => import('./pages/public/ContactAdPage').then(m => ({ default: m.ContactAdPage })));
 const MyAgents = lazy(() => import('./pages/user/MyAgents').then(m => ({ default: m.MyAgents })));
 const CustomWebCall = lazy(() => import('./pages/user/CustomWebCall').then(m => ({ default: m.CustomWebCall })));
 const CreateAgent = lazy(() => import('./pages/user/CreateAgent').then(m => ({ default: m.CreateAgent })));
@@ -186,6 +187,14 @@ const EXACT_META: Record<string, Meta> = {
   '/news': {
     title: 'Latest News - Autoniv',
     description: 'Stay updated with product announcements, brand news, and major updates from the Autoniv team.',
+  },
+  '/connect': {
+    title: 'Get Started - Autoniv AI Automation',
+    description: 'Connect with Autoniv to deploy custom 24/7 AI Voice Agents and Chatbots for your business.',
+  },
+  '/contact': {
+    title: 'Contact Autoniv AI Specialist',
+    description: 'Get in touch with Autoniv team for enterprise AI automation solutions.',
   },
 };
 
@@ -470,11 +479,14 @@ function AppRoutes() {
       <ScrollToTop />
       <MetaRobots content={
         (location.pathname.startsWith('/dashboard/support')) ? PUBLIC_ROBOTS :
-        (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/onboarding')) ? PRIVATE_ROBOTS :
+        (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/onboarding') || location.pathname === '/connect' || location.pathname === '/contact' || location.pathname === '/contact-ad') ? PRIVATE_ROBOTS :
         PUBLIC_ROBOTS
       } />
       <Routes>
         <Route path="/" element={home} />
+        <Route path="/connect" element={<ContactAdPage />} />
+        <Route path="/contact" element={<ContactAdPage />} />
+        <Route path="/contact-ad" element={<ContactAdPage />} />
         <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace /> : <Login />} />
         <Route path="/register" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace /> : <Register />} />
         <Route path="/onboarding" element={<ProtectedRoute hideSidebar><WelcomeOnboarding onComplete={() => {}} /></ProtectedRoute>} />

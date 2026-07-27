@@ -5,7 +5,7 @@ import { fetchAllLeads } from '../../store/slices/leadsSlice';
 import { DataTable } from '../../components/DataTable';
 import type { Column } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
-import { leadService } from '../../services/api';
+import { leadService, contactService } from '../../services/api';
 import type { Lead } from '../../types';
 
 // ─── Animation presets ────────────────────────────────────────────────
@@ -152,12 +152,12 @@ function LeadDetailModal({
                 ))}
               </div>
 
-              {/* Notes */}
-              {lead.notes && (
+              {/* Notes or Message */}
+              {(lead.notes || (lead as any).message) && (
                 <div className="border-t border-slate-100 pt-4">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-3">Notes</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-3">Message / Notes</p>
                   <div className="rounded-xl bg-slate-50/70 border border-slate-100 px-4 py-3">
-                    <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{lead.notes}</p>
+                    <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{lead.notes || (lead as any).message}</p>
                   </div>
                 </div>
               )}
@@ -187,22 +187,32 @@ export function AdminLeads() {
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState<'all' | 'public'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'public' | 'contact'>('all');
   const [publicLeads, setPublicLeads] = useState<Lead[]>([]);
   const [publicLoading, setPublicLoading] = useState(false);
   const [publicPagination, setPublicPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false });
+  const [contactLeads, setContactLeads] = useState<Lead[]>([]);
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactPagination, setContactPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false });
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   useEffect(() => {
     if (activeTab === 'all') {
       dispatch(fetchAllLeads({ page, limit: 20 }));
-    } else {
+    } else if (activeTab === 'public') {
       const handle = setTimeout(() => setPublicLoading(true), 0);
       leadService.getPublic({ page, limit: 20 }).then((res) => {
         setPublicLeads(res.data.items || []);
         setPublicPagination(res.data.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false });
       }).finally(() => setPublicLoading(false));
+      return () => clearTimeout(handle);
+    } else {
+      const handle = setTimeout(() => setContactLoading(true), 0);
+      contactService.getAll({ page, limit: 20 }).then((res) => {
+        setContactLeads(res.data.items || []);
+        setContactPagination(res.data.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false });
+      }).finally(() => setContactLoading(false));
       return () => clearTimeout(handle);
     }
   }, [dispatch, page, activeTab]);
@@ -212,7 +222,7 @@ export function AdminLeads() {
     return () => clearTimeout(handle);
   }, [filter, search, activeTab]);
 
-  const displayLeads = activeTab === 'all' ? leads : publicLeads;
+  const displayLeads = activeTab === 'all' ? leads : activeTab === 'public' ? publicLeads : contactLeads;
 
   const filteredLeads = displayLeads
     .filter((l) => (filter ? l.status === filter : true))
@@ -449,6 +459,16 @@ export function AdminLeads() {
           >
             Public Leads
           </button>
+          <button
+            onClick={() => setActiveTab('contact')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'contact'
+                ? 'bg-[#2563eb] text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Ad & Contact Submissions
+          </button>
         </motion.div>
 
         {/* ── Stats Cards ── */}
@@ -535,7 +555,7 @@ export function AdminLeads() {
           <DataTable
             columns={columns}
             data={filteredLeads}
-            loading={activeTab === 'all' ? loading : publicLoading}
+            loading={activeTab === 'all' ? loading : activeTab === 'public' ? publicLoading : contactLoading}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             keyExtractor={(l) => l.id}
@@ -569,12 +589,12 @@ export function AdminLeads() {
                   </svg>
                 </div>
               ),
-              title: activeTab === 'public' ? 'No public leads yet' : 'No leads yet',
-              description: activeTab === 'public' ? 'Public leads from the AI chatbot will appear here.' : 'Leads captured from calls will appear here.',
+              title: activeTab === 'contact' ? 'No ad contact submissions yet' : activeTab === 'public' ? 'No public leads yet' : 'No leads yet',
+              description: activeTab === 'contact' ? 'Submissions from the ad campaign contact form will appear here.' : activeTab === 'public' ? 'Public leads from the AI chatbot will appear here.' : 'Leads captured from calls will appear here.',
             }}
             defaultSort={{ key: 'createdAt', direction: 'desc' }}
           />
-          <Pagination pagination={activeTab === 'all' ? pagination : publicPagination} onPageChange={setPage} />
+          <Pagination pagination={activeTab === 'all' ? pagination : activeTab === 'public' ? publicPagination : contactPagination} onPageChange={setPage} />
         </motion.div>
       </motion.div>
 

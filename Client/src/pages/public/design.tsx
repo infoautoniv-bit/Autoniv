@@ -55,11 +55,13 @@ export function Reveal({ children, delay = 0 }: { children: React.ReactNode; del
 }
 
 /* ─── Section Label (eyebrow) ─── */
-export function SectionLabel({ text }: { text: string }) {
+/* `tone="dark"` is for placement on dark surfaces (e.g. .section-box.black):
+   #2563EB only reaches ~2.5:1 there, so we swap to a light cyan for AA contrast. */
+export function SectionLabel({ text, tone = 'light' }: { text: string; tone?: 'light' | 'dark' }) {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
-      <div style={{ width: 18, height: 2, borderRadius: 2, background: BRAND }} />
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: '#2563EB', textTransform: 'uppercase', fontFamily: MONO }}>
+      <div style={{ width: 18, height: 2, borderRadius: 2, background: tone === 'dark' ? '#7DD3FC' : BRAND }} />
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: tone === 'dark' ? '#7DD3FC' : '#2563EB', textTransform: 'uppercase', fontFamily: MONO }}>
         {text}
       </span>
     </div>

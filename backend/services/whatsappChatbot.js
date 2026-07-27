@@ -73,7 +73,7 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
   let isNewConversation = false;
   if (!conversation) {
     log.info('creating_new_conversation', { chatbotId, channel, customerIdentifier });
-    
+
     try {
       conversation = await ChatbotConversation.create({
         chatbotId,
@@ -82,11 +82,11 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
         messages: [],
       });
       isNewConversation = true;
-      log.info('chatbot_new_conversation_created', { 
-        chatbotId, 
-        channel, 
+      log.info('chatbot_new_conversation_created', {
+        chatbotId,
+        channel,
         customerIdentifier,
-        conversationId: conversation._id 
+        conversationId: conversation._id
       });
     } catch (err) {
       // Handle duplicate key error (race condition)
@@ -102,22 +102,22 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
           throw new Error('Failed to find or create conversation');
         }
       } else {
-        log.error('chatbot_conversation_creation_error', { 
-          error: err.message, 
-          code: err.code, 
-          chatbotId, 
-          channel, 
-          customerIdentifier 
+        log.error('chatbot_conversation_creation_error', {
+          error: err.message,
+          code: err.code,
+          chatbotId,
+          channel,
+          customerIdentifier
         });
         throw err;
       }
     }
-    
+
     // Increment count for new conversations on both Chatbot and User model
     if (isNewConversation) {
       try {
         const updateResult = await Chatbot.findByIdAndUpdate(
-          chatbotId, 
+          chatbotId,
           { $inc: { conversationCount: 1 } },
           { new: true }
         );
@@ -127,28 +127,28 @@ export async function handleChatbotMessage({ chatbotId, channel, customerIdentif
             { $inc: { chatUsed: 1 } }
           );
         }
-        log.info('chatbot_conversation_count_incremented', { 
-          chatbotId, 
-          channel, 
+        log.info('chatbot_conversation_count_incremented', {
+          chatbotId,
+          channel,
           oldCount: updateResult.conversationCount - 1,
-          newCount: updateResult.conversationCount 
+          newCount: updateResult.conversationCount
         });
       } catch (err) {
-        log.error('chatbot_conversation_count_increment_failed', { 
-          error: err.message, 
-          chatbotId, 
-          channel 
+        log.error('chatbot_conversation_count_increment_failed', {
+          error: err.message,
+          chatbotId,
+          channel
         });
         // Don't fail the entire request if count update fails
       }
     }
   } else {
-    log.info('chatbot_existing_conversation_found', { 
-      chatbotId, 
-      channel, 
+    log.info('chatbot_existing_conversation_found', {
+      chatbotId,
+      channel,
       customerIdentifier,
       conversationId: conversation._id,
-      messageCount: conversation.messages.length 
+      messageCount: conversation.messages.length
     });
   }
 
@@ -249,8 +249,20 @@ Flow Rules:
       }
     }
 
+    // Append branding signature for non-whitelabel users on initial response
+    let outgoingReply = reply;
+    try {
+      const user = await User.findById(chatbot.userId).select('chatPlan whiteLabelSettings').lean();
+      const isWhiteLabel = user?.whiteLabelSettings?.enabled || ['growth', 'enterprise', 'pro'].includes(user?.chatPlan?.toLowerCase());
+      if (!isWhiteLabel && isNewConversation) {
+        outgoingReply += '\n\n⚡ Powered by Autoniv AI';
+      }
+    } catch (e) {
+      log.warn('branding_check_failed', { error: e.message });
+    }
+
     conversation.messages.push({ role: 'user', text: message, timestamp: new Date() });
-    conversation.messages.push({ role: 'bot', text: reply, timestamp: new Date() });
+    conversation.messages.push({ role: 'bot', text: outgoingReply, timestamp: new Date() });
     conversation.lastActive = new Date();
 
     if (conversation.messages.length > 100) {
@@ -259,16 +271,16 @@ Flow Rules:
 
     await conversation.save();
 
-    log.info('chatbot_message_handler_complete', { 
-      chatbotId, 
-      channel, 
-      customerIdentifier: customerIdentifier.substring(0, 10) + '...', 
-      replyLength: reply.length,
+    log.info('chatbot_message_handler_complete', {
+      chatbotId,
+      channel,
+      customerIdentifier: customerIdentifier.substring(0, 10) + '...',
+      replyLength: outgoingReply.length,
       totalMessages: conversation.messages.length,
       wasNewConversation: isNewConversation
     });
 
-    return reply;
+    return outgoingReply;
   } catch (err) {
     log.error('chatbot_ai_error', { chatbotId, channel, error: err.message, stack: err.stack });
     return 'Sorry, something went wrong. Please try again.';

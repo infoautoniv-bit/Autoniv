@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { User } from '../../types';
-import { authService, fetchCsrfToken } from '../../services/api';
+import { authService, fetchCsrfToken, resetCsrfToken } from '../../services/api';
 import { getCookie, setCookie, deleteCookie } from '../../services/cookies';
 
 export interface DashboardStats {
@@ -59,7 +59,7 @@ export const checkAuth = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await authService.me();
-      fetchCsrfToken();
+      fetchCsrfToken(true);
       return res.data.user as User;
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.message ?? 'Session expired');
@@ -85,7 +85,7 @@ export const login = createAsyncThunk(
       setCookie('accessToken', accessToken, 1);
       if (refreshToken) setCookie('refreshToken', refreshToken, 7);
       sessionStorage.setItem('user', JSON.stringify(user));
-      fetchCsrfToken();
+      fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
     } catch (err: any) {
@@ -104,7 +104,7 @@ export const googleLogin = createAsyncThunk(
       setCookie('accessToken', accessToken, 1);
       if (refreshToken) setCookie('refreshToken', refreshToken, 7);
       sessionStorage.setItem('user', JSON.stringify(user));
-      fetchCsrfToken();
+      fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
     } catch (err: any) {
@@ -153,6 +153,7 @@ export const register = createAsyncThunk(
       setCookie('accessToken', accessToken, 1);
       if (refreshToken) setCookie('refreshToken', refreshToken, 7);
       sessionStorage.setItem('user', JSON.stringify(user));
+      fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
     } catch (err: any) {
@@ -175,6 +176,7 @@ export const verifyOtp = createAsyncThunk(
       setCookie('accessToken', accessToken, 1);
       if (refreshToken) setCookie('refreshToken', refreshToken, 7);
       sessionStorage.setItem('user', JSON.stringify(user));
+      fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
     } catch (err: any) {
@@ -205,7 +207,9 @@ const authSlice = createSlice({
       }
     },
     logout: (state) => {
+      resetCsrfToken();
       authService.logout(); // async — clears cookies/sessionStorage and calls /auth/logout
+      fetchCsrfToken(true);
       state.user = null;
       state.token = null;
       state.refreshToken = null;

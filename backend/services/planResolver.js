@@ -10,12 +10,10 @@ export function resolvePlans(user) {
   if (!chatPlan || chatPlan === 'none' || !PLAN_CONFIG[chatPlan]) {
     if (plan.startsWith('chat_')) {
       chatPlan = plan;
-    } else if (plan.startsWith('voice_')) {
-      chatPlan = 'none';
     } else if (plan.startsWith('both_')) {
       chatPlan = plan.replace('both_', 'chat_');
     } else {
-      chatPlan = `chat_${plan}`;
+      chatPlan = 'chat_free';
     }
   }
 
