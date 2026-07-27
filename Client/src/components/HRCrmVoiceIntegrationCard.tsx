@@ -21,7 +21,7 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
   const [copiedScript, setCopiedScript] = useState<boolean>(false);
 
   const unlocked = isGreaterThanStarter(user);
-  const apiBase = window.location.origin;
+  const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '');
 
   useEffect(() => {
     if (unlocked) {
