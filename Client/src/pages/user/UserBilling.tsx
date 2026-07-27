@@ -229,10 +229,7 @@ const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease } },
 };
-const fadeSlide = {
-  initial: { opacity: 0, x: 15 },
-  animate: { opacity: 1, x: 0, transition: { duration: 0.3, ease } },
-};
+
 
 function getUsageBarColor(pct: number) {
   if (pct > 90) return 'from-rose-500 to-pink-500';
@@ -486,7 +483,7 @@ export function UserBilling() {
   const voiceTier = userVoicePlan.replace('voice_', '') || 'free';
   const canUpgradeChat = (chatTierOrder[chatTier] ?? 0) < 3;
   const canUpgradeVoice = userVoicePlan !== 'none' && (chatTierOrder[voiceTier] ?? 0) < 3;
-  const canUpgrade = canUpgradeChat || canUpgradeVoice;
+
 
   // Get configs for each plan type
   const chatPlanConfig = getPlanConfigByKey(userChatPlan);
@@ -621,7 +618,7 @@ export function UserBilling() {
               </div>
             </div>
 
-            <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-5">{chatPlanConfig.tagline}</p>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-5">{chatPlanConfig.name}</p>
 
             <div className="flex flex-col gap-1 mb-6">
               <div className="flex items-baseline gap-1.5">
@@ -725,7 +722,7 @@ export function UserBilling() {
               )}
             </div>
 
-            <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-5">{voicePlanConfig.tagline}</p>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-5">{voicePlanConfig.name}</p>
 
             <div className="flex flex-col gap-1 mb-6">
               <div className="flex items-baseline gap-1.5">
