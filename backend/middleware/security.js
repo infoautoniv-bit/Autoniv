@@ -232,18 +232,30 @@ export function csrfProtection(req, res, next) {
     return next();
   }
 
+  const url = req.originalUrl || req.baseUrl || req.path || '';
+
   // Skip for webhook routes (verified by signature)
-  if (req.path?.startsWith('/api/webhooks') || req.path?.startsWith('/api/twilio')) {
+  if (url.includes('/api/webhooks') || url.includes('/api/twilio')) {
     return next();
   }
 
   // Skip for widget routes (verified by API key)
-  if (req.path?.startsWith('/api/widget') || req.path?.startsWith('/api/chatbot-widget')) {
+  if (url.includes('/api/widget') || url.includes('/api/chatbot-widget')) {
     return next();
   }
 
   // Skip for auth routes (protected by rate limiting)
-  if (req.path?.startsWith('/api/auth')) {
+  if (url.includes('/api/auth')) {
+    return next();
+  }
+
+  // Skip for public submission forms (protected by rate limiters, CAPTCHA, and abuse filters)
+  if (
+    url.includes('/api/contact') ||
+    url.includes('/api/public-demo') ||
+    url.includes('/api/public-lead') ||
+    url.includes('/api/support')
+  ) {
     return next();
   }
 
