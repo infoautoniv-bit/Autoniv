@@ -247,6 +247,16 @@ export function csrfProtection(req, res, next) {
     return next();
   }
 
+  // Skip for public submission forms (protected by rate limiters, CAPTCHA, and abuse filters)
+  if (
+    req.path?.startsWith('/api/contact') ||
+    req.path?.startsWith('/api/public-demo') ||
+    req.path?.startsWith('/api/public-lead') ||
+    req.path?.startsWith('/api/support')
+  ) {
+    return next();
+  }
+
   const sessionId = resolveSessionId(req);
   const csrfToken = req.headers['x-csrf-token'] || req.body?._csrf;
 
