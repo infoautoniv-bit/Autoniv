@@ -101,6 +101,10 @@ const DEFAULT_FORM_DATA = {
   twilioAuthToken: '',
   hubspotToken: '',
   webhookUrl: '',
+  webhookSecret: '',
+  fieldMapping: '',
+  customHeaders: '',
+  payloadTemplate: '',
 };
 
 // ── Shared styles ──────────────────────────────────────────────────────────
@@ -310,6 +314,10 @@ export function CreateCustomAgent() {
           twilioAuthToken: '',
           hubspotToken: '',
           webhookUrl: '',
+          webhookSecret: '',
+          fieldMapping: '',
+          customHeaders: '',
+          payloadTemplate: '',
         }
       : DEFAULT_FORM_DATA
   );
@@ -346,6 +354,10 @@ export function CreateCustomAgent() {
         crmIntegrations: {
           hubspotToken: formData.hubspotToken || undefined,
           webhookUrl: formData.webhookUrl || undefined,
+          webhookSecret: formData.webhookSecret || undefined,
+          fieldMapping: formData.fieldMapping ? JSON.parse(formData.fieldMapping) : undefined,
+          customHeaders: formData.customHeaders ? JSON.parse(formData.customHeaders) : undefined,
+          payloadTemplate: formData.payloadTemplate || undefined,
         },
         webhookUrl: formData.webhookUrl || undefined,
       };
@@ -855,6 +867,74 @@ export function CreateCustomAgent() {
                     Instant webhook payload will be sent when calls end with extracted lead details (name, phone, email, purpose, notes).
                   </p>
                 </div>
+
+                <div>
+                  <label style={fieldLabel}>Webhook Secret (HMAC Signing)</label>
+                  <input
+                    type="password"
+                    value={formData.webhookSecret}
+                    onChange={e => patch({ webhookSecret: e.target.value })}
+                    placeholder="Optional — used to sign webhook payloads with HMAC SHA-256"
+                    style={inputBase}
+                    onFocus={focusStyle}
+                    onBlur={blurStyle}
+                  />
+                </div>
+
+                <details className="group">
+                  <summary className="cursor-pointer text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--text)] transition-colors select-none">
+                    Advanced CRM Configuration
+                  </summary>
+                  <div className="mt-3 space-y-4 pl-1">
+                    <div>
+                      <label style={fieldLabel}>Field Mapping (JSON)</label>
+                      <textarea
+                        value={formData.fieldMapping}
+                        onChange={e => patch({ fieldMapping: e.target.value })}
+                        placeholder='{"name": "fullName", "phone": "mobile_number", "email": "email_address", "purpose": "lead_source"}'
+                        rows={3}
+                        style={{ ...inputBase, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                      <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Rename fields in the webhook payload. Keys are Autoniv fields, values are your CRM field names.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label style={fieldLabel}>Custom Headers (JSON)</label>
+                      <textarea
+                        value={formData.customHeaders}
+                        onChange={e => patch({ customHeaders: e.target.value })}
+                        placeholder='{"Authorization": "Bearer your-token", "X-CRM-Api-Key": "your-key"}'
+                        rows={3}
+                        style={{ ...inputBase, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                      <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Extra HTTP headers sent with every webhook request (e.g., CRM auth tokens).
+                      </p>
+                    </div>
+
+                    <div>
+                      <label style={fieldLabel}>Payload Template (JSON with {'{{variable}}'} placeholders)</label>
+                      <textarea
+                        value={formData.payloadTemplate}
+                        onChange={e => patch({ payloadTemplate: e.target.value })}
+                        placeholder='{"contact": {"first_name": "{{name}}", "phone": "{{phone}}", "email": "{{email}}", "source": "autoniv_voice"}}'
+                        rows={5}
+                        style={{ ...inputBase, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                      <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Full control over the webhook payload structure. Use {'{{name}}'}, {'{{phone}}'}, {'{{email}}'}, {'{{purpose}}'}, {'{{notes}}'}, {'{{createdAt}}'} as placeholders.
+                      </p>
+                    </div>
+                  </div>
+                </details>
               </div>
             </SectionCard>
 

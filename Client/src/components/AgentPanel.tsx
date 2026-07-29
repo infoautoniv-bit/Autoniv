@@ -238,9 +238,17 @@ export interface AgentPanelProps {
     customEngineModel?: string;
     hubspotToken?: string;
     webhookUrl?: string;
+    webhookSecret?: string;
+    fieldMapping?: string;
+    customHeaders?: string;
+    payloadTemplate?: string;
     crmIntegrations?: {
       hubspotToken?: string;
       webhookUrl?: string;
+      webhookSecret?: string;
+      fieldMapping?: string;
+      customHeaders?: string;
+      payloadTemplate?: string;
     };
   };
   setFormData: (d: any) => void;
@@ -705,6 +713,74 @@ export function AgentPanel({
                         Instant JSON HTTP POST payload sent when phone calls complete with extracted lead details.
                       </p>
                     </div>
+
+                    <div>
+                      <FieldLabel hint="HMAC Signing Secret">Webhook Secret</FieldLabel>
+                      <TextInput
+                        value={formData.webhookSecret || formData.crmIntegrations?.webhookSecret || ''}
+                        onChange={(v) => setFormData((p: any) => ({ ...p, webhookSecret: v, crmIntegrations: { ...(p.crmIntegrations || {}), webhookSecret: v } }))}
+                        placeholder="Optional — signs webhook payloads with HMAC SHA-256"
+                        mono
+                      />
+                    </div>
+
+                    <details className="group">
+                      <summary className="cursor-pointer text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--text)] transition-colors select-none">
+                        Advanced CRM Configuration
+                      </summary>
+                      <div className="mt-3 space-y-4 pl-1">
+                        <div>
+                          <FieldLabel hint="JSON key renaming">Field Mapping</FieldLabel>
+                          <textarea
+                            value={formData.fieldMapping || formData.crmIntegrations?.fieldMapping || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData((p: any) => ({ ...p, fieldMapping: val, crmIntegrations: { ...(p.crmIntegrations || {}), fieldMapping: val } }));
+                            }}
+                            placeholder='{"name": "fullName", "phone": "mobile_number", "email": "email_address", "purpose": "lead_source"}'
+                            rows={3}
+                            className="w-full px-3 py-2.5 text-xs font-mono bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-blue)] resize-vertical"
+                          />
+                          <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                            Rename fields in the webhook payload. Keys are Autoniv fields, values are your CRM field names.
+                          </p>
+                        </div>
+
+                        <div>
+                          <FieldLabel hint="Extra HTTP headers">Custom Headers</FieldLabel>
+                          <textarea
+                            value={formData.customHeaders || formData.crmIntegrations?.customHeaders || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData((p: any) => ({ ...p, customHeaders: val, crmIntegrations: { ...(p.crmIntegrations || {}), customHeaders: val } }));
+                            }}
+                            placeholder='{"Authorization": "Bearer your-token", "X-CRM-Api-Key": "your-key"}'
+                            rows={3}
+                            className="w-full px-3 py-2.5 text-xs font-mono bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-blue)] resize-vertical"
+                          />
+                          <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                            Extra HTTP headers sent with every webhook request (e.g., CRM auth tokens).
+                          </p>
+                        </div>
+
+                        <div>
+                          <FieldLabel hint="JSON template with {{variables}}">Payload Template</FieldLabel>
+                          <textarea
+                            value={formData.payloadTemplate || formData.crmIntegrations?.payloadTemplate || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData((p: any) => ({ ...p, payloadTemplate: val, crmIntegrations: { ...(p.crmIntegrations || {}), payloadTemplate: val } }));
+                            }}
+                            placeholder='{"contact": {"first_name": "{{name}}", "phone": "{{phone}}", "email": "{{email}}", "source": "autoniv_voice"}}'
+                            rows={5}
+                            className="w-full px-3 py-2.5 text-xs font-mono bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-blue)] resize-vertical"
+                          />
+                          <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                            Full control over webhook payload. Use {'{{name}}'}, {'{{phone}}'}, {'{{email}}'}, {'{{purpose}}'}, {'{{notes}}'}, {'{{createdAt}}'} as placeholders.
+                          </p>
+                        </div>
+                      </div>
+                    </details>
                   </motion.div>
                 )}
 

@@ -66,6 +66,14 @@ export interface Agent {
   customEngineModel?: string;
   twilioAccountSid?: string;
   twilioAuthToken?: string;
+  crmIntegrations?: {
+    hubspotToken?: string;
+    webhookUrl?: string;
+    webhookSecret?: string;
+    fieldMapping?: Record<string, string> | string;
+    customHeaders?: Record<string, string> | string;
+    payloadTemplate?: string;
+  };
 }
 
 export interface Call {
