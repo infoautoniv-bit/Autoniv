@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppDispatch } from '../../hooks/useStore';
-import { createAgent, fetchMyAgents } from '../../store/slices/agentsSlice';
+import { createAgent } from '../../store/slices/agentsSlice';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AgentCard } from '../../components/AgentCard';
 import type { Agent, PhoneNumber } from '../../types';
