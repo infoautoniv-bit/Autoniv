@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import Footer from './Footer';
+import { USPSlider } from './sections/USPSlider';
 import { INK, SLATE, HAIRLINE, SURFACE, MONO, Reveal, SectionLabel, GradientText } from './design';
 
 const TOC_ITEMS = [
@@ -353,6 +354,7 @@ export function TermsConditions() {
         </div>
       </section>
 
+      <USPSlider />
       <Footer />
     </div>
   );

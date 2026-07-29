@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import Footer from './Footer';
+import { USPSlider } from './sections/USPSlider';
 import { BRAND, INK, SLATE, HAIRLINE, SURFACE, MONO, SANS, Reveal, SectionLabel, GradientText } from './design';
 
 interface JobRole {
@@ -886,6 +887,7 @@ export function Careers() {
         </div>
       )}
 
+      <USPSlider />
       <Footer />
     </div>
   );

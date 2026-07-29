@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import Footer from './Footer';
+import { USPSlider } from './sections/USPSlider';
 import { BRAND, INK, SLATE, HAIRLINE, SURFACE, MONO, Reveal, SectionLabel, GradientText, StatCard, FAQItem, HeroWaveform } from './design';
 
 const VOICE_STATS = [
@@ -283,6 +284,7 @@ export function AiVoiceAgent() {
         </div>
       </section>
 
+      <USPSlider />
       <Footer />
     </div>
   );
