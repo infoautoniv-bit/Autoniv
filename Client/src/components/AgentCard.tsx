@@ -316,7 +316,7 @@ export function AgentCard({ agent, onDelete, onToggle, onAssignPhone, onCallMe, 
                 <motion.button
                   whileHover={{ scale: 1.05, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => onDelete(agent.id)}
+                  onClick={() => onDelete(agent.id || (agent as any)._id)}
                   title="Delete Agent"
                   className="w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 text-rose-400 border border-slate-200 bg-white"
                 >

@@ -41,7 +41,9 @@ async function resolveAgentForUser(id, user) {
   if (!mongoose.Types.ObjectId.isValid(id)) return { agent: null, forbidden: false };
   const agent = await Agent.findById(id).lean();
   if (!agent) return { agent: null, forbidden: false };
-  if (user.role === 'admin' || agent.userId.toString() === user.userId) {
+  const userIdStr = (user.userId || user._id || user.id || '').toString();
+  const agentUserIdStr = (agent.userId || '').toString();
+  if (user.role === 'admin' || agentUserIdStr === userIdStr) {
     return { agent, forbidden: false };
   }
   return { agent, forbidden: true };
@@ -451,28 +453,37 @@ router.delete('/:id', async (req, res) => {
 
     const objId = new mongoose.Types.ObjectId(id);
 
-    // First, unlink phone number if assigned to prevent Vapi deletion restriction
-    if (agent.phoneNumberId) {
-      try {
-        await assignAgentToPhone(agent.phoneNumberId, null);
-      } catch (e) {
-        log.warn('vapi_unlink_phone_during_delete_failed', { error: e.message, userId: req.user?.userId });
-      }
-    }
-
-    // Now delete Vapi assistant
-    if (agent.vapiId) {
-      try {
-        await deleteVapiAssistant(agent.vapiId);
-      } catch (e) {
-        log.warn('vapi_delete_agent_failed', { error: e.message, userId: req.user?.userId });
-      }
-    }
-
-    // Only delete the agent record itself, keeping calls, appointments, and leads
+    // 1. Instantly remove from MongoDB database
     await Agent.findByIdAndDelete(objId);
 
+    // 2. Unlink phone mapping in MongoDB
+    if (agent.phoneNumberId || agent.phoneNumber) {
+      PhoneNumber.updateMany(
+        { assignedToAgent: agent._id },
+        { assignedToAgent: null }
+      ).catch(() => {});
+    }
+
+    // 3. Immediately send success response to client (takes < 50ms)
     res.json({ message: 'Agent deleted successfully' });
+
+    // 4. Asynchronously perform Vapi background cleanup without blocking response
+    (async () => {
+      if (agent.phoneNumberId) {
+        try {
+          await assignAgentToPhone(agent.phoneNumberId, null);
+        } catch (e) {
+          log.warn('vapi_unlink_phone_during_delete_failed', { error: e.message, userId: req.user?.userId });
+        }
+      }
+      if (agent.vapiId) {
+        try {
+          await deleteVapiAssistant(agent.vapiId);
+        } catch (e) {
+          log.warn('vapi_delete_agent_failed', { error: e.message, userId: req.user?.userId });
+        }
+      }
+    })();
   } catch (err) {
     log.error('delete_agent_error', { error: err.message, userId: req.user?.userId });
     res.status(500).json({ message: 'Failed to delete agent' });

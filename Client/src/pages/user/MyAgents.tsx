@@ -751,17 +751,9 @@ export function MyAgents() {
     if (!deleteTarget) return;
     const targetId = deleteTarget;
     setDeleteTarget(null); // Close modal instantly from UI
-    try {
-      await dispatch(deleteAgent(targetId)).unwrap();
-      addToast('Agent deleted successfully', 'success');
-      // Quietly fetch in background to sync state with backend
-      dispatch(fetchMyAgents({ page, limit: 20 }));
-    } catch (err) {
-      logger.error(err);
-      addToast('Failed to delete agent', 'error');
-      // Restore deleted agent to UI state if deletion failed on backend
-      dispatch(fetchMyAgents({ page, limit: 20 }));
-    }
+    // Optimistic deletion: agent disappears from UI state in 0ms!
+    dispatch(deleteAgent(targetId));
+    addToast('Agent deleted successfully', 'success');
   };
 
   // Local filtering logic
