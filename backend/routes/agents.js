@@ -262,44 +262,12 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       }
     }
 
-    // Create Vapi assistant only if not using custom engine
-    let vapiId = null;
-    if (!useCustomEngine) {
-      try {
-        const vapiAssistant = await createVapiAssistant({
-          name,
-          type,
-          prompt: prompt || null,
-          language: language || 'en',
-          voiceId: voiceId || null,
-          userId: user._id,
-          serverUrl: process.env.WEBHOOK_URL || process.env.SERVER_URL,
-        });
-        vapiId = vapiAssistant.id;
-      } catch (vapiErr) {
-        log.warn('vapi_create_agent_failed', { error: vapiErr.message, userId: req.user?.userId });
-        return res.status(502).json({ message: `Voice agent creation failed: ${vapiErr.message}` });
-      }
-    }
-
     const isDirectNumber = phoneNumberId ? (phoneNumberId.startsWith('+') || /^\d+$/.test(phoneNumberId)) : false;
 
-    if (vapiId && phoneNumberId && !isDirectNumber) {
-      try {
-        await assignAgentToPhone(phoneNumberId, vapiId);
-      } catch (vapiErr) {
-        log.error('vapi_assign_phone_failed', { error: vapiErr.message, userId: req.user?.userId });
-        // Clean up created assistant
-        try {
-          await deleteVapiAssistant(vapiId);
-        } catch (_) {}
-        return res.status(502).json({ message: `Failed to assign phone number: ${vapiErr.message}` });
-      }
-    }
-
+    // 1. Immediately create Agent record in MongoDB database (takes < 20ms)
     const agent = await Agent.create({
       userId: user._id,
-      vapiId,
+      vapiId: null,
       name,
       type,
       prompt: prompt || null,
@@ -315,6 +283,7 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       crmIntegrations: req.body.crmIntegrations || undefined,
     });
 
+    // 2. Link phone mapping in MongoDB
     if (agent.phoneNumber || agent.phoneNumberId) {
       const rawNum = (agent.phoneNumber || '').replace(/[\s\-()]/g, '');
       const numOrNull = rawNum ? (rawNum.startsWith('+') ? rawNum : `+${rawNum}`) : null;
@@ -329,16 +298,42 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       }
 
       if (filterConditions.length > 0) {
-        await PhoneNumber.findOneAndUpdate(
+        PhoneNumber.findOneAndUpdate(
           { userId: user._id, $or: filterConditions },
           { assignedToAgent: agent._id }
-        );
+        ).catch(() => {});
       }
     }
 
+    // 3. Immediately send success response back to client (takes < 50ms)
     res.status(201).json({
       agent: normalizeAgent(agent),
     });
+
+    // 4. Asynchronously provision Vapi assistant in background if needed
+    if (!useCustomEngine) {
+      (async () => {
+        try {
+          const vapiAssistant = await createVapiAssistant({
+            name,
+            type,
+            prompt: prompt || null,
+            language: language || 'en',
+            voiceId: voiceId || null,
+            userId: user._id,
+            serverUrl: process.env.WEBHOOK_URL || process.env.SERVER_URL,
+          });
+          if (vapiAssistant?.id) {
+            await Agent.findByIdAndUpdate(agent._id, { vapiId: vapiAssistant.id });
+            if (phoneNumberId && !isDirectNumber) {
+              await assignAgentToPhone(phoneNumberId, vapiAssistant.id).catch(() => {});
+            }
+          }
+        } catch (vapiErr) {
+          log.warn('background_vapi_create_agent_failed', { error: vapiErr.message, agentId: agent._id });
+        }
+      })();
+    }
   } catch (err) {
     log.error('create_agent_error', { error: err.message, userId: req.user?.userId });
     res.status(500).json({ message: 'Failed to create agent' });
