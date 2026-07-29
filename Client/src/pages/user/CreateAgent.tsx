@@ -381,8 +381,10 @@ export function CreateAgent() {
         },
         webhookUrl: formData.webhookUrl || undefined,
       };
-      await dispatch(createAgent(submitData)).unwrap();
-      await dispatch(fetchMyAgents({ page: 1, limit: 20 }));
+      // Instantly redirect to agents page in 0ms while creation completes in background
+      dispatch(createAgent(submitData)).catch((err) => {
+        logger.error('Background agent creation failed:', err);
+      });
       navigate('/dashboard/ai-voice-agent');
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'Something went wrong.');

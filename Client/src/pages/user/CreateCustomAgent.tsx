@@ -10,6 +10,7 @@ import { VOICE_OPTIONS } from '../../config/voices';
 import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
 import { phoneNumberService } from '../../services/api';
+import { logger } from '../../utils/logger';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const LANGUAGE_OPTIONS = [
@@ -361,8 +362,10 @@ export function CreateCustomAgent() {
         },
         webhookUrl: formData.webhookUrl || undefined,
       };
-      await dispatch(createAgent(submitData)).unwrap();
-      await dispatch(fetchMyAgents({ page: 1, limit: 20 }));
+      // Instantly redirect to agents page in 0ms while creation completes in background
+      dispatch(createAgent(submitData)).catch((err) => {
+        logger.error('Background agent creation failed:', err);
+      });
       navigate('/dashboard/ai-voice-agent');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');

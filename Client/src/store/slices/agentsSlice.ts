@@ -189,7 +189,16 @@ const agentsSlice = createSlice({
       })
       .addCase(fetchMyAgents.fulfilled, (state, action) => {
         state.loading = false;
-        state.myAgents = action.payload.items ?? [];
+        const items = action.payload.items ?? [];
+        const pendingTemps = state.myAgents.filter((a) => typeof a.id === 'string' && a.id.startsWith('temp-'));
+        const map = new Map<string, Agent>();
+        for (const item of items) {
+          map.set(item.id || (item as any)._id, item);
+        }
+        for (const temp of pendingTemps) {
+          if (!map.has(temp.id)) map.set(temp.id, temp);
+        }
+        state.myAgents = Array.from(map.values());
         state.myPagination = action.payload.pagination ?? defaultPagination;
         saveToSession('cache:myAgents', state.myAgents);
       })
@@ -197,9 +206,48 @@ const agentsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch agents';
       })
+      .addCase(createAgent.pending, (state, action) => {
+        const arg = action.meta.arg;
+        const tempId = 'temp-' + action.meta.requestId;
+        const optimisticAgent = {
+          id: tempId,
+          _id: tempId,
+          userId: 'temp',
+          name: arg.name || 'New Agent',
+          type: (arg.type as any) || 'receptionist',
+          prompt: arg.prompt || '',
+          language: arg.language || 'en',
+          voiceId: arg.voiceId || '',
+          isActive: true,
+          callCount: 0,
+          useCustomEngine: arg.useCustomEngine ?? true,
+          customEngineModel: arg.customEngineModel || 'groq:llama-3.3-70b',
+          phoneNumber: arg.phoneNumber || '',
+          phoneNumberId: arg.phoneNumberId || '',
+          createdAt: new Date().toISOString(),
+        } as unknown as Agent;
+        if (!state.myAgents.some((a) => a.id === tempId)) {
+          state.myAgents.unshift(optimisticAgent);
+          saveToSession('cache:myAgents', state.myAgents);
+        }
+      })
       .addCase(createAgent.fulfilled, (state, action) => {
-        state.myAgents.push(action.payload);
-        state.items.push(action.payload);
+        const tempId = 'temp-' + action.meta.requestId;
+        const realAgent = action.payload;
+        const realId = realAgent.id || (realAgent as any)._id;
+        const filtered = state.myAgents.filter(
+          (a) => a.id !== tempId && (a as any)._id !== tempId && a.id !== realId && (a as any)._id !== realId
+        );
+        state.myAgents = [realAgent, ...filtered];
+        const filteredItems = state.items.filter(
+          (a) => a.id !== tempId && (a as any)._id !== tempId && a.id !== realId && (a as any)._id !== realId
+        );
+        state.items = [realAgent, ...filteredItems];
+        saveToSession('cache:myAgents', state.myAgents);
+      })
+      .addCase(createAgent.rejected, (state, action) => {
+        const tempId = 'temp-' + action.meta.requestId;
+        state.myAgents = state.myAgents.filter((a) => a.id !== tempId);
         saveToSession('cache:myAgents', state.myAgents);
       })
       .addCase(updateAgent.fulfilled, (state, action) => {
