@@ -553,11 +553,7 @@ export function MyAgents() {
   const maxAgents = user ? getMaxChatbots(user) : 3;
   const atLimit = maxAgents !== -1 ? agents.length >= maxAgents : false;
   
-  const minutesLimit = user?.minutesLimit ?? 0;
-  const isUnlimited = minutesLimit === -1;
-  const hasVoicePlan = isUnlimited || minutesLimit > 0 || (user ? isVoicePlan(user) : false);
-
-  const openCreate = () => {
+  const openCreateCustom = () => {
     if (atLimit) {
       addToast(
         `Your plan allows ${maxAgents} agent${maxAgents > 1 ? 's' : ''}. Upgrade to create more.`,
@@ -566,7 +562,7 @@ export function MyAgents() {
       );
       return;
     }
-    navigate('/dashboard/ai-voice-agent/new');
+    navigate('/dashboard/ai-voice-agent/new-custom');
   };
 
   const handleApplyTemplate = (tpl: typeof AGENT_TEMPLATES[0]) => {
@@ -578,7 +574,7 @@ export function MyAgents() {
       );
       return;
     }
-    navigate('/dashboard/ai-voice-agent/new', { state: { template: tpl } });
+    navigate('/dashboard/ai-voice-agent/new-custom', { state: { template: tpl } });
   };
 
   const handleEdit = (agent: Agent) => {
@@ -828,6 +824,7 @@ export function MyAgents() {
 
           {agents.length > 0 && (
             <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 w-full sm:w-auto">
+              {/* 
               <button
                 type="button"
                 onClick={openCreate}
@@ -846,18 +843,25 @@ export function MyAgents() {
                 </svg>
                 {atLimit ? 'Capacity Reclaimed' : 'Create Vapi Agent'}
               </button>
-              {!atLimit && hasVoicePlan && (
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard/ai-voice-agent/new-custom')}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 btn-secondary-outline"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create Custom Agent
-                </button>
-              )}
+              */}
+              <button
+                type="button"
+                onClick={openCreateCustom}
+                disabled={atLimit}
+                className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold transition-all shadow-md cursor-pointer whitespace-nowrap shrink-0 ${atLimit
+                    ? 'cursor-not-allowed border-none'
+                    : 'text-white btn-cta border-none shadow-md'
+                  }`}
+                style={atLimit
+                  ? { background: 'var(--s1)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                  : {}
+                }
+              >
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                {atLimit ? 'Capacity Reclaimed' : 'Create Custom Agent'}
+              </button>
             </div>
           )}
         </motion.div>
@@ -1137,6 +1141,7 @@ export function MyAgents() {
 
         {/* CTA */}
         <div className="flex flex-col sm:flex-row items-center gap-3">
+          {/* 
           <button
             type="button"
             onClick={openCreate}
@@ -1153,18 +1158,23 @@ export function MyAgents() {
             </svg>
             Deploy blank Vapi assistant
           </button>
-          {!atLimit && hasVoicePlan && (
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard/ai-voice-agent/new-custom')}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[12.5px] font-semibold text-slate-700 bg-white border border-slate-200 transition-all hover:bg-slate-50 cursor-pointer"
-            >
-              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Deploy Custom Call Agent
-            </button>
-          )}
+          */}
+          <button
+            type="button"
+            onClick={openCreateCustom}
+            disabled={atLimit}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[12.5px] font-semibold text-white transition-all cursor-pointer shadow-md"
+            style={
+              atLimit
+                ? { background: 'var(--s1)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'not-allowed' }
+                : { background: 'var(--gg)', color: '#fff', border: 'none' }
+            }
+          >
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            {atLimit ? 'Capacity Reclaimed' : 'Deploy Custom Call Agent'}
+          </button>
         </div>
 
         {atLimit && (

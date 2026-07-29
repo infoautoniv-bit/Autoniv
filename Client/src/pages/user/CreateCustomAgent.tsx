@@ -405,8 +405,12 @@ export function CreateCustomAgent() {
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
+    <div className="min-h-screen pb-20 relative overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* Glowing background auroras */}
+      <div className="absolute top-10 left-10 w-72 h-72 rounded-full bg-blue-500/10 blur-[120px] pointer-events-none animate-pulse-glow" />
+      <div className="absolute top-40 right-20 w-80 h-80 rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none animate-pulse-glow" style={{ animationDelay: '2s' }} />
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 relative z-10">
 
         {/* Back */}
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
