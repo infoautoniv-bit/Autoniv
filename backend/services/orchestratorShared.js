@@ -302,12 +302,6 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
       return true;
     });
   }
-
-  // The appointment management tools (lookup / reschedule / cancel / emergency)
-  // are only needed when the caller actually signals that intent. Booking a new
-  // appointment only needs saveLead + checkAppointmentAvailability + saveAppointment.
-  // Dropping the rest by default roughly halves the tool-schema tokens sent on
-  // every completion — the biggest per-call overhead.
   const EXTENDED_TOOLS = new Set([
     'getAppointment', 'updateAppointment', 'cancelAppointment', 'checkEmergencyAvailability',
   ]);
@@ -512,11 +506,33 @@ const FIRST_MESSAGES = {
   faq: 'Hi there! I am here to answer your questions. What would you like to know?',
 };
 
-// Static, templated greeting. We deliberately DON'T call an LLM here: an extra
-// completion per call (system prompt re-sent every time) was a large slice of
-// daily token usage, added start-of-call latency, and occasionally produced a
-// truncated line. A fixed greeting is instant, free, and predictable.
-export async function generateGreeting({ agentType }) {
+export async function generateGreeting({ groq, openaiClient, gemini, systemInstructions, agentType, agentObj }) {
+  // If a custom prompt is configured for the agent, generate opening greeting strictly from the agent's prompt
+  if (agentObj?.prompt && agentObj.prompt.trim().length > 15) {
+    const client = groq || openaiClient || gemini;
+    if (client) {
+      try {
+        const modelName = groq ? GROQ_DEFAULT_MODEL : (openaiClient ? 'gpt-4o-mini' : 'gemini-2.5-flash');
+        const completion = await client.chat.completions.create({
+          model: modelName,
+          messages: [
+            { role: 'system', content: systemInstructions },
+            { role: 'user', content: 'The call just connected. Speak ONLY your opening greeting to the caller based strictly on your role and system instructions above.' },
+          ],
+          max_tokens: 60,
+          temperature: 0.5,
+        });
+        const customGreeting = completion.choices[0]?.message?.content?.trim();
+        if (customGreeting) {
+          console.log(`[Orchestrator] Generated opening greeting from custom prompt: "${customGreeting}"`);
+          return customGreeting;
+        }
+      } catch (err) {
+        console.warn('[Orchestrator] Dynamic prompt greeting fallback:', err.message);
+      }
+    }
+  }
+
   return FIRST_MESSAGES[agentType] || FIRST_MESSAGES.receptionist;
 }
 
