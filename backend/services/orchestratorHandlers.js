@@ -126,6 +126,7 @@ process.on('voiceCallEnded', async ({ callSid, transcript, leadData }) => {
 
     // Deliver post-call candidate transcript & screening evaluation results to CRM webhook
     if (call?.metadata?.webhookUrl) {
+      const webhookAgent = call.agentId ? await Agent.findById(call.agentId).lean().catch(() => null) : null;
       sendCrmWebhook(
         call.metadata.webhookUrl,
         'candidate_call_completed',
@@ -141,7 +142,8 @@ process.on('voiceCallEnded', async ({ callSid, transcript, leadData }) => {
           endedReason: 'completed',
           timestamp: new Date().toISOString(),
         },
-        call.metadata.webhookSecret
+        call.metadata.webhookSecret,
+        webhookAgent?.crmIntegrations || null
       );
     }
 

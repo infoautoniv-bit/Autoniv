@@ -121,6 +121,7 @@ router.post('/', authenticate, contentFilter('name', 'systemPrompt'), async (req
           botUsername: channels?.telegram?.botUsername || null,
         },
       },
+      crmIntegrations: req.body.crmIntegrations || undefined,
     });
 
     log.info('chatbot_created', { chatbotId: String(chatbot._id), name, userId: req.user.userId });
@@ -208,7 +209,11 @@ router.put('/:id', authenticate, contentFilter('name', 'systemPrompt'), async (r
     if (req.body.crmIntegrations) {
       chatbot.crmIntegrations = {
         hubspotToken: req.body.crmIntegrations.hubspotToken !== undefined ? req.body.crmIntegrations.hubspotToken : chatbot.crmIntegrations?.hubspotToken,
-        webhookUrl: req.body.crmIntegrations.webhookUrl !== undefined ? req.body.crmIntegrations.webhookUrl : chatbot.crmIntegrations?.webhookUrl
+        webhookUrl: req.body.crmIntegrations.webhookUrl !== undefined ? req.body.crmIntegrations.webhookUrl : chatbot.crmIntegrations?.webhookUrl,
+        webhookSecret: req.body.crmIntegrations.webhookSecret !== undefined ? req.body.crmIntegrations.webhookSecret : chatbot.crmIntegrations?.webhookSecret,
+        fieldMapping: req.body.crmIntegrations.fieldMapping !== undefined ? req.body.crmIntegrations.fieldMapping : chatbot.crmIntegrations?.fieldMapping,
+        customHeaders: req.body.crmIntegrations.customHeaders !== undefined ? req.body.crmIntegrations.customHeaders : chatbot.crmIntegrations?.customHeaders,
+        payloadTemplate: req.body.crmIntegrations.payloadTemplate !== undefined ? req.body.crmIntegrations.payloadTemplate : chatbot.crmIntegrations?.payloadTemplate,
       };
     }
 

@@ -301,6 +301,7 @@ async function handleCallEnded(call) {
 
   // Deliver post-call candidate transcript & screening evaluation results to CRM webhook
   if (existing?.metadata?.webhookUrl) {
+    const webhookAgent = agentId ? await Agent.findById(agentId).lean().catch(() => null) : null;
     sendCrmWebhook(
       existing.metadata.webhookUrl,
       'candidate_call_completed',
@@ -316,7 +317,8 @@ async function handleCallEnded(call) {
         endedReason: endedReason || 'normal_clearing',
         timestamp: new Date().toISOString(),
       },
-      existing.metadata.webhookSecret
+      existing.metadata.webhookSecret,
+      webhookAgent?.crmIntegrations || null
     );
   }
 }
@@ -642,6 +644,7 @@ router.post('/twilio/status', async (req, res) => {
 
     // Deliver post-call candidate transcript & screening evaluation results to CRM webhook
     if (existing?.metadata?.webhookUrl) {
+      const twilioAgent = existing.agentId ? await Agent.findById(existing.agentId).lean().catch(() => null) : null;
       sendCrmWebhook(
         existing.metadata.webhookUrl,
         'candidate_call_completed',
@@ -657,7 +660,8 @@ router.post('/twilio/status', async (req, res) => {
           endedReason: CallStatus,
           timestamp: new Date().toISOString(),
         },
-        existing.metadata.webhookSecret
+        existing.metadata.webhookSecret,
+        twilioAgent?.crmIntegrations || null
       );
     }
   } catch (error) {

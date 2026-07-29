@@ -927,7 +927,7 @@ router.post('/call', authenticateApiKey, async (req, res) => {
         phone: formattedPhone,
         status: dialSuccess ? 'initiating' : 'queued',
         timestamp: new Date().toISOString(),
-      }, webhookSecret);
+      }, webhookSecret, agent?.crmIntegrations || null);
     }
 
     res.json({

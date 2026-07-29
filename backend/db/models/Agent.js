@@ -19,6 +19,10 @@ const agentSchema = new mongoose.Schema({
   crmIntegrations: {
     hubspotToken: { type: String, default: null },
     webhookUrl: { type: String, default: null },
+    webhookSecret: { type: String, default: null },
+    fieldMapping: { type: mongoose.Schema.Types.Mixed, default: null },
+    customHeaders: { type: mongoose.Schema.Types.Mixed, default: null },
+    payloadTemplate: { type: String, default: null },
   },
   webhookUrl: { type: String, default: null },
 }, { timestamps: true });

@@ -310,6 +310,7 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       twilioAuthToken: twilioAuthToken ? encrypt(twilioAuthToken) : null,
       phoneNumberId: isDirectNumber ? null : (phoneNumberId || null),
       phoneNumber: isDirectNumber ? phoneNumberId : (phoneNumber || null),
+      crmIntegrations: req.body.crmIntegrations || undefined,
     });
 
     if (agent.phoneNumber || agent.phoneNumberId) {
@@ -400,6 +401,12 @@ router.put('/:id', contentFilter('name', 'prompt'), async (req, res) => {
     if (twilioAuthToken !== undefined) updates.twilioAuthToken = twilioAuthToken ? encrypt(twilioAuthToken) : null;
     if (req.body.phoneNumber !== undefined) updates.phoneNumber = req.body.phoneNumber;
     if (req.body.phoneNumberId !== undefined) updates.phoneNumberId = req.body.phoneNumberId;
+    if (req.body.crmIntegrations !== undefined) {
+      updates.crmIntegrations = {
+        ...agent.crmIntegrations,
+        ...req.body.crmIntegrations,
+      };
+    }
 
     const updated = await Agent.findByIdAndUpdate(id, updates, { new: true }).lean();
 
