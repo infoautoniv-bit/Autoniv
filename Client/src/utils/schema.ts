@@ -89,9 +89,9 @@ export const LOCAL_BUSINESS_SCHEMA: SchemaBase = {
   '@type': 'LocalBusiness',
   name: 'Autoniv',
   image: 'https://autoniv.com/logo.png',
-  url: 'https://autoniv.com',
-  telephone: '+91-98765-43210',
-  email: 'support@autoniv.com',
+  url: 'https://autoniv.com/',
+  telephone: '+91-7065990307',
+  email: 'hello@autoniv.com',
   address: {
     '@type': 'PostalAddress',
     addressCountry: 'IN',
