@@ -161,7 +161,7 @@ function escapeAttr(str) {
 }
 
 function swapMeta(html, routePath, meta) {
-  const url = routePath === '/' ? DOMAIN : `${DOMAIN}${routePath}`;
+  const url = routePath === '/' ? `${DOMAIN}/` : `${DOMAIN}${routePath}`;
   const escapedTitle = escapeAttr(meta.title);
   const escapedDesc = escapeAttr(meta.description);
 

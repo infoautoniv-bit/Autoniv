@@ -442,29 +442,33 @@ function AppRoutes() {
     injectSchema('organization-jsonld', ORGANIZATION_SCHEMA);
     injectSchema('website-jsonld', WEBSITE_SCHEMA);
     injectSchema('software-app-jsonld', SOFTWARE_APPLICATION_SCHEMA);
+    injectSchema('webpage-jsonld', {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: title.split('|')[0].trim(),
+      url,
+      description,
+      isPartOf: {
+        '@type': 'WebSite',
+        url: 'https://autoniv.com/',
+      },
+    });
 
     // Breadcrumb JSON-LD
     const pathParts = path.split('/').filter(Boolean);
-    const existingScript = document.getElementById('breadcrumb-jsonld');
-    if (pathParts.length > 0) {
-      let currentPath = '';
-      const itemListElement = [{ '@type': 'ListItem', position: 1, name: 'Home', item: 'https://autoniv.com/' }];
-      pathParts.forEach((part, index) => {
-        currentPath += '/' + part;
-        const name = BREADCRUMB_LABELS[part] ?? part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
-        itemListElement.push({ '@type': 'ListItem', position: index + 2, name, item: 'https://autoniv.com' + currentPath });
-      });
+    let currentPath = '';
+    const itemListElement = [{ '@type': 'ListItem', position: 1, name: 'Home', item: 'https://autoniv.com/' }];
+    pathParts.forEach((part, index) => {
+      currentPath += '/' + part;
+      const name = BREADCRUMB_LABELS[part] ?? part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
+      itemListElement.push({ '@type': 'ListItem', position: index + 2, name, item: 'https://autoniv.com' + currentPath });
+    });
 
-      const script = (existingScript as HTMLScriptElement) ?? document.createElement('script');
-      if (!existingScript) {
-        script.id = 'breadcrumb-jsonld';
-        script.type = 'application/ld+json';
-        document.head.appendChild(script);
-      }
-      script.text = JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement });
-    } else {
-      existingScript?.remove();
-    }
+    injectSchema('breadcrumb-jsonld', {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement,
+    });
   }, [location.pathname]);
 
   const home = useMemo(

@@ -1,0 +1,21 @@
+{
+  "name": "Autoniv AI Platform",
+  "short_name": "Autoniv",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050d1a",
+  "theme_color": "#050d1a",
+  "description": "24/7 AI Voice Agents and Chatbots for Businesses"
+}

@@ -23,11 +23,14 @@ export const ORGANIZATION_SCHEMA: SchemaBase = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Autoniv',
-  url: 'https://autoniv.com',
+  url: 'https://autoniv.com/',
   logo: 'https://autoniv.com/logo.png',
+  image: 'https://autoniv.com/og-image.png',
   description: 'AI-powered voice agents, chatbots, and phone answering services for businesses.',
+  email: 'hello@autoniv.com',
+  telephone: '+91-7065990307',
   sameAs: [
-    'https://linkedin.com/company/autoniv',
+    'https://www.linkedin.com/company/autoniv',
     'https://www.instagram.com/autoniv_',
     'https://www.facebook.com/profile.php?id=61577457813652',
     'https://x.com/Autoniv_',
@@ -35,8 +38,8 @@ export const ORGANIZATION_SCHEMA: SchemaBase = {
   contactPoint: {
     '@type': 'ContactPoint',
     contactType: 'customer support',
-    email: 'support@autoniv.com',
-    telephone: '+91-98765-43210',
+    email: 'hello@autoniv.com',
+    telephone: '+91-7065990307',
     availableLanguage: ['English', 'Hindi', 'Spanish', 'French'],
   },
   address: {
@@ -51,6 +54,7 @@ export const WEBSITE_SCHEMA: SchemaBase = {
   name: 'Autoniv',
   alternateName: ['Autoniv', 'autoniv', 'Autoniv AI', 'Autoniv.com'],
   url: 'https://autoniv.com/',
+  inLanguage: 'en',
   potentialAction: {
     '@type': 'SearchAction',
     target: 'https://autoniv.com/search?q={search_term_string}',
@@ -65,11 +69,12 @@ export const SOFTWARE_APPLICATION_SCHEMA: SchemaBase = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   description: 'Build AI voice agents, chatbots, and automated phone answering systems for your business.',
-  url: 'https://autoniv.com',
+  url: 'https://autoniv.com/',
   offers: {
     '@type': 'Offer',
     price: '0',
     priceCurrency: 'USD',
+    availability: 'https://schema.org/InStock',
     description: 'Free trial available',
   },
   aggregateRating: {
