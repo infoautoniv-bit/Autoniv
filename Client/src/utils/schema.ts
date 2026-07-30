@@ -49,7 +49,8 @@ export const WEBSITE_SCHEMA: SchemaBase = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Autoniv',
-  url: 'https://autoniv.com',
+  alternateName: ['Autoniv', 'autoniv', 'Autoniv AI', 'Autoniv.com'],
+  url: 'https://autoniv.com/',
   potentialAction: {
     '@type': 'SearchAction',
     target: 'https://autoniv.com/search?q={search_term_string}',
