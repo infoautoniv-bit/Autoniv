@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion";
 import { testimonials } from "./data";
 import { GradientText } from "./anim";
+import { injectSchema, REVIEW_SCHEMA } from "../../../utils/schema";
 
 interface TestimonialItem {
   name: string;
