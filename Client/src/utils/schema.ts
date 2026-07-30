@@ -219,26 +219,3 @@ export const VIDEO_OBJECT_SCHEMA = (video: {
   contentUrl: video.contentUrl,
   embedUrl: video.embedUrl,
 });
-
-export const REVIEW_SCHEMA = (reviews: Array<{
-  author: string;
-  rating: number;
-  reviewBody: string;
-  datePublished: string;
-}>) => ({
-  '@context': 'https://schema.org',
-  '@type': 'Product',
-  name: 'Autoniv AI Platform',
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1),
-    reviewCount: reviews.length.toString(),
-  },
-  review: reviews.map((review) => ({
-    '@type': 'Review',
-    author: { '@type': 'Person', name: review.author },
-    reviewRating: { '@type': 'Rating', ratingValue: review.rating },
-    reviewBody: review.reviewBody,
-    datePublished: review.datePublished,
-  })),
-});
