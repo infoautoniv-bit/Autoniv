@@ -55,11 +55,6 @@ export const WEBSITE_SCHEMA: SchemaBase = {
   alternateName: ['Autoniv', 'autoniv', 'Autoniv AI', 'Autoniv.com'],
   url: 'https://autoniv.com/',
   inLanguage: 'en',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: 'https://autoniv.com/search?q={search_term_string}',
-    'query-input': 'required name=search_term_string',
-  },
 };
 
 export const SOFTWARE_APPLICATION_SCHEMA: SchemaBase = {
@@ -77,37 +72,6 @@ export const SOFTWARE_APPLICATION_SCHEMA: SchemaBase = {
     availability: 'https://schema.org/InStock',
     description: 'Free trial available',
   },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    ratingCount: '150',
-  },
-};
-
-export const LOCAL_BUSINESS_SCHEMA: SchemaBase = {
-  '@context': 'https://schema.org',
-  '@type': 'LocalBusiness',
-  name: 'Autoniv',
-  image: 'https://autoniv.com/logo.png',
-  url: 'https://autoniv.com/',
-  telephone: '+91-7065990307',
-  email: 'hello@autoniv.com',
-  address: {
-    '@type': 'PostalAddress',
-    addressCountry: 'IN',
-  },
-  geo: {
-    '@type': 'GeoCoordinates',
-    latitude: '28.6139',
-    longitude: '77.2090',
-  },
-  openingHoursSpecification: {
-    '@type': 'OpeningHoursSpecification',
-    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-    opens: '09:00',
-    closes: '18:00',
-  },
-  priceRange: '$$',
 };
 
 export const SERVICE_SCHEMAS = {
