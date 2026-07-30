@@ -27,9 +27,10 @@ export const ORGANIZATION_SCHEMA: SchemaBase = {
   logo: 'https://autoniv.com/logo.png',
   description: 'AI-powered voice agents, chatbots, and phone answering services for businesses.',
   sameAs: [
-    'https://twitter.com/autoniv',
     'https://linkedin.com/company/autoniv',
-    'https://facebook.com/autoniv',
+    'https://www.instagram.com/autoniv_',
+    'https://www.facebook.com/profile.php?id=61577457813652',
+    'https://x.com/Autoniv_',
   ],
   contactPoint: {
     '@type': 'ContactPoint',
