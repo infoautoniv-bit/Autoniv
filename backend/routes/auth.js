@@ -266,6 +266,7 @@ router.post('/register-admin', registerLimiter, contentFilter('name', 'company')
       name,
       company,
       role: 'admin',
+      isVerified: false,
       plan: 'both_enterprise',
       chatPlan: 'chat_enterprise',
       voicePlan: 'voice_enterprise',

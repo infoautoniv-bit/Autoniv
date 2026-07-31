@@ -175,6 +175,7 @@ import fs from 'fs';
 import path from 'path';
 
 function appendDebugLog(event, details) {
+  if (process.env.NODE_ENV === 'production') return;
   try {
     const logPath = path.resolve('csrf-debug.log');
     const logLine = `${new Date().toISOString()} [${event}] ${JSON.stringify(details)}\n`;

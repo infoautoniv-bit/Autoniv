@@ -185,6 +185,26 @@ export const verifyOtp = createAsyncThunk(
   },
 );
 
+export const logout = createAsyncThunk(
+  'auth/logout',
+  async () => {
+    resetCsrfToken();
+    try {
+      await authService.logout();
+    } catch {
+      /* ignore network errors during logout */
+    }
+    deleteCookie('accessToken');
+    deleteCookie('refreshToken');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('cache:myStats');
+    sessionStorage.removeItem('cache:myAgents');
+    sessionStorage.removeItem('cache:myCalls');
+    sessionStorage.removeItem('cache:dashboardStats');
+    fetchCsrfToken(true);
+  }
+);
+
 // ── Slice ──────────────────────────────────────────────────────────────────
 
 const authSlice = createSlice({
@@ -197,30 +217,22 @@ const authSlice = createSlice({
         if (action.payload.chatLimit !== undefined) {
           state.user.chatLimit = action.payload.chatLimit;
         }
-        sessionStorage.setItem('user', JSON.stringify(state.user));
+        saveToSession('user', state.user);
       }
     },
     updatePlan: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
         Object.assign(state.user, action.payload);
-        sessionStorage.setItem('user', JSON.stringify(state.user));
+        saveToSession('user', state.user);
       }
     },
-    logout: (state) => {
-      resetCsrfToken();
-      authService.logout(); // async — clears cookies/sessionStorage and calls /auth/logout
-      fetchCsrfToken(true);
+    resetAuthState: (state) => {
       state.user = null;
       state.token = null;
       state.refreshToken = null;
       state.dashboardStats = null;
       state.error = null;
-      state.initialized = false; // reset so checkAuth reruns on next login
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('cache:myStats');
-      sessionStorage.removeItem('cache:myAgents');
-      sessionStorage.removeItem('cache:myCalls');
-      sessionStorage.removeItem('cache:dashboardStats');
+      state.initialized = false;
     },
     clearError: (state) => {
       state.error = null;
@@ -228,6 +240,15 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // ── logout ───────────────────────────────────────────────────────────
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.dashboardStats = null;
+        state.error = null;
+        state.initialized = false;
+      })
       // ── login ────────────────────────────────────────────────────────────
       .addCase(login.pending, (state) => {
         state.loading = true;
@@ -373,5 +394,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, updateChatUsed, updatePlan } = authSlice.actions;
+export const { resetAuthState, clearError, updateChatUsed, updatePlan } = authSlice.actions;
 export default authSlice.reducer;

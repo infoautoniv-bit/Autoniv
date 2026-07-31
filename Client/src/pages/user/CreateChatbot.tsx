@@ -491,111 +491,113 @@ export function CreateChatbot() {
       className="min-h-screen bg-[#F8FAFC] text-[#0F172A] relative overflow-hidden font-sans selection:bg-[#2563EB] selection:text-white"
       style={{ fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
     >
-      {/* ── TOP HERO HEADER ── */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-4 sm:px-8 py-3.5 shadow-xs">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
-          {/* Left: Navigation Back & Chatbot Name */}
-          <div className="flex items-center gap-4 min-w-0">
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard/chatbots')}
-              className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200/90 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-all cursor-pointer shadow-2xs shrink-0"
-              title="Back to Chatbots List"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div
-                className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 transition-transform hover:scale-105"
-                style={{ background: `linear-gradient(135deg, ${brandColor}, #10B981)` }}
+      {/* ── TOP HERO STICKY CONTAINER ── */}
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
+        <header className="px-3 sm:px-8 py-2.5 sm:py-3.5 border-b border-slate-100">
+          <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
+            {/* Left: Navigation Back & Chatbot Name */}
+            <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard/chatbots')}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200/90 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-all cursor-pointer shadow-2xs shrink-0"
+                title="Back to Chatbots List"
               >
-                {brandLogo ? (
-                  <img src={brandLogo} alt="Logo" className="w-6 h-6 object-contain rounded" />
-                ) : name.trim() ? (
-                  name.trim().charAt(0).toUpperCase()
-                ) : (
-                  '🤖'
-                )}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs text-slate-400 font-semibold hidden sm:inline">Studio /</span>
-                  <h1 className="text-sm sm:text-base font-extrabold text-[#0F172A] truncate max-w-[160px] sm:max-w-none">
-                    {name.trim() || 'New AI Assistant'}
-                  </h1>
-                  <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-[#2563EB] border border-blue-200 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] animate-pulse" />
-                    Setup {progressPercent}%
-                  </span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1">
+                <div
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center text-white font-black text-base sm:text-lg shadow-md shrink-0 transition-transform hover:scale-105"
+                  style={{ background: `linear-gradient(135deg, ${brandColor}, #10B981)` }}
+                >
+                  {brandLogo ? (
+                    <img src={brandLogo} alt="Logo" className="w-5 h-5 sm:w-6 sm:h-6 object-contain rounded" />
+                  ) : name.trim() ? (
+                    name.trim().charAt(0).toUpperCase()
+                  ) : (
+                    '🤖'
+                  )}
                 </div>
-                <p className="text-[11px] text-slate-400 font-semibold mt-0.5 truncate">
-                  {autoSaveStatus === 'saving' ? 'Auto-saving changes…' : 'All changes saved locally'}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs text-slate-400 font-semibold hidden md:inline">Studio /</span>
+                    <h1 className="text-xs sm:text-base font-extrabold text-[#0F172A] truncate max-w-[110px] xs:max-w-[150px] sm:max-w-xs">
+                      {name.trim() || 'New AI Assistant'}
+                    </h1>
+                    <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-[#2563EB] border border-blue-200 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] animate-pulse" />
+                      Setup {progressPercent}%
+                    </span>
+                  </div>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold mt-0.5 truncate hidden xs:block">
+                    {autoSaveStatus === 'saving' ? 'Auto-saving changes…' : 'All changes saved locally'}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Right: Header Quick Actions */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => setActiveStep('testing')}
-              className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 text-[#0F172A] bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer shadow-xs hidden sm:inline-flex items-center gap-1.5"
-            >
-              <span>🧪</span>
-              <span>Test Assistant</span>
-            </button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              onClick={() => handleSubmit()}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-extrabold rounded-xl text-white shadow-md hover:shadow-lg transition-all cursor-pointer border-none disabled:opacity-60"
-              style={{ background: `linear-gradient(135deg, ${brandColor}, #10B981)` }}
-            >
-              {loading ? (
-                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <span>✨</span>
-              )}
-              <span>{loading ? 'Publishing…' : isEdit ? 'Save Changes' : 'Deploy Chatbot'}</span>
-            </motion.button>
-          </div>
-        </div>
-      </header>
-
-      {/* ── TOP HORIZONTAL PILL TABS BAR ── */}
-      <div className="bg-white border-b border-slate-200/80 sticky top-[61px] z-30 shadow-2xs">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-2.5 overflow-x-auto scrollbar-none flex items-center gap-2">
-          {STEPS.map((step, idx) => {
-            const active = activeStep === step.id;
-            const isDone = idx < currentStepIdx;
-
-            return (
+            {/* Right: Header Quick Actions */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button
-                key={step.id}
                 type="button"
-                onClick={() => setActiveStep(step.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  active
-                    ? 'bg-[#2563EB] text-white shadow-md shadow-blue-500/20'
-                    : isDone
-                    ? 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80'
-                    : 'bg-transparent text-slate-500 hover:bg-slate-100/70 hover:text-[#0F172A]'
-                }`}
+                onClick={() => setActiveStep('testing')}
+                className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-[#0F172A] bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer shadow-xs hidden md:inline-flex items-center gap-1.5"
               >
-                <span className="text-sm">{isDone ? '✓' : step.icon}</span>
-                <span>{step.label}</span>
+                <span>🧪</span>
+                <span>Test Assistant</span>
               </button>
-            );
-          })}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => handleSubmit()}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-extrabold rounded-xl text-white shadow-md hover:shadow-lg transition-all cursor-pointer border-none disabled:opacity-60 shrink-0 whitespace-nowrap"
+                style={{ background: `linear-gradient(135deg, ${brandColor}, #10B981)` }}
+              >
+                {loading ? (
+                  <svg className="animate-spin w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <span className="text-xs">✨</span>
+                )}
+                <span>{loading ? 'Publishing…' : isEdit ? 'Save Changes' : 'Deploy Chatbot'}</span>
+              </motion.button>
+            </div>
+          </div>
+        </header>
+
+        {/* ── TOP HORIZONTAL PILL TABS BAR ── */}
+        <div className="bg-white px-4 sm:px-8 py-2.5">
+          <div className="max-w-[1600px] mx-auto overflow-x-auto scrollbar-none flex items-center gap-2">
+            {STEPS.map((step, idx) => {
+              const active = activeStep === step.id;
+              const isDone = idx < currentStepIdx;
+
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => setActiveStep(step.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    active
+                      ? 'bg-[#2563EB] text-white shadow-md shadow-blue-500/20'
+                      : isDone
+                      ? 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80'
+                      : 'bg-transparent text-slate-500 hover:bg-slate-100/70 hover:text-[#0F172A]'
+                  }`}
+                >
+                  <span className="text-sm">{isDone ? '✓' : step.icon}</span>
+                  <span>{step.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

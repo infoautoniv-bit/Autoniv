@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from './hooks/useStore';
 import { useAuth } from './hooks/useAuth';
-import { useEffect, useMemo, lazy, Suspense, type ReactNode } from 'react';
+import { useEffect, useMemo, lazy, Suspense, type ReactNode, memo } from 'react';
 import { Sidebar } from './components/Sidebar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { Breadcrumbs } from './components/Breadcrumbs';
 import ScrollToTop from './components/ScrollToTop';
 import LoadingScreen from './components/LoadingScreen';
@@ -284,7 +285,7 @@ function setMetaTag(selector: string, create: () => HTMLElement, attr: string, v
 
 
 
-function ProtectedRoute({
+const ProtectedRoute = memo(function ProtectedRoute({
   children,
   adminOnly = false,
   hideSidebar = false,
@@ -342,7 +343,7 @@ function ProtectedRoute({
       </div>
     </div>
   );
-}
+});
 
 function AppRoutes() {
   const { user } = useAuth();
@@ -552,9 +553,16 @@ function AppRoutes() {
         <Route path="/admin/add-ons" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAddOns /></ProtectedRoute></Suspense>} />
         <Route path="/admin/chat" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminChat /></ProtectedRoute></Suspense>} />
 
+        {/* Route Aliases & Redirects */}
+        <Route path="/agents" element={<Navigate to="/dashboard/ai-voice-agent" replace />} />
+        <Route path="/calls" element={<Navigate to="/dashboard/calls" replace />} />
+        <Route path="/leads" element={<Navigate to="/dashboard/leads" replace />} />
+        <Route path="/chatbots" element={<Navigate to="/dashboard/ai-chatbot" replace />} />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
       {!user && <UnifiedAssistantWidget />}
+      <MobileBottomNav />
     </Suspense>
   );
 }

@@ -460,6 +460,25 @@ export function DataTable<T extends Record<string, any>>({
               </div>
             )}
 
+            {/* Active search filter badge indicator */}
+            {activeSearch && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-700 font-medium shrink-0 animate-fadeIn">
+                <span>Filter: <strong className="font-bold">"{activeSearch}"</strong></span>
+                <span className="text-[10px] bg-blue-200/60 px-1.5 py-0.5 rounded font-bold">{sorted.length} / {data.length}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSearchChange) onSearchChange('');
+                    else setLocalSearch('');
+                  }}
+                  className="ml-1 text-blue-500 hover:text-blue-900 font-bold"
+                  title="Clear search filter"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {/* Mobile: filter toggle button */}
             {hasData && (
               <button

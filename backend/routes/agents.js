@@ -32,8 +32,9 @@ function normalizeAgent(agent) {
   const obj = agent.toObject ? agent.toObject() : { ...agent };
   obj.id = obj._id ? obj._id.toString() : obj.id;
   if (obj.userId) obj.userId = obj.userId.toString();
-  if (obj.twilioAccountSid) obj.twilioAccountSid = decrypt(obj.twilioAccountSid);
-  if (obj.twilioAuthToken) obj.twilioAuthToken = decrypt(obj.twilioAuthToken);
+  obj.hasTwilioCredentials = !!(obj.twilioAccountSid && obj.twilioAuthToken);
+  delete obj.twilioAccountSid;
+  delete obj.twilioAuthToken;
   return obj;
 }
 

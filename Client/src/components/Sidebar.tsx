@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import logoSymbol from '../assets/autoniv-symbol-logo.webp';
 import logoText from '../assets/autoniv-text-logo.webp';
 import { useAppDispatch, useAppSelector } from '../hooks/useStore';
@@ -7,6 +7,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from './Modal';
+import { CommandPalette } from './CommandPalette';
 import { userService, authService } from '../services/api';
 import type { User } from '../types';
 import { isChatPlan, isVoicePlan } from '../utils/plan';
@@ -421,13 +422,26 @@ const UserSection: React.FC<{
         </AnimatePresence>
 
         {!isCollapsed && (
-          <motion.span
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="text-white/40"
-          >
-            {Icons.chevronDown}
-          </motion.span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogoutClick();
+              }}
+              className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+              title="Sign Out"
+            >
+              {Icons.signOut}
+            </button>
+            <motion.span
+              animate={{ rotate: open ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-white/40 p-1"
+            >
+              {Icons.chevronDown}
+            </motion.span>
+          </div>
         )}
       </motion.div>
 
@@ -715,13 +729,14 @@ const UserSection: React.FC<{
 };
 
 // ─── Main Sidebar Component ───────────────────────────────────────────────────
-export function Sidebar() {
+export const Sidebar = memo(function Sidebar() {
   const dispatch = useDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const isAdmin = user?.role === 'admin';
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useLocalStorage('sidebarCollapsed', false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -734,7 +749,7 @@ export function Sidebar() {
   }, [isCollapsed, setIsCollapsed]);
 
   const handleLogout = useCallback(() => {
-    dispatch(logout());
+    dispatch(logout() as any);
   }, [dispatch]);
 
   // Keyboard shortcut: Alt+S
@@ -842,6 +857,30 @@ export function Sidebar() {
       {/* Logo */}
       {renderLogo(forceExpanded)}
 
+      {/* Quick Command Search Trigger Button */}
+      <div className="px-3 pt-2 pb-1">
+        <button
+          type="button"
+          onClick={() => setCmdPaletteOpen(true)}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-white/60 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all ${
+            isCollapsed && !forceExpanded ? 'justify-center px-2' : ''
+          }`}
+          title="Search or type a command (Ctrl+K)"
+        >
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {(!isCollapsed || forceExpanded) && <span>Quick Search...</span>}
+          </div>
+          {(!isCollapsed || forceExpanded) && (
+            <kbd className="px-1.5 py-0.5 text-[10px] font-semibold text-white/40 bg-white/5 rounded border border-white/10">
+              ⌘K
+            </kbd>
+          )}
+        </button>
+      </div>
+
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((item, index) => (
@@ -863,6 +902,8 @@ export function Sidebar() {
 
   return (
     <>
+      <CommandPalette isOpen={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
+
       {/* Mobile Menu Button */}
       <motion.button
         initial={false}
@@ -901,7 +942,7 @@ export function Sidebar() {
             exit={{ x: -280 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="md:hidden fixed inset-y-0 left-0 z-50 w-64
-                       bg-[#050d1a] border-r border-white/5 flex flex-col shadow-2xl overflow-y-auto"
+                       bg-[#050d1a] border-r border-white/5 flex flex-col shadow-2xl overflow-y-auto pb-14"
           >
             <button
               onClick={() => setMobileOpen(false)}
@@ -948,4 +989,4 @@ export function Sidebar() {
       </motion.aside>
     </>
   );
-}
+});

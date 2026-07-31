@@ -431,9 +431,9 @@ router.post('/incoming-call', async (req, res) => {
       agent = await Agent.findOne({ isActive: true });
     }
 
-    const isExotel = (req.headers['user-agent'] || '').includes('Exotel') || (callSid || '').startsWith('exo_') || !!req.body.CallFrom || !!req.query.CallFrom;
+    const isTwilio = (callSid || '').startsWith('CA') || !!req.headers['x-twilio-signature'];
 
-    if (!isExotel) {
+    if (isTwilio) {
       // Verify the request genuinely came from Twilio before acting on it.
       // Prefer the agent's own Twilio auth token, fall back to the account-wide env.
       const twilioToken = agent?.twilioAuthToken

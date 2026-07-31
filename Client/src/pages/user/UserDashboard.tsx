@@ -1,11 +1,3 @@
-/**
- * UserDashboard — Enhanced Premium Interactive Version
- * Design: Clean Light Theme with Blue-Cyan Gradient & Glassmorphism
- * Typography: Plus Jakarta Sans (headings) + Inter (body) + JetBrains Mono (data)
- * Accent: #2563eb with Teal/Blue gradient
- * Pattern: Glassmorphism + layered depth + micro-interactions + live simulators
- */
-
 import {
   useEffect, useMemo, useState, useCallback, memo, useRef
 } from 'react';
@@ -28,6 +20,7 @@ import { logger } from '../../utils/logger';
 import { COUNTRY_CODES } from '../../config/constants';
 import { useToast } from '../../hooks/useToast';
 import { ToastContainer } from '../../components/ToastContainer';
+import { WebCallDialog } from '../../components/CallDialogs';
 import type { MyStats } from '../../types';
 import { isChatPlan, isVoicePlan, getPlanColor, getPlanDisplayName } from '../../utils/plan';
 
@@ -360,6 +353,9 @@ interface DrawerProps {
 const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
   const [loadingTranscript, setLoadingTranscript] = useState(false);
   const [transcriptData, setTranscriptData] = useState<string[]>([]);
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
+  const [copied, setCopied] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const hasCall = call !== null;
 
   useEffect(() => {
@@ -380,6 +376,23 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
     }, 450);
     return () => clearTimeout(timer);
   }, [call]);
+
+  const changeSpeed = (rate: number) => {
+    setPlaybackRate(rate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = rate;
+    }
+  };
+
+  const copyTranscript = () => {
+    if (transcriptData.length === 0) return;
+    const textToCopy = transcriptData
+      .map(line => line.replace(/\[\d\d:\d\d\]\s*\*\*(Agent|Caller)\*\*:\s*/, '$1: '))
+      .join('\n');
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <AnimatePresence>
@@ -424,8 +437,8 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: 'Date & Time', value: call.startedAt ? new Date(call.startedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'No Data' },
-                   { label: 'Duration', value: formatDur(getCallDurSec(call)) },
-                   { label: 'Caller ID', value: call.callerNumber || 'No Caller ID', mono: true },
+                  { label: 'Duration', value: formatDur(getCallDurSec(call)) },
+                  { label: 'Caller ID', value: call.callerNumber || 'No Caller ID', mono: true },
                   { label: 'Status', value: call.status || 'failed', capitalize: true },
                 ].map(item => (
                   <div key={item.label} className="rounded-xl border border-slate-100 bg-slate-50/40 px-3.5 py-2.5">
@@ -437,11 +450,31 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
                 ))}
               </div>
 
-              {/* Styled Audio Player */}
+              {/* Styled Audio Player with Speed Control */}
               <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Voice Recording</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Voice Recording</span>
+                  <div className="flex items-center space-x-1">
+                    {[0.75, 1, 1.25, 1.5, 2].map((spd) => (
+                      <button
+                        key={spd}
+                        type="button"
+                        onClick={() => changeSpeed(spd)}
+                        className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${
+                          playbackRate === spd
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-200/70 text-slate-600 hover:bg-slate-300'
+                        }`}
+                      >
+                        {spd}x
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {call.recordingUrl ? (
                   <audio 
+                    ref={audioRef}
                     src={call.recordingUrl.startsWith('http') ? call.recordingUrl : `${(import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')}${call.recordingUrl}`} 
                     controls 
                     className="w-full h-8" 
@@ -458,7 +491,20 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
 
               {/* Transcription Log */}
               <div className="space-y-3 flex-1 flex flex-col">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Conversation Log</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Conversation Log</span>
+                  <button
+                    type="button"
+                    onClick={copyTranscript}
+                    className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 rounded border border-blue-200"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                    {copied ? 'Copied!' : 'Copy Transcript'}
+                  </button>
+                </div>
+
                 <div className="rounded-xl border border-slate-100 bg-slate-50/30 p-4 flex-1 min-h-[220px] max-h-[300px] overflow-y-auto space-y-3 scrollbar-thin">
                   {loadingTranscript ? (
                     <div className="flex flex-col gap-3">
@@ -500,157 +546,6 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
     </AnimatePresence>
   );
 };
-
-function WebCallDialog({
-  open,
-  onClose,
-  agent,
-  mode,
-  seconds,
-  errorMsg,
-}: {
-  open: boolean;
-  onClose: () => void;
-  agent: any;
-  mode: 'idle' | 'connecting' | 'active' | 'ended' | 'error';
-  seconds: number;
-  errorMsg: string;
-}) {
-  const formatTimer = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <AnimatePresence>
-      {open && agent && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-md"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            onClick={(e) => e.stopPropagation()}
-            className="fixed inset-0 z-[120] flex items-center justify-center p-4 pointer-events-none"
-          >
-            <div className="w-full max-w-sm bg-slate-950 border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl pointer-events-auto p-6 text-white flex flex-col items-center text-center relative">
-              {/* Top ambient glow */}
-              <div className="absolute -top-24 w-48 h-48 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
-
-              {/* Status Header */}
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-blue-400 mb-6">
-                {mode === 'connecting' && 'CONNECTING TO AGENT...'}
-                {mode === 'active' && 'LIVE WEB CALL'}
-                {mode === 'ended' && 'CALL TERMINATED'}
-                {mode === 'error' && 'CONNECTION ERROR'}
-              </p>
-
-              {/* Avatar Orb */}
-              <div className="relative mb-6">
-                {mode === 'active' && (
-                  <>
-                    <motion.div
-                      animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                      className="absolute inset-0 rounded-full border border-blue-500/30"
-                    />
-                    <motion.div
-                      animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: 0.5, ease: 'easeInOut' }}
-                      className="absolute inset-0 rounded-full border border-indigo-500/20"
-                    />
-                  </>
-                )}
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg relative z-10 border border-slate-800">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Agent details */}
-              <h3 className="text-lg font-black tracking-tight mb-1">{agent.name}</h3>
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-6">
-                {agent.type === 'faq' ? 'Q&A Support Specialist' : agent.type === 'appointment' ? 'Scheduler Assistant' : 'Receptionist Bot'}
-              </p>
-
-              {/* Visualizer Waveform / Info Area */}
-              <div className="w-full h-16 flex items-center justify-center mb-6 relative">
-                {mode === 'active' ? (
-                  <div className="flex gap-1 h-8 items-center justify-center">
-                    {Array.from({ length: 14 }).map((_, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="w-[3px] bg-blue-500 rounded-full"
-                        animate={{ height: [6, ((idx * 7) % 22) + 8, 6] }}
-                        transition={{
-                          duration: 0.5 + ((idx * 3) % 5) * 0.1,
-                          repeat: Infinity,
-                          repeatType: 'reverse',
-                          delay: idx * 0.04
-                        }}
-                      />
-                    ))}
-                  </div>
-                ) : mode === 'connecting' ? (
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                    <svg className="animate-spin w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Opening Vapi audio socket...
-                  </div>
-                ) : mode === 'ended' ? (
-                  <span className="text-xs font-bold text-emerald-400">Call ended</span>
-                ) : (
-                  <span className="text-xs font-bold text-rose-500 max-w-[240px] truncate">{errorMsg || 'Failed to connect'}</span>
-                )}
-              </div>
-
-              {/* Timer */}
-              {mode === 'active' && (
-                <p className="text-2xl font-mono font-bold tracking-wider text-slate-200 mb-8 bg-slate-900/60 border border-slate-800/80 px-4 py-2 rounded-2xl">
-                  {formatTimer(seconds)}
-                </p>
-              )}
-
-              {/* Action buttons */}
-              <div className="w-full flex justify-center gap-3 pt-2">
-                {mode !== 'ended' && mode !== 'error' ? (
-                  <button
-                    onClick={onClose}
-                    className="w-14 h-14 rounded-full bg-rose-600 hover:bg-rose-500 active:scale-95 flex items-center justify-center shadow-lg hover:shadow-rose-600/20 transition-all cursor-pointer border-none text-white"
-                    title="Hang up"
-                  >
-                    <svg className="w-6 h-6 rotate-[135deg]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M21 15.46l-5.25-1.5c-.38-.11-.79-.02-1.09.28l-2.45 2.45c-3.13-1.63-5.71-4.22-7.34-7.34L7.3 6.9c.3-.3.39-.71.28-1.09L6.08 1H1.5C.67 1 0 1.67 0 2.5 0 12.72 8.28 21 18.5 21c.83 0 1.5-.67 1.5-1.5v-4.04z" />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    onClick={onClose}
-                    className="px-6 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-bold text-slate-300 transition-colors cursor-pointer border border-slate-700"
-                  >
-                    Dismiss Dialog
-                  </button>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
 
 function CallMeDialog({
   open,
@@ -1531,6 +1426,52 @@ export function UserDashboard() {
                 </motion.button>
               </Link>
             )}
+          </div>
+        </motion.div>
+
+        {/* ── Quick Launch Hub & Power Bar ── */}
+        <motion.div variants={fadeUp} className="p-4 rounded-2xl bg-gradient-to-r from-blue-900/90 via-indigo-900/80 to-slate-900 border border-blue-500/20 shadow-xl text-white">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-11 h-11 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0">
+                <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black tracking-tight text-white">Quick Launch & Command Hub</h3>
+                  <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    System Ready
+                  </span>
+                </div>
+                <p className="text-xs text-blue-200/70 mt-0.5">
+                  Press <kbd className="px-1.5 py-0.5 bg-black/40 rounded border border-blue-400/30 text-[10px] font-bold text-white">Ctrl + K</kbd> to search agents, call logs, or launch actions anywhere.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link
+                to="/dashboard/ai-phone-answering"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md cursor-pointer border border-blue-400/30"
+              >
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4 0h8m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                <span className="text-white font-black tracking-wide">Test Voice Call</span>
+              </Link>
+
+              <Link
+                to="/dashboard/ai-chatbot"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-all cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4z" />
+                </svg>
+                Chat Sandbox
+              </Link>
+            </div>
           </div>
         </motion.div>
 
