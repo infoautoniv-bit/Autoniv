@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import type { User } from '../../types';
 import { authService, fetchCsrfToken, resetCsrfToken } from '../../services/api';
 import { getCookie, setCookie, deleteCookie } from '../../services/cookies';
-import { loadFromSession, saveToSession, removeFromSession } from '../../utils/storage';
+import { loadFromSession, saveToSession } from '../../utils/storage';
 
 export interface DashboardStats {
   agentCount?: number;
