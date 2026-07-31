@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import type { User } from '../../types';
 import { authService, fetchCsrfToken, resetCsrfToken } from '../../services/api';
 import { getCookie, setCookie, deleteCookie } from '../../services/cookies';
+import { loadFromSession, saveToSession, removeFromSession } from '../../utils/storage';
 
 export interface DashboardStats {
   agentCount?: number;
@@ -22,21 +23,6 @@ interface AuthState {
   initialized: boolean;
   dashboardStats: DashboardStats | null;
   error: string | null;
-}
-
-function loadFromSession<T>(key: string): T | null {
-  try {
-    const raw = sessionStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveToSession(key: string, value: unknown) {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch { /* quota exceeded — ignore */ }
 }
 
 const cachedUser = loadFromSession<User>('user');

@@ -19,6 +19,7 @@ import { decrypt } from '../services/encryption.js';
 import { signMediaStreamToken } from '../services/mediaStreamToken.js';
 import { executeTool } from '../services/appointmentTools.js';
 import { sendCrmWebhook } from '../services/crmService.js';
+import { isDuplicateEvent } from '../middleware/idempotency.js';
 
 let _groqClient = null;
 function getGroqClient() {
@@ -431,15 +432,19 @@ router.post('/incoming-call', async (req, res) => {
       agent = await Agent.findOne({ isActive: true });
     }
 
-    const isTwilio = (callSid || '').startsWith('CA') || !!req.headers['x-twilio-signature'];
+    // Always enforce Twilio signature when the header is present, regardless of callSid prefix.
+    // This prevents crafted requests from bypassing verification.
+    const hasTwilioSignature = !!req.headers['x-twilio-signature'];
+    const isTwilioCallSid = (callSid || '').startsWith('CA');
 
-    if (isTwilio) {
+    if (hasTwilioSignature || isTwilioCallSid) {
       // Verify the request genuinely came from Twilio before acting on it.
       // Prefer the agent's own Twilio auth token, fall back to the account-wide env.
       const twilioToken = agent?.twilioAuthToken
         ? decrypt(agent.twilioAuthToken)
         : process.env.TWILIO_AUTH_TOKEN || null;
       if (!enforceTwilioSignature(req, twilioToken, { callSid, to, from })) {
+        log.warn('twilio_signature_verification_failed', { callSid, from, to });
         return res
           .status(403)
           .type('text/xml')

@@ -4,7 +4,6 @@ import logoText from '../assets/autoniv-text-logo.webp';
 import { useAppDispatch, useAppSelector } from '../hooks/useStore';
 import { logout, checkAuth } from '../store/slices/authSlice';
 import { Link, useLocation } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from './Modal';
 import { CommandPalette } from './CommandPalette';
@@ -730,7 +729,7 @@ const UserSection: React.FC<{
 
 // ─── Main Sidebar Component ───────────────────────────────────────────────────
 export const Sidebar = memo(function Sidebar() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const isAdmin = user?.role === 'admin';
   const location = useLocation();

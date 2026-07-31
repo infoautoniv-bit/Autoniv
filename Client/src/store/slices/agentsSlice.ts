@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { Agent } from '../../types';
 import { agentService, type PaginationParams } from '../../services/api';
 import type { PaginationMeta } from '../../components/Pagination';
+import { loadFromSession, saveToSession } from '../../utils/storage';
 
 interface AgentsState {
   items: Agent[];
@@ -10,21 +11,6 @@ interface AgentsState {
   myPagination: PaginationMeta;
   loading: boolean;
   error: string | null;
-}
-
-function loadFromSession<T>(key: string): T | null {
-  try {
-    const raw = sessionStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveToSession(key: string, value: unknown) {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch { /* quota exceeded — ignore */ }
 }
 
 const defaultPagination: PaginationMeta = { total: 0, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false };

@@ -218,13 +218,30 @@ router.post('/sync', requireAdmin, async (req, res) => {
       return res.status(502).json({ message: 'Unexpected response from Vapi' });
     }
 
+    // Batch lookup: fetch all agents referenced by these calls in one query
+    const assistantIds = [...new Set(vapiCalls.map(c => c.assistantId).filter(Boolean))];
+    const agents = assistantIds.length > 0
+      ? await Agent.find({ vapiId: { $in: assistantIds } }).lean()
+      : [];
+    const agentByVapiId = new Map(agents.map(a => [a.vapiId, a]));
+
+    // Batch lookup: fetch all existing calls referenced by these calls in one query
+    const vapiCallIds = vapiCalls.map(c => c.id).filter(Boolean);
+    const existingCalls = vapiCallIds.length > 0
+      ? await Call.find({ vapiCallId: { $in: vapiCallIds } }).lean()
+      : [];
+    const existingByVapiId = new Map(existingCalls.map(c => [c.vapiCallId, c]));
+
     let synced = 0;
     let updated = 0;
     let skippedNoAgent = 0;
 
+    const bulkOps = [];
+    const userIncMap = new Map();
+
     for (const vapiCall of vapiCalls) {
       try {
-        const agent = await Agent.findOne({ vapiId: vapiCall.assistantId }).lean();
+        const agent = agentByVapiId.get(vapiCall.assistantId);
         if (!agent) {
           skippedNoAgent++;
           continue;
@@ -232,57 +249,73 @@ router.post('/sync', requireAdmin, async (req, res) => {
 
         const vapiData = extractVapiCallData(vapiCall);
         const status = STATUS_MAP[vapiData.endedReason ?? vapiData.status] ?? 'completed';
+        const existing = existingByVapiId.get(vapiCall.id);
 
-        const existing = await Call.findOne({ vapiCallId: vapiCall.id });
         if (existing) {
           const oldStatus = existing.status;
-          await Call.updateOne(
-            { _id: existing._id },
-            {
-              duration: vapiData.duration,
-              status,
-              recordingUrl: vapiData.recordingUrl,
-              transcript: vapiData.transcript,
-              startedAt: vapiData.startedAt,
-              endedAt: vapiData.endedAt,
-              endedReason: vapiData.endedReason,
-              ...(vapiData.callerNumber ? { callerNumber: vapiData.callerNumber } : {}),
-            }
-          );
-          if (oldStatus !== 'completed' && status === 'completed') {
-            await User.findByIdAndUpdate(agent.userId, {
-              $inc: {
-                minutesUsed: Math.ceil((vapiData.duration || 0) / 60),
-                callsUsed: 1
+          bulkOps.push({
+            updateOne: {
+              filter: { _id: existing._id },
+              update: {
+                duration: vapiData.duration,
+                status,
+                recordingUrl: vapiData.recordingUrl,
+                transcript: vapiData.transcript,
+                startedAt: vapiData.startedAt,
+                endedAt: vapiData.endedAt,
+                endedReason: vapiData.endedReason,
+                ...(vapiData.callerNumber ? { callerNumber: vapiData.callerNumber } : {}),
               }
-            });
+            }
+          });
+          if (oldStatus !== 'completed' && status === 'completed') {
+            const userId = String(agent.userId);
+            const inc = userIncMap.get(userId) || { minutesUsed: 0, callsUsed: 0 };
+            inc.minutesUsed += Math.ceil((vapiData.duration || 0) / 60);
+            inc.callsUsed += 1;
+            userIncMap.set(userId, inc);
           }
           updated++;
         } else {
-          await Call.create({
-            agentId: agent._id,
-            userId: agent.userId,
-            vapiCallId: vapiCall.id,
-            callerNumber: vapiData.callerNumber || null,
-            duration: vapiData.duration,
-            status,
-            recordingUrl: vapiData.recordingUrl,
-            transcript: vapiData.transcript,
-            startedAt: vapiData.startedAt,
-            endedAt: vapiData.endedAt,
-            endedReason: vapiData.endedReason,
+          bulkOps.push({
+            insertOne: {
+              document: {
+                agentId: agent._id,
+                userId: agent.userId,
+                vapiCallId: vapiCall.id,
+                callerNumber: vapiData.callerNumber || null,
+                duration: vapiData.duration,
+                status,
+                recordingUrl: vapiData.recordingUrl,
+                transcript: vapiData.transcript,
+                startedAt: vapiData.startedAt,
+                endedAt: vapiData.endedAt,
+                endedReason: vapiData.endedReason,
+              }
+            }
           });
-          const incObj = { callsUsed: 1 };
+          const userId = String(agent.userId);
+          const inc = userIncMap.get(userId) || { minutesUsed: 0, callsUsed: 0 };
+          inc.callsUsed += 1;
           if (status === 'completed' && vapiData.duration > 0) {
-            incObj.minutesUsed = Math.ceil(vapiData.duration / 60);
+            inc.minutesUsed += Math.ceil(vapiData.duration / 60);
           }
-          await User.findByIdAndUpdate(agent.userId, { $inc: incObj });
+          userIncMap.set(userId, inc);
           synced++;
         }
       } catch (callErr) {
         log.warn('sync_call_error', { vapiCallId: vapiCall.id, error: callErr.message });
-        // continue processing remaining calls
       }
+    }
+
+    // Execute bulk writes
+    if (bulkOps.length > 0) {
+      await Call.bulkWrite(bulkOps, { ordered: false });
+    }
+
+    // Batch update user usage counters
+    for (const [userId, inc] of userIncMap) {
+      await User.findByIdAndUpdate(userId, { $inc: inc });
     }
 
     res.json({ message: 'Sync complete', synced, updated, skippedNoAgent });

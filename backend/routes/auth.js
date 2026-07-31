@@ -27,6 +27,7 @@ import {
 } from '../middleware/accountLockout.js';
 import { log, IS_PROD } from '../services/logger.js';
 import { constantTimeStringEqual } from '../services/crypto.js';
+import { auditLog } from '../db/models/AuditLog.js';
 import {
   signAccessToken,
   signRefreshToken,
@@ -248,6 +249,7 @@ router.post('/register-admin', registerLimiter, contentFilter('name', 'company')
     }
     if (!constantTimeStringEqual(secret, expectedSecret)) {
       authSecurityEvent('admin_register_bad_secret', { ip: getClientIp(req) });
+      auditLog('admin_register_bad_secret', { ip: getClientIp(req), severity: 'warn' });
       return res.status(403).json({ message: 'Invalid admin secret' });
     }
 
@@ -266,7 +268,7 @@ router.post('/register-admin', registerLimiter, contentFilter('name', 'company')
       name,
       company,
       role: 'admin',
-      isVerified: false,
+      isVerified: true,
       plan: 'both_enterprise',
       chatPlan: 'chat_enterprise',
       voicePlan: 'voice_enterprise',
@@ -276,12 +278,12 @@ router.post('/register-admin', registerLimiter, contentFilter('name', 'company')
     });
 
     const { accessToken, refreshToken } = await issueTokensForUser({ user, req });
+    setTokenCookies(res, accessToken, refreshToken);
 
     log.info('admin_registered', { userId: String(user._id), ip: getClientIp(req) });
+    auditLog('admin_registered', { userId: String(user._id), ip: getClientIp(req) });
 
-    const response = tokenResponse({ user, accessToken, refreshToken });
-    setTokenCookies(res, accessToken, refreshToken);
-    return res.status(201).json(response);
+    return res.status(201).json(tokenResponse({ user, accessToken, refreshToken }));
   } catch (error) {
     log.error('register_admin_error', { error: error.message });
     return res.status(500).json({ message: 'Admin registration failed' });
@@ -318,6 +320,7 @@ router.post('/login', authLimiter, loginLimiter, async (req, res) => {
     if (!valid) {
       await recordFailedLogin(user);
       authSecurityEvent('login_failed', { email, userId: String(user._id), ip: getClientIp(req) });
+      auditLog('login_failed', { userId: String(user._id), ip: getClientIp(req), severity: 'warn' });
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
@@ -407,10 +410,14 @@ router.post('/google', authLimiter, loginLimiter, async (req, res) => {
       return res.status(400).json({ message: 'Email not provided in Google profile' });
     }
 
-    // Verify audience (aud) matches GOOGLE_CLIENT_ID if it is set in .env and is an ID Token
+    // Verify audience (aud) matches GOOGLE_CLIENT_ID — required for ID tokens
     if (!isAccessToken) {
       const envClientId = process.env.GOOGLE_CLIENT_ID;
-      if (envClientId && payload.aud !== envClientId) {
+      if (!envClientId) {
+        log.error('google_client_id_not_configured');
+        return res.status(500).json({ message: 'Google authentication not configured' });
+      }
+      if (payload.aud !== envClientId) {
         log.warn('google_audience_mismatch', { aud: payload.aud, expected: envClientId });
         return res.status(401).json({ message: 'Google client ID mismatch' });
       }
@@ -560,6 +567,11 @@ router.post('/refresh', authLimiter, async (req, res) => {
         authSecurityEvent('refresh_reuse_detected', {
           userId: String(stored.userId),
           ip: getClientIp(req),
+        });
+        auditLog('refresh_token_reuse_detected', {
+          userId: String(stored.userId),
+          ip: getClientIp(req),
+          severity: 'critical',
         });
       }
       return res.status(401).json({ message: 'Refresh token revoked' });
@@ -818,6 +830,7 @@ router.post('/change-password', authenticate, async (req, res) => {
     );
 
     log.info('password_changed', { userId: req.user.userId, ip: getClientIp(req) });
+    auditLog('password_changed', { userId: req.user.userId, ip: getClientIp(req) });
 
     return res.json({ message: 'Password changed successfully. Please login again.' });
   } catch (error) {

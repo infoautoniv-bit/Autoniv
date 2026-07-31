@@ -21,6 +21,8 @@ import {
   generateGreeting,
   translateIfNeeded,
   closeAndCleanup,
+  extractCallerInfo as extractCallerInfoShared,
+  injectCallerContext as injectCallerContextShared,
 } from './orchestratorShared.js';
 
 let sharedLLM = null;
@@ -270,54 +272,9 @@ function handleTwilioStream(twilioWs, urlAgentId) {
     }
   };
 
-  const extractCallerInfo = (text) => {
-    if (!text) return;
+  const extractCallerInfo = (text) => extractCallerInfoShared(text, callerInfo);
 
-    if (!callerInfo.name) {
-      const namePatterns = [
-        /(?:my name is|i'm|i am|this is|name's|name:)\s+([A-Za-z][A-Za-z\s]{1,30})/i,
-      ];
-      for (const pat of namePatterns) {
-        const m = text.match(pat);
-        if (m && m[1] && !/unknown|none|test|hello|hi|hey/i.test(m[1].trim())) {
-          callerInfo.name = m[1].trim();
-          break;
-        }
-      }
-    }
-
-    if (!callerInfo.phone) {
-      const phonePatterns = [
-        /(?:my (?:phone |number |cell )?(?:number|is|:))\s*([\d\s\-+()]{7,20})/i,
-        /(?:call me at|reach me at|number is)\s*([\d\s\-+()]{7,20})/i,
-        /\b(\d{10,15})\b/,
-      ];
-      for (const pat of phonePatterns) {
-        const m = text.match(pat);
-        if (m && m[1]) {
-          const digits = m[1].replace(/\D/g, '');
-          if (digits.length >= 7 && digits.length <= 15) {
-            callerInfo.phone = m[1].trim();
-            break;
-          }
-        }
-      }
-    }
-  };
-
-  const injectCallerContext = () => {
-    if (!callerInfo.name && !callerInfo.phone) return;
-    const sysIdx = conversationHistory.findIndex(m => m.role === 'system');
-    if (sysIdx === -1) return;
-
-    let ctx = '\n\nCALLER CONTEXT (already provided — do NOT ask again):';
-    if (callerInfo.name) ctx += `\n- Name: ${callerInfo.name}`;
-    if (callerInfo.phone) ctx += `\n- Phone: ${callerInfo.phone}`;
-    ctx += '\nUse this information directly. Never re-ask for details already listed above.';
-
-    const base = conversationHistory[sysIdx].content.replace(/\n\nCALLER CONTEXT \(already provided[^)]*\):[\s\S]*$/, '');
-    conversationHistory[sysIdx] = { role: 'system', content: base + ctx };
-  };
+  const injectCallerContext = () => injectCallerContextShared(conversationHistory, callerInfo);
 
   const handleUserUtterance = async (userInputText) => {
     isInterrupted = false;
@@ -625,50 +582,9 @@ async function handleExotelStream(exotelWs) {
     }
   };
 
-  const extractCallerInfo = (text) => {
-    if (!text) return;
-    if (!callerInfo.name) {
-      const namePatterns = [
-        /(?:my name is|i'm|i am|this is|name's|name:)\s+([A-Za-z][A-Za-z\s]{1,30})/i,
-      ];
-      for (const pat of namePatterns) {
-        const m = text.match(pat);
-        if (m && m[1] && !/unknown|none|test|hello|hi|hey/i.test(m[1].trim())) {
-          callerInfo.name = m[1].trim();
-          break;
-        }
-      }
-    }
-    if (!callerInfo.phone) {
-      const phonePatterns = [
-        /(?:my (?:phone |number |cell )?(?:number|is|:))\s*([\d\s\-+()]{7,20})/i,
-        /(?:call me at|reach me at|number is)\s*([\d\s\-+()]{7,20})/i,
-        /\b(\d{10,15})\b/,
-      ];
-      for (const pat of phonePatterns) {
-        const m = text.match(pat);
-        if (m && m[1]) {
-          const digits = m[1].replace(/\D/g, '');
-          if (digits.length >= 7 && digits.length <= 15) {
-            callerInfo.phone = m[1].trim();
-            break;
-          }
-        }
-      }
-    }
-  };
+  const extractCallerInfo = (text) => extractCallerInfoShared(text, callerInfo);
 
-  const injectCallerContext = () => {
-    if (!callerInfo.name && !callerInfo.phone) return;
-    const sysIdx = conversationHistory.findIndex(m => m.role === 'system');
-    if (sysIdx === -1) return;
-    let ctx = '\n\nCALLER CONTEXT (already provided — do NOT ask again):';
-    if (callerInfo.name) ctx += `\n- Name: ${callerInfo.name}`;
-    if (callerInfo.phone) ctx += `\n- Phone: ${callerInfo.phone}`;
-    ctx += '\nUse this information directly. Never re-ask for details already listed above.';
-    const base = conversationHistory[sysIdx].content.replace(/\n\nCALLER CONTEXT \(already provided[^)]*\):[\s\S]*$/, '');
-    conversationHistory[sysIdx] = { role: 'system', content: base + ctx };
-  };
+  const injectCallerContext = () => injectCallerContextShared(conversationHistory, callerInfo);
 
   const handleUserUtterance = async (userInputText) => {
     isInterrupted = false;
@@ -1032,54 +948,9 @@ async function handleWebCall(clientWs, req) {
     }
   };
 
-  const extractCallerInfo = (text) => {
-    if (!text) return;
+  const extractCallerInfo = (text) => extractCallerInfoShared(text, callerInfo);
 
-    if (!callerInfo.name) {
-      const namePatterns = [
-        /(?:my name is|i'm|i am|this is|name's|name:)\s+([A-Za-z][A-Za-z\s]{1,30})/i,
-      ];
-      for (const pat of namePatterns) {
-        const m = text.match(pat);
-        if (m && m[1] && !/unknown|none|test|hello|hi|hey/i.test(m[1].trim())) {
-          callerInfo.name = m[1].trim();
-          break;
-        }
-      }
-    }
-
-    if (!callerInfo.phone) {
-      const phonePatterns = [
-        /(?:my (?:phone |number |cell )?(?:number|is|:))\s*([\d\s\-+()]{7,20})/i,
-        /(?:call me at|reach me at|number is)\s*([\d\s\-+()]{7,20})/i,
-        /\b(\d{10,15})\b/,
-      ];
-      for (const pat of phonePatterns) {
-        const m = text.match(pat);
-        if (m && m[1]) {
-          const digits = m[1].replace(/\D/g, '');
-          if (digits.length >= 7 && digits.length <= 15) {
-            callerInfo.phone = m[1].trim();
-            break;
-          }
-        }
-      }
-    }
-  };
-
-  const injectCallerContext = () => {
-    if (!callerInfo.name && !callerInfo.phone) return;
-    const sysIdx = conversationHistory.findIndex(m => m.role === 'system');
-    if (sysIdx === -1) return;
-
-    let ctx = '\n\nCALLER CONTEXT (already provided — do NOT ask again):';
-    if (callerInfo.name) ctx += `\n- Name: ${callerInfo.name}`;
-    if (callerInfo.phone) ctx += `\n- Phone: ${callerInfo.phone}`;
-    ctx += '\nUse this information directly. Never re-ask for details already listed above.';
-
-    const base = conversationHistory[sysIdx].content.replace(/\n\nCALLER CONTEXT \(already provided[^)]*\):[\s\S]*$/, '');
-    conversationHistory[sysIdx] = { role: 'system', content: base + ctx };
-  };
+  const injectCallerContext = () => injectCallerContextShared(conversationHistory, callerInfo);
 
   const handleUserUtterance = async (userInputText) => {
     isInterrupted = false;
