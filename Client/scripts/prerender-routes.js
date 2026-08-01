@@ -222,7 +222,7 @@ function swapMeta(html, routePath, meta) {
   const cssMatch = result.match(/<link\s+rel="stylesheet"\s+crossorigin\s+href="(\/assets\/[^"]+\.css)"\s*\/?>/);
   if (cssMatch) {
     const cssPath = cssMatch[1];
-    const optimizedCssTags = `<link rel="preload" href="${cssPath}" as="style" />\n  <link rel="stylesheet" href="${cssPath}" fetchpriority="high" crossorigin />`;
+    const optimizedCssTags = `<link rel="preload" href="${cssPath}" as="style" crossorigin />\n  <link rel="stylesheet" href="${cssPath}" fetchpriority="high" crossorigin />`;
     result = result.replace(cssMatch[0], optimizedCssTags);
   }
 

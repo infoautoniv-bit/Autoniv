@@ -184,17 +184,25 @@ export function CustomWebCall() {
     nextT.current = ctx.current ? ctx.current.currentTime : 0;
   }, []);
 
-  const play = useCallback((b64: string) => {
+  const play = useCallback(async (b64: string) => {
     const ac = ctx.current, an = analyser.current;
     if (!ac || !an) return;
     try {
-      const bin = atob(b64), bytes = new Uint8Array(bin.length);
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const i16 = new Int16Array(bytes.buffer), f32 = new Float32Array(i16.length);
-      for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
 
-      const ab = ac.createBuffer(1, f32.length, 24000);
-      ab.copyToChannel(f32, 0);
+      let ab: AudioBuffer;
+      if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+        const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        ab = await ac.decodeAudioData(copy);
+      } else {
+        const i16 = new Int16Array(bytes.buffer, bytes.byteOffset, Math.floor(bytes.byteLength / 2));
+        const f32 = new Float32Array(i16.length);
+        for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
+        ab = ac.createBuffer(1, f32.length, 24000);
+        ab.copyToChannel(f32, 0);
+      }
 
       const src = ac.createBufferSource();
       src.buffer = ab;
@@ -232,7 +240,7 @@ export function CustomWebCall() {
       mic.current = stream;
 
       const AC = window.AudioContext || (window as any).webkitAudioContext;
-      const ac = new AC({ sampleRate: 16000 });
+      const ac = new AC();
       ctx.current = ac;
       if (ac.state === 'suspended') await ac.resume();
       nextT.current = ac.currentTime;
@@ -260,7 +268,10 @@ export function CustomWebCall() {
         proc.current = p;
 
         src.connect(p);
-        p.connect(ac.destination);
+        const zeroGain = ac.createGain();
+        zeroGain.gain.value = 0;
+        p.connect(zeroGain);
+        zeroGain.connect(ac.destination);
         src.connect(an);
 
         p.onaudioprocess = e => {

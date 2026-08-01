@@ -222,6 +222,10 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
   const isElevenLabsMissing = (!elevenlabsKey || elevenlabsKey.startsWith('your-') || elevenlabsKey.includes('placeholder'));
   const isDeepgramMissing = !deepgramKey || deepgramKey.startsWith('your-');
 
+  if (provider === 'elevenlabs' && isElevenLabsMissing) {
+    provider = 'deepgram';
+  }
+
   if (provider === 'vapi') {
     const VAPI_11LABS = {
       Elliot: 'cjVigY5qzO86Huf0OWal',
