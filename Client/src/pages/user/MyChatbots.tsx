@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -53,6 +53,11 @@ export function MyChatbots() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [pendingDelete, setPendingDelete] = useState<Chatbot | null>(null);
   const toastId = useRef(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    return () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
+  }, []);
 
   const { data: queryData, isLoading, error: queryError } = useQuery({
     queryKey: ['chatbots'],
@@ -71,7 +76,7 @@ export function MyChatbots() {
   const pushToast = useCallback((text: string, kind: Toast['kind'] = 'success') => {
     const id = ++toastId.current;
     setToasts((t) => [...t, { id, text, kind }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2600);
+    timersRef.current.push(setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2600));
   }, []);
 
   const deleteMutation = useMutation({

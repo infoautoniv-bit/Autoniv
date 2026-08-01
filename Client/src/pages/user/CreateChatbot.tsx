@@ -242,6 +242,15 @@ export function CreateChatbot() {
   const hasAdvancedChannels = currentPlan === 'chat_growth' || currentPlan === 'chat_enterprise' || user?.role === 'admin';
   const hasCRM = currentPlan === 'chat_growth' || currentPlan === 'chat_enterprise' || user?.role === 'admin';
 
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
+
   // Navigation State
   const [activeStep, setActiveStep] = useState<StepId>('overview');
 
@@ -299,7 +308,7 @@ export function CreateChatbot() {
   const pushToast = useCallback((text: string, kind: Toast['kind'] = 'success') => {
     const tid = ++toastId.current;
     setToasts((t) => [...t, { id: tid, text, kind }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== tid)), 2800);
+    timersRef.current.push(setTimeout(() => setToasts((t) => t.filter((x) => x.id !== tid)), 2800));
   }, []);
 
   useEffect(() => {
@@ -362,7 +371,7 @@ export function CreateChatbot() {
     setSimInput('');
     setSimTyping(true);
 
-    setTimeout(() => {
+    timersRef.current.push(setTimeout(() => {
       let replyText = `Thanks for your inquiry! I am configured with your system rules and ready to assist visitors 24/7.`;
       const textLower = userText.toLowerCase();
       if (textLower.includes('hello') || textLower.includes('hi') || textLower.includes('hey')) {
@@ -380,7 +389,7 @@ export function CreateChatbot() {
         { id: `b-${Date.now()}`, sender: 'bot', text: replyText, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
       ]);
       setSimTyping(false);
-    }, 800);
+    }, 800));
   };
 
   useEffect(() => {
@@ -395,7 +404,7 @@ export function CreateChatbot() {
       : 'You are a warm, intelligent AI customer assistant for Autoniv. Greet visitors politely, answer product inquiries step-by-step, and collect contact details for qualified leads.';
     setSystemPrompt(enhanced);
     pushToast('AI prompt enhanced with smart rules!');
-    setTimeout(() => setAutoSaveStatus('saved'), 600);
+    timersRef.current.push(setTimeout(() => setAutoSaveStatus('saved'), 600));
   };
 
   // Submit Handler
@@ -453,13 +462,13 @@ export function CreateChatbot() {
         await chatbotService.update(id, payload);
         setShowConfetti(true);
         pushToast('Chatbot updated successfully!');
-        setTimeout(() => navigate('/dashboard/chatbots'), 1600);
+        timersRef.current.push(setTimeout(() => navigate('/dashboard/chatbots'), 1600));
       } else {
         const { data } = await chatbotService.create(payload);
         setApiKey(data.chatbot.apiKey);
         setShowConfetti(true);
         pushToast('Chatbot deployed successfully!');
-        setTimeout(() => navigate('/dashboard/chatbots'), 1600);
+        timersRef.current.push(setTimeout(() => navigate('/dashboard/chatbots'), 1600));
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save chatbot');

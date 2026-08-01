@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supportService } from '../../services/api';
 import ActiveAddOnsBanner from '../../components/ActiveAddOnsBanner';
@@ -53,6 +53,9 @@ export function CustomerSupport() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +79,8 @@ export function CustomerSupport() {
         message: trimmedMessage,
       });
       setSubmitted(true);
-      setTimeout(() => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
         setSubmitted(false);
         setTicketForm({ name: '', email: '', subject: '', message: '' });
       }, 3000);

@@ -275,6 +275,14 @@ export default function AIAssistantChat() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
 
   const [leadStep, setLeadStep] = useState<LeadStep>('idle');
   const [leadInfo, setLeadInfo] = useState<LeadInfo>({ name: '', phone: '', email: '', purpose: '' });
@@ -366,6 +374,7 @@ export default function AIAssistantChat() {
     const text = input.trim();
     if (!text || isTyping) return;
 
+    clearTimers();
     addMessage('user', text);
     setInput('');
     setIsTyping(true);
@@ -375,50 +384,48 @@ export default function AIAssistantChat() {
 
     // ── Mid-form question: answer it, then re-prompt the current step ──
     if (isInLeadFlow && isOffTopicQuestion(text)) {
-      setTimeout(() => {
+      timersRef.current.push(setTimeout(() => {
         const result = generateResponse(text);
-        // Answer the question without triggering a new lead flow
         addMessage('assistant', result.text);
 
-        // Re-prompt the step they were on after a short pause
         const reprompt = getReprompt(leadStep);
         if (reprompt) {
-          setTimeout(() => {
+          timersRef.current.push(setTimeout(() => {
             addMessage('assistant', reprompt);
-          }, 500);
+          }, 500));
         }
         setIsTyping(false);
-      }, 700 + Math.random() * 300);
+      }, 700 + Math.random() * 300));
       return;
     }
 
     // ── Normal lead flow step ──
     if (isInLeadFlow) {
-      setTimeout(() => {
+      timersRef.current.push(setTimeout(() => {
         processLeadStep(text);
         setIsTyping(false);
-      }, 500 + Math.random() * 400);
+      }, 500 + Math.random() * 400));
       return;
     }
 
     // ── Normal conversation (not in lead flow) ──
-    setTimeout(() => {
+    timersRef.current.push(setTimeout(() => {
       const result = generateResponse(text);
 
       if (result.triggerLead && leadStep === 'idle') {
         addMessage('assistant', result.text);
-        setTimeout(() => {
+        timersRef.current.push(setTimeout(() => {
           addMessage('assistant', "**To get started, please share your details:**\n\n**1. What's your name?**");
           setLeadStep('ask_name');
           setIsTyping(false);
-        }, 600);
+        }, 600));
         return;
       }
 
       addMessage('assistant', result.text);
       setIsTyping(false);
-    }, 700 + Math.random() * 400);
-  }, [input, isTyping, leadStep, processLeadStep]);
+    }, 700 + Math.random() * 400));
+  }, [input, isTyping, leadStep, processLeadStep, clearTimers]);
 
   /* ── Input placeholder by current step ── */
   const inputPlaceholder =

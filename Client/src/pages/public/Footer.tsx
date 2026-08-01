@@ -1,5 +1,5 @@
 // import AIAssistantChat from '../../components/AIAssistantChat';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type React from 'react';
 import { Link } from 'react-router-dom';
 import { Stagger, StaggerItem } from './sections/anim';
@@ -91,13 +91,17 @@ function scrollToSection(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
 export default function Footer() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsletterEmail || !newsletterEmail.includes('@')) return;
     setNewsletterSubmitted(true);
     setNewsletterEmail('');
-    setTimeout(() => setNewsletterSubmitted(false), 3000);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setNewsletterSubmitted(false), 3000);
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../services/api';
@@ -17,6 +17,9 @@ export function ForgotPassword() {
   const [success, setSuccess] = useState('');
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [timer, setTimer] = useState(30);
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (navTimerRef.current) clearTimeout(navTimerRef.current); }, []);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +64,7 @@ export function ForgotPassword() {
     try {
       await authService.resetPassword(email, password, code);
       setSuccess('Password reset successfully! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 2000);
+      navTimerRef.current = setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message || 'Failed to reset password');

@@ -268,13 +268,21 @@ export function MyChat() {
 
   const endRef   = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 150);
+    timersRef.current.push(setTimeout(() => inputRef.current?.focus(), 150));
   }, []);
 
   useEffect(() => {
@@ -397,22 +405,23 @@ export function MyChat() {
       }
 
       // Save to backend after bot reply
-      setTimeout(() => {
+      timersRef.current.push(setTimeout(() => {
         setMessages(prev => {
           saveToBackend(prev);
           return prev;
         });
-      }, 100);
+      }, 100));
     } catch {
       addMessage('bot', 'Sorry, something went wrong. Please try again.');
       setContext({ step: 'idle', data: {} });
     } finally {
       setLoading(false);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      timersRef.current.push(setTimeout(() => inputRef.current?.focus(), 50));
     }
   }, [input, loading, context, addMessage, saveToBackend, dispatch]);
 
   const handleReset = useCallback(() => {
+    clearTimers();
     const welcome = { ...WELCOME_MESSAGE, id: `welcome-${Date.now()}`, timestamp: new Date() };
     setMessages([welcome]);
     saveMessages([welcome]);
@@ -421,8 +430,8 @@ export function MyChat() {
     historyRef.current = [];
     setShowFaqTopics(false);
     setInput('');
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, []);
+    timersRef.current.push(setTimeout(() => inputRef.current?.focus(), 100));
+  }, [clearTimers]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }

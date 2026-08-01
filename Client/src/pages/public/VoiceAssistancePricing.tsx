@@ -539,7 +539,7 @@ export function VoiceAssistancePricing() {
                       <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold mt-0.5 flex-shrink-0">
                         ✓
                       </span>
-                      <span dangerouslySetInnerHTML={{ __html: feat }} />
+                      <span>{feat}</span>
                     </li>
                   ))}
                 </ul>

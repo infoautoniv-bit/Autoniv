@@ -3,9 +3,6 @@ import {
 } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
-} from 'recharts';
 import { useAppDispatch, useAppSelector } from '../../hooks/useStore';
 import { fetchMyStats } from '../../store/slices/analyticsSlice';
 import { fetchMyCalls } from '../../store/slices/callsSlice';
@@ -15,6 +12,15 @@ import { OnboardingTour } from '../../components/OnboardingTour';
 import { EmptyStateGuide } from '../../components/EmptyStateGuide';
 import { HRCrmVoiceIntegrationCard } from '../../components/HRCrmVoiceIntegrationCard';
 import { Modal } from '../../components/Modal';
+import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
+import { QuickLaunchBanner } from '../../components/dashboard/QuickLaunchBanner';
+import { ChatWidgetEmbedCard } from '../../components/dashboard/ChatWidgetEmbedCard';
+import { PerformanceTrendsCard } from '../../components/dashboard/PerformanceTrendsCard';
+import { CallBreakdownCard } from '../../components/dashboard/CallBreakdownCard';
+import { ChatUsageCard } from '../../components/dashboard/ChatUsageCard';
+import { ChatQuickActionsCard } from '../../components/dashboard/ChatQuickActionsCard';
+import { RecentCallLogsCard } from '../../components/dashboard/RecentCallLogsCard';
+import { QuickActionsSandboxCard } from '../../components/dashboard/QuickActionsSandboxCard';
 import VapiModule from '@vapi-ai/web';
 import { callService, apiKeyService } from '../../services/api';
 import { logger } from '../../utils/logger';
@@ -1381,116 +1387,25 @@ export function UserDashboard() {
         className="h-full overflow-y-auto space-y-6 pb-12 pr-2" 
       >
         {/* ── Header ── */}
-        <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5 pt-1">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5 mb-1.5">
-              <span className="text-[9px] font-extrabold tracking-[0.22em] text-[#10B981] uppercase">
-                ◈ DASHBOARD OVERVIEW
-              </span>
-              <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-md border bg-blue-50 text-[var(--primary-blue)] border-blue-200/50">
-                Connected
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight leading-none">
-              {getGreeting()}, {user?.name?.split(' ')[0] || 'Member'} 👋
-            </h1>
-            <p className="mt-1.5 text-xs text-slate-500 font-medium">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-            </p>
-          </div>
+        <DashboardHeader
+          fadeUp={fadeUp}
+          user={user}
+          getGreeting={getGreeting}
+          getPlanDisplayName={getPlanDisplayName}
+          planColors={planColors}
+          timeFilter={timeFilter}
+          setTimeFilter={setTimeFilter}
+          handleRefresh={handleRefresh}
+          retrying={retrying}
+          isVoice={isVoice}
+          addToast={addToast}
+          Tip={Tip}
+          RefreshIcon={RefreshIcon}
+          T={T}
+        />
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className={`px-3 py-1.5 rounded-full border text-[9px] font-bold uppercase tracking-wider ${planColors.bg} ${planColors.border} ${planColors.text}`}>
-              {getPlanDisplayName(user?.plan)} Plan
-            </div>
-
-            {/* Time filters switch */}
-            <div className="flex rounded-xl border bg-white p-0.8" style={{ borderColor: 'var(--slate-border)' }}>
-              {(['7d', '30d', 'all'] as const).map(f => (
-                <button
-                  key={f}
-                  onClick={() => {
-                    setTimeFilter(f);
-                    addToast(`Filtered data by last ${f === 'all' ? 'billing logs' : f} ✨`, 'info');
-                  }}
-                  className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer ${
-                    timeFilter === f ? 'bg-[var(--primary-blue-soft)] text-[var(--primary-blue)]' : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-
-            <Tip text="Refresh widgets data">
-              <button onClick={handleRefresh} disabled={retrying}
-                className="w-9 h-9 rounded-xl flex items-center justify-center border transition-all disabled:opacity-50 bg-white hover:bg-slate-50 border-slate-200 text-slate-500 cursor-pointer"
-              >
-                <RefreshIcon spinning={retrying} />
-              </button>
-            </Tip>
-
-            {isVoice && (
-              <Link to="/dashboard/ai-voice-agent">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all text-white shadow-sm cursor-pointer hover:shadow-md"
-                  style={{ background: T.gradient }}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                  New Agent
-                </motion.button>
-              </Link>
-            )}
-          </div>
-        </motion.div>
-
-        {/* ── Quick Launch Hub & Power Bar ── */}
-        <motion.div variants={fadeUp} className="p-4 rounded-2xl bg-gradient-to-r from-blue-900/90 via-indigo-900/80 to-slate-900 border border-blue-500/20 shadow-xl text-white">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center space-x-3.5">
-              <div className="w-11 h-11 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0">
-                <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-black tracking-tight text-white">Quick Launch & Command Hub</h3>
-                  <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    System Ready
-                  </span>
-                </div>
-                <p className="text-xs text-blue-200/70 mt-0.5">
-                  Press <kbd className="px-1.5 py-0.5 bg-black/40 rounded border border-blue-400/30 text-[10px] font-bold text-white">Ctrl + K</kbd> to search agents, call logs, or launch actions anywhere.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link
-                to="/dashboard/ai-phone-answering"
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md cursor-pointer border border-blue-400/30"
-              >
-                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4 0h8m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-                <span className="text-white font-black tracking-wide">Test Voice Call</span>
-              </Link>
-
-              <Link
-                to="/dashboard/ai-chatbot"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-all cursor-pointer"
-              >
-                <svg className="w-3.5 h-3.5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4z" />
-                </svg>
-                Chat Sandbox
-              </Link>
-            </div>
-          </div>
-        </motion.div>
+        {/* ── Quick Launch & Command Hub ── */}
+        <QuickLaunchBanner fadeUp={fadeUp} />
 
         {/* ── Onboarding tour ── */}
         {showOnboarding && <OnboardingTour onDismiss={dismissOnboarding} />}
@@ -1522,91 +1437,25 @@ export function UserDashboard() {
 
         {/* ── Chat Widget Embed Section ── */}
         {isChat && (
-          <motion.div variants={fadeUp} className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md" style={{ borderColor: 'var(--slate-border)' }}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">CHAT WIDGET</p>
-                <h2 className="text-sm font-extrabold text-slate-800 mt-0.5">Embed Chat on Your Website</h2>
-              </div>
-              <Link to="/dashboard/ai-chatbot" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
-                Open Chat →
-              </Link>
-            </div>
-            <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Embed Code</p>
-              {apiKeyLoading ? (
-                <div className="bg-slate-900 rounded-xl p-4 font-mono text-[11px] text-slate-500 overflow-x-auto">
-                  Loading API key...
-                </div>
-              ) : !hasApiKey && !widgetApiKey ? (
-                <div className="space-y-3">
-                  <div className="bg-slate-900 rounded-xl p-4 font-mono text-[11px] text-slate-500 overflow-x-auto">
-                    No API key generated yet.
-                  </div>
-                   <button
-                    onClick={async () => {
-                      try {
-                        const { data } = await apiKeyService.regenerate();
-                        setWidgetApiKey(data.apiKey);
-                        setHasApiKey(true);
-                        addToast('API key generated successfully. Save it now - it won\'t be shown again!', 'success');
-                      } catch {
-                        addToast('Failed to generate API key', 'error');
-                      }
-                    }}
-                    className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-[var(--primary-blue)] text-white hover:opacity-90 transition-all cursor-pointer border-none"
-                  >
-                    Generate API Key
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {widgetApiKey && !widgetApiKey.startsWith('ak_••••') && (
-                    <div className="bg-amber-500/10 border-2 border-amber-500/50 rounded-xl p-3.5 text-xs font-bold text-amber-950 flex items-center gap-2.5 shadow-sm">
-                      <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white font-black text-[10px] uppercase tracking-wider shrink-0 shadow-sm">Important</span>
-                      <span className="text-amber-950 font-black">Save this key now. It won't be shown again after you leave this page.</span>
-                    </div>
-                  )}
-                  <div className="bg-slate-900 rounded-xl p-4 font-mono text-xs text-green-400 overflow-x-auto">
-                    <code>{`<script src="${API_BASE_URL}/widget/widget.js"\n  data-api-key="${widgetApiKey}"\n  data-position="bottom-right">\n</script>`}</code>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const scriptUrl = `${API_BASE_URL}/widget/widget.js`;
-                        navigator.clipboard.writeText(`<script src="${scriptUrl}" data-api-key="${widgetApiKey}" data-position="bottom-right"></script>`);
-                        addToast('Embed code copied to clipboard', 'success');
-                      }}
-                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--primary-blue)] text-white hover:opacity-90 transition-all cursor-pointer border-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    >
-                      Copy Code
-                    </button>
-                    {widgetApiKey && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(widgetApiKey);
-                          addToast('API key copied to clipboard', 'success');
-                        }}
-                        className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer border border-slate-300/60 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      >
-                        Copy Key
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setConfirmRegenerateOpen(true)}
-                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-all cursor-pointer border-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    >
-                      Regenerate Key
-                    </button>
-                    <span className="text-xs text-slate-500 font-medium">Add this to your website's &lt;head&gt; tag</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
+          <ChatWidgetEmbedCard
+            fadeUp={fadeUp}
+            apiKeyLoading={apiKeyLoading}
+            hasApiKey={hasApiKey}
+            widgetApiKey={widgetApiKey}
+            apiBaseUrl={API_BASE_URL}
+            onGenerateKey={async () => {
+              try {
+                const { data } = await apiKeyService.regenerate();
+                setWidgetApiKey(data.apiKey);
+                setHasApiKey(true);
+                addToast('API key generated successfully. Save it now - it won\'t be shown again!', 'success');
+              } catch {
+                addToast('Failed to generate API key', 'error');
+              }
+            }}
+            onOpenRegenerateConfirm={() => setConfirmRegenerateOpen(true)}
+            addToast={addToast}
+          />
         )}
 
         {/* ── Regenerate Key Confirmation Modal ── */}
@@ -1649,229 +1498,30 @@ export function UserDashboard() {
         </Modal>
 
         {/* ── Chat Usage Breakdown ── */}
-        {isChat && (
-          <motion.div variants={fadeUp} className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md" style={{ borderColor: 'var(--slate-border)' }}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">CONVERSATION INSIGHTS</p>
-                <h2 className="text-sm font-extrabold text-slate-800 mt-0.5">Chat Usage</h2>
-              </div>
-              <Link to="/dashboard/billing" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
-                View Plan →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
-                { label: 'Conversations Used', value: user?.chatUsed || 0, color: 'text-blue-600', bg: 'bg-blue-50/50' },
-                { label: 'Monthly Limit', value: user?.chatLimit === -1 ? 'Unlimited' : (user?.chatLimit || 0), color: 'text-[var(--primary-blue)]', bg: 'bg-[var(--primary-blue-soft)]/20' },
-                { label: 'Remaining', value: user?.chatLimit === -1 ? 'Unlimited' : Math.max(0, (user?.chatLimit || 0) - (user?.chatUsed || 0)), color: 'text-green-600', bg: 'bg-green-50/50' },
-                { label: 'Usage Rate', value: user?.chatLimit === -1 ? 0 : (user?.chatLimit ? Math.round(((user?.chatUsed || 0) / user.chatLimit) * 100) : 0), color: 'text-amber-600', bg: 'bg-amber-50/50', suffix: '%' },
-              ].map(item => (
-                <div key={item.label} className={`rounded-xl p-3.5 border border-slate-100 ${item.bg}`}>
-                  <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
-                  <p className={`text-xl font-extrabold ${item.color}`}>
-                    {typeof item.value === 'number' ? (
-                      <AnimatedCounter value={item.value} />
-                    ) : (
-                      item.value
-                    )}{item.suffix || ''}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/30 p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="text-[10px] font-semibold text-slate-500">Need more conversations? Upgrade your chat plan for higher limits.</span>
-              </div>
-              <Link to="/dashboard/billing" className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-white border border-slate-200 text-slate-600 hover:border-[var(--primary-blue)] hover:text-[var(--primary-blue)] transition-all">
-                Upgrade
-              </Link>
-            </div>
-          </motion.div>
-        )}
+        {isChat && <ChatUsageCard fadeUp={fadeUp} user={user} AnimatedCounter={AnimatedCounter} />}
 
         {/* ── Quick Actions for Chat ── */}
-        {isChat && !isVoice && (
-          <motion.div variants={fadeUp} className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md" style={{ borderColor: 'var(--slate-border)' }}>
-            <div className="mb-4">
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">QUICK ACTIONS</p>
-              <h2 className="text-sm font-extrabold text-slate-800 mt-0.5">Get Started with Chat</h2>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[
-                { to: '/dashboard/ai-chatbot', title: 'Open Chat', desc: 'Start a conversation', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>, color: '#2563EB', bg: 'bg-blue-50/50' },
-                { to: '/dashboard/billing', title: 'Upgrade Plan', desc: 'Get more conversations', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>, color: '#10B981', bg: 'bg-green-50/50' },
-                { to: '/dashboard/leads', title: 'View Leads', desc: 'Review captured data', icon: <UsersIcon />, color: '#14B8A6', bg: 'bg-teal-50/50' },
-              ].map((action, i) => (
-                <Link key={action.title} to={action.to} className="block">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.04 }}
-                    whileHover={{ y: -2, borderColor: 'rgba(37,99,235,0.25)' }}
-                    className="flex flex-col p-3.5 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/40 cursor-pointer h-full justify-between transition-all shadow-sm"
-                  >
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${action.bg}`} style={{ color: action.color }}>
-                      {action.icon}
-                    </div>
-                    <div className="mt-3">
-                      <p className="text-xs font-bold text-slate-700 leading-tight">{action.title}</p>
-                      <p className="text-[10px] text-slate-400 mt-1">{action.desc}</p>
-                    </div>
-                  </motion.div>
-                </Link>
-              ))}
-            </div>
-          </motion.div>
-        )}
+        {isChat && !isVoice && <ChatQuickActionsCard fadeUp={fadeUp} UsersIcon={UsersIcon} />}
 
         {/* ── Performance Analytics Trends Section ── */}
         {isVoice && (
-          <motion.div
-            variants={fadeUp}
-            className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md"
-            style={{ borderColor: 'var(--slate-border)' }}
-          >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4.5">
-            <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ANALYTICS ENGINE</p>
-              <h2 className="text-sm font-extrabold text-slate-800 mt-0.5">Performance Trends</h2>
-            </div>
-            
-            {/* Chart toggle and filter buttons */}
-            <div className="flex items-center gap-2 self-start sm:self-center">
-              <div className="flex rounded-xl bg-slate-100 p-0.8 border border-slate-200/50">
-                <button
-                  onClick={() => setChartTab('volume')}
-                  className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase transition-all cursor-pointer ${
-                    chartTab === 'volume' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
-                  Call Volume
-                </button>
-                <button
-                  onClick={() => setChartTab('minutes')}
-                  className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase transition-all cursor-pointer ${
-                    chartTab === 'minutes' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
-                  Minutes Used
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={performanceTrendData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary-blue)" stopOpacity={0.20} />
-                    <stop offset="95%" stopColor="var(--primary-blue)" stopOpacity={0.01} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(226,232,240,0.4)" />
-                <XAxis 
-                  dataKey="name" 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} 
-                />
-                <YAxis 
-                  tickLine={false} 
-                  axisLine={false} 
-                  allowDecimals={false}
-                  tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} 
-                />
-                <Tooltip content={({ active, payload, label }: any) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="rounded-xl border border-slate-200/60 p-3 bg-white/95 backdrop-blur-md shadow-xl">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
-                        <p className="text-xs font-bold text-slate-800 mt-1">
-                          {chartTab === 'volume' 
-                            ? `${payload[0].value} calls placed` 
-                            : `${payload[0].value} mins of usage`}
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                }} />
-                <Area 
-                  type="monotone" 
-                  dataKey={chartTab === 'volume' ? 'Calls Volume' : 'Minutes Used'} 
-                  stroke="var(--primary-blue)" 
-                  strokeWidth={2.5} 
-                  fillOpacity={1} 
-                  fill="url(#chartGlow)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+          <PerformanceTrendsCard
+            fadeUp={fadeUp}
+            chartTab={chartTab}
+            setChartTab={setChartTab}
+            performanceTrendData={performanceTrendData}
+          />
         )}
 
         {/* ── Breakdown Row ── */}
         {isVoice && (
-          <div className="grid grid-cols-1 gap-4">
-            {/* Call status breakdown — voice only */}
-            <motion.div variants={fadeUp} className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md" style={{ borderColor: 'var(--slate-border)' }}>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <h2 className="text-sm font-bold text-slate-800">Call Breakdown</h2>
-                  <Link to="/dashboard/calls" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
-                    All Logs →
-                  </Link>
-                </div>
-                <p className="text-[10px] font-semibold text-slate-400 mb-5">
-                  {callBreakdown.total} calls filtered for the chosen range
-                </p>
-
-                {hasCallData ? (
-                  <div className="flex flex-col sm:flex-row items-center gap-6">
-                    <DonutChart data={callBreakdown.chartData} rate={callBreakdown.answerRate} />
-                    <div className="flex-1 w-full space-y-3.5">
-                      {callBreakdown.listItems.map(item => (
-                        <div key={item.name}>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                              <span className="text-xs font-semibold text-slate-600">{item.name}</span>
-                            </div>
-                            <span className="text-xs font-bold text-slate-800">
-                              {item.value} <span className="text-slate-400 font-medium">({item.pct}%)</span>
-                            </span>
-                          </div>
-                          <div className="h-1.5 rounded-full overflow-hidden bg-slate-100">
-                            <motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }}
-                              transition={{ delay: 0.2, duration: 0.65, ease: 'easeOut' }}
-                              className="h-full rounded-full" style={{ backgroundColor: item.color }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4 py-6">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-50 border border-slate-200">
-                      <CallIcon />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No call history matches range</p>
-                      <Link to="/dashboard/ai-voice-agent" className="text-xs text-[var(--primary-blue)] hover:underline font-bold mt-1 block">
-                        Create agent & dial test call →
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
+          <CallBreakdownCard
+            fadeUp={fadeUp}
+            callBreakdown={callBreakdown}
+            hasCallData={hasCallData}
+            DonutChart={DonutChart}
+            CallIcon={CallIcon}
+          />
         )}
 
         {/* ── HR CRM Voice Integration & Web Widget Card (Plan Gated) ── */}
@@ -1917,115 +1567,28 @@ export function UserDashboard() {
 
         {/* ── Recent Activity & Quick Actions ── */}
         {isVoice && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <RecentCallLogsCard
+              fadeUp={fadeUp}
+              hasRecentCalls={hasRecentCalls}
+              recentCalls={recentCalls}
+              callStatus={callStatus}
+              formatDur={formatDur}
+              getCallDurSec={getCallDurSec}
+              setDetailCall={setDetailCall}
+              CallIcon={CallIcon}
+            />
 
-          {/* Recent call list */}
-          <motion.div variants={fadeUp} className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md" style={{ borderColor: 'var(--slate-border)' }}>
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ACTIVITY LOGS</p>
-                  <h2 className="text-sm font-extrabold text-slate-800 mt-0.5">Recent Call Logs</h2>
-                </div>
-                <Link to="/dashboard/calls" className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-blue)] hover:text-[var(--primary-blue-dark)] transition-colors">
-                  View All →
-                </Link>
-              </div>
-
-              {hasRecentCalls ? (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                  {recentCalls.map((call, i) => {
-                    const dur = formatDur(getCallDurSec(call));
-                    const st  = callStatus[call.status] ?? callStatus.failed;
-                    return (
-                      <motion.div key={call.id}
-                        initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.03 }}
-                        onClick={() => setDetailCall(call)}
-                        className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/50 hover:border-slate-300/60 cursor-pointer transition-all group shadow-sm active:scale-99"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${st.bg}`}>
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: st.dotColor }} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.8">
-                              <span className="text-xs font-bold text-slate-700 truncate">{call.agentName || 'AI Receptionist'}</span>
-                              <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-md ${st.bg}`} style={{ color: st.color }}>
-                                {st.label}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-                              {call.callerNumber && call.callerNumber !== 'Unknown' ? call.callerNumber : 'Vapi Caller'} · {call.startedAt ? new Date(call.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'No Data'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-semibold text-slate-400 font-mono">
-                            {dur}
-                          </span>
-                          <svg className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex items-center gap-4 py-6">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-50 border border-slate-200">
-                    <CallIcon />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No call activity recorded</p>
-                    <Link to="/dashboard/ai-voice-agent" className="text-xs font-bold text-[var(--primary-blue)] hover:underline mt-0.5 block">
-                      Launch test dialer simulator →
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Quick shortcuts */}
-          <motion.div variants={fadeUp} className="rounded-2xl border bg-white/70 p-5 shadow-sm backdrop-blur-md" style={{ borderColor: 'var(--slate-border)' }}>
-            <h2 className="text-sm font-bold text-slate-800 mb-3.5">Quick Actions Sandbox</h2>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { to: '/dashboard/ai-voice-agent',  title: 'Create Agent',   desc: 'Create new receptionist', icon: <AgentIcon />, color: 'var(--primary-blue)', bg: 'bg-blue-50/50' },
-                { to: '/dashboard/calls',   title: 'Call History',   desc: 'Listen to recorded logs',  icon: <CallIcon />, color: '#10B981', bg: 'bg-green-50/50' },
-                { to: '/dashboard/leads',   title: 'Synced Leads',   desc: 'Review pipeline captures', icon: <UsersIcon />, color: '#14B8A6', bg: 'bg-teal-50/50' },
-                { to: '/dashboard/billing', title: 'Plan Limits',    desc: 'Top up calling minutes',  icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>, color: '#ef4444', bg: 'bg-rose-50/50' },
-              ].map((action, i) => (
-                <Link key={action.title} to={action.to} className="block">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.04 }}
-                    whileHover={{ y: -2, borderColor: 'rgba(37,99,235,0.25)' }}
-                    className="flex flex-col p-3.5 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/40 cursor-pointer h-full justify-between transition-all shadow-sm"
-                  >
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${action.bg}`} style={{ color: action.color }}>
-                      {action.icon}
-                    </div>
-                    <div className="mt-4">
-                      <p className="text-xs font-bold text-slate-700 leading-tight">{action.title}</p>
-                      <p className="text-[10px] text-slate-400 mt-1">{action.desc}</p>
-                    </div>
-                  </motion.div>
-                </Link>
-              ))}
-            </div>
-
-            <button onClick={handleRefresh} disabled={retrying}
-              className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-slate-200 hover:bg-slate-50 transition-all text-slate-400 hover:text-[var(--primary-blue)] hover:border-slate-300 font-bold text-xs cursor-pointer"
-            >
-              <RefreshIcon spinning={retrying} />
-              Refresh Dashboard Data
-            </button>
-          </motion.div>
-        </div>
+            <QuickActionsSandboxCard
+              fadeUp={fadeUp}
+              handleRefresh={handleRefresh}
+              retrying={retrying}
+              AgentIcon={AgentIcon}
+              CallIcon={CallIcon}
+              UsersIcon={UsersIcon}
+              RefreshIcon={RefreshIcon}
+            />
+          </div>
         )}
       </motion.div>
 

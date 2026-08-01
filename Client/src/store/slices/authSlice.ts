@@ -75,7 +75,8 @@ export const login = createAsyncThunk(
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
     } catch (err: unknown) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Login failed');
+      const message = (err as any)?.response?.data?.message || (err instanceof Error ? err.message : 'Login failed');
+      return rejectWithValue(message);
     }
   },
 );
