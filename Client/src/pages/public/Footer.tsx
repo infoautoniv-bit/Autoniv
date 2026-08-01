@@ -82,7 +82,10 @@ const NAV_COLS = [
 function scrollToSection(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
   e.preventDefault();
   const id = href.replace('/#', '').replace('#', '');
-  const el = document.getElementById(id);
+  const el =
+    document.getElementById(id) ||
+    document.getElementById(id + 's') ||
+    (id.endsWith('s') ? document.getElementById(id.slice(0, -1)) : null);
   if (!el) return;
   const y = el.getBoundingClientRect().top + window.scrollY - 72;
   window.scrollTo({ top: y, behavior: 'smooth' });

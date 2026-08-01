@@ -172,7 +172,10 @@ export function PublicNavbar() {
       e.preventDefault();
       const targetId = item.href.replace('#', '');
       if (location.pathname === '/') {
-        const el = document.getElementById(targetId);
+        const el =
+          document.getElementById(targetId) ||
+          document.getElementById(targetId + 's') ||
+          (targetId.endsWith('s') ? document.getElementById(targetId.slice(0, -1)) : null);
         if (el) {
           const y = el.getBoundingClientRect().top + window.scrollY - 72;
           window.scrollTo({ top: y, behavior: 'smooth' });

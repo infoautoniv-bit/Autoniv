@@ -34,9 +34,12 @@ export function LandingSection() {
 
   useEffect(() => {
     if (location.hash) {
-      const targetId = location.hash.replace('#', '');
+      const rawHash = location.hash.replace('#', '');
       const scroll = () => {
-        const el = document.getElementById(targetId);
+        const el =
+          document.getElementById(rawHash) ||
+          document.getElementById(rawHash + 's') ||
+          (rawHash.endsWith('s') ? document.getElementById(rawHash.slice(0, -1)) : null);
         if (el) {
           const y = el.getBoundingClientRect().top + window.scrollY - 72;
           window.scrollTo({ top: y, behavior: 'smooth' });
@@ -67,7 +70,7 @@ export function LandingSection() {
                 <Demo />
               </Suspense>
             </DeferRender>
-              <div id="features">
+              <div id="feature">
                 <Features />
               </div>
               <Services openAuth={openAuth} />
