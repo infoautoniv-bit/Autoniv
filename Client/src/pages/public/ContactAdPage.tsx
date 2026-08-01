@@ -6,6 +6,7 @@ import PublicNavbar from '../../components/PublicNavbar';
 import Footer from './Footer';
 import { USPSlider } from './sections/USPSlider';
 import { contactService } from '../../services/api';
+import { trackLeadFormConversion } from '../../utils/analytics';
 
 
 interface FormData {
@@ -194,6 +195,7 @@ export function ContactAdPage() {
 
       setRefId(generatedRef);
       setSubmitted(true);
+      trackLeadFormConversion();
     } catch (err: unknown) {
       const message = axios.isAxiosError(err)
         ? err.response?.data?.message

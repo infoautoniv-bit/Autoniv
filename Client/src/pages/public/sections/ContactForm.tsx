@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { contactService } from "../../../services/api";
+import { trackLeadFormConversion } from "../../../utils/analytics";
 
 export function ContactForm() {
   const [name, setName] = useState("");
@@ -55,6 +56,7 @@ export function ContactForm() {
         message: trimmedMessage
       });
       setSubmitted(true);
+      trackLeadFormConversion();
     } catch {
       setError("Failed to send. Please try again.");
     } finally {
