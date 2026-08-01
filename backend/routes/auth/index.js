@@ -338,8 +338,11 @@ router.get('/me', authenticate, async (req, res) => {
 
 router.get('/plan-status', authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).lean();
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const targetId = req.user?.userId || req.user?._id;
+    const user = targetId ? await User.findById(targetId).lean() : null;
+    if (!user) {
+      return res.status(401).json({ message: 'User not found. Please log in again.', code: 'USER_NOT_FOUND' });
+    }
     const plans = resolvePlans(user);
     return res.json({
       plan: user.plan || 'chat_free',

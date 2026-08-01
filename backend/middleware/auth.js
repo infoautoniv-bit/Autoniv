@@ -33,6 +33,7 @@ export function authenticate(req, res, next) {
 
     req.user = {
       userId: String(decoded.userId),
+      _id: String(decoded.userId),
       role: decoded.role,
       iat: decoded.iat,
       exp: decoded.exp,
@@ -68,6 +69,7 @@ export async function authenticateApiKeyOrJwt(req, res, next) {
       }
       req.user = {
         userId: String(user._id),
+        _id: String(user._id),
         role: user.role || 'user',
         isApiKeyAuth: true,
       };
