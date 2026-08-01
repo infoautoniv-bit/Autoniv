@@ -383,8 +383,8 @@ export function ChatBotWidget() {
           { label: 'List All Agents', action: 'list_agents' },
         ]
       }]);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to create agent. Please try again.';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create agent. Please try again.';
       setMessages((prev) => [...prev, { id: `b-${Date.now()}`, role: 'bot', text: msg, type: 'error' }]);
     } finally {
       setCreating(false);

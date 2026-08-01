@@ -296,8 +296,9 @@ function BulkCallCreator({
         payload.twilioAuthToken = twilioAuthToken.trim();
       }
       await onCreate(payload);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to create campaign');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create campaign';
+      setError(msg);
     } finally {
       setSubmitting(false);
     }

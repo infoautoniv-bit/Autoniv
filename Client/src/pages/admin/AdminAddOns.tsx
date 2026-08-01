@@ -206,8 +206,9 @@ export function AdminAddOns() {
     try {
       await dispatch(processAddOn({ id, status })).unwrap();
       setConfirm(null);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Failed to process request');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to process request';
+      alert(msg);
     } finally {
       setProcessing(null);
     }
@@ -226,8 +227,9 @@ export function AdminAddOns() {
       await dispatch(createCatalogEntry({ ...newAddOn, icon })).unwrap();
       setShowNewAddOn(false);
       setNewAddOn({ id: '', icon: '', title: '', price: '', category: 'recurring', description: '' });
-    } catch (err: any) {
-      setCatalogError(err?.response?.data?.message || err?.message || 'Failed to create add-on');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create add-on';
+      setCatalogError(msg);
     } finally {
       setSavingCatalog(false);
     }

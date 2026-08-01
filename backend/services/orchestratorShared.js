@@ -11,6 +11,7 @@ import { translateText, LANGUAGE_NAMES } from './translate.js';
 import { getToolDefinitions, executeTool } from './appointmentTools.js';
 import { synthesizeSpeech } from './tts.js';
 import { uploadRecording } from './cloudinary.js';
+import { log } from './logger.js';
 
 const LANGUAGE_MAP = {
   en: 'en-IN', hi: 'hi', ta: 'ta', te: 'te',
@@ -65,14 +66,14 @@ export class ReconnectingDeepgramWS {
   }
 
   async connect() {
-    console.log(`[${this.logPrefix}] Connecting to ${this.url}`);
+    log.info('stt_connecting', { prefix: this.logPrefix, url: this.url });
     this.ws = new WebSocket(this.url, this.options);
 
     return new Promise((resolve, reject) => {
       let resolved = false;
 
       this.ws.once('open', () => {
-        console.log(`[${this.logPrefix}] Connection established.`);
+        log.info('stt_connected', { prefix: this.logPrefix });
         this.reconnectAttempts = 0;
         this.startKeepAlive();
         resolved = true;
@@ -80,7 +81,7 @@ export class ReconnectingDeepgramWS {
       });
 
       this.ws.once('error', (err) => {
-        console.error(`[${this.logPrefix}] Failed to connect:`, err.message);
+        log.error('stt_connect_failed', { prefix: this.logPrefix, error: err.message });
         if (!resolved) {
           resolved = true;
           reject(err);
@@ -116,11 +117,11 @@ export class ReconnectingDeepgramWS {
         if (transcript && transcript.trim().length > 0) {
           if (isFinal) {
             if (transcript === this.lastProcessedTranscript) {
-              console.log(`[${this.logPrefix}] Duplicate final ignored: "${transcript}"`);
+              log.info('stt_duplicate_final_ignored', { prefix: this.logPrefix, transcript });
               return;
             }
             this.lastProcessedTranscript = transcript;
-            console.log(`[${this.logPrefix} Final] ${transcript}`);
+            log.info('stt_final_transcript', { prefix: this.logPrefix, transcript });
             this.onTranscript(transcript, true);
           } else {
             // Interim (word-by-word) result. Whether this counts as a barge-in
@@ -129,13 +130,13 @@ export class ReconnectingDeepgramWS {
           }
         }
       } catch (err) {
-        console.error(`[${this.logPrefix} Parse Error]`, err.message);
+        log.error('stt_parse_error', { prefix: this.logPrefix, error: err.message });
       }
     });
 
     activeWs.on('error', (err) => {
       if (this.ws !== activeWs) return;
-      console.error(`[${this.logPrefix} Error]`, err.message);
+      log.error('stt_error', { prefix: this.logPrefix, error: err.message });
     });
 
     activeWs.on('close', (code, reason) => {
@@ -144,7 +145,7 @@ export class ReconnectingDeepgramWS {
         clearInterval(this.keepAliveTimer);
         this.keepAliveTimer = null;
       }
-      console.log(`[${this.logPrefix} Close] Code: ${code}, Reason: ${reason ? reason.toString() : 'none'}`);
+      log.info('stt_closed', { prefix: this.logPrefix, code, reason: reason ? reason.toString() : 'none' });
       if (!this.intentionalClose) {
         this.attemptReconnect();
       }
@@ -154,13 +155,13 @@ export class ReconnectingDeepgramWS {
   attemptReconnect() {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error(`[${this.logPrefix}] Max reconnect attempts reached. STT disabled for the rest of the call.`);
+      log.error('stt_max_reconnect_reached', { prefix: this.logPrefix });
       return;
     }
 
     const delay = this.baseDelay * Math.pow(2, this.reconnectAttempts);
     this.reconnectAttempts++;
-    console.log(`[${this.logPrefix}] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+    log.info('stt_reconnecting', { prefix: this.logPrefix, delay, attempt: this.reconnectAttempts, maxAttempts: this.maxReconnectAttempts });
 
     this.reconnectTimer = setTimeout(async () => {
       try {
@@ -175,7 +176,7 @@ export class ReconnectingDeepgramWS {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(data);
     } else {
-      console.warn(`[${this.logPrefix}] Drop audio: WebSocket state is not OPEN.`);
+      log.warn('stt_drop_audio', { prefix: this.logPrefix });
     }
   }
 
@@ -195,7 +196,7 @@ export class ReconnectingDeepgramWS {
           this.ws.close(code, reason);
         }
       } catch (err) {
-        console.error(`[${this.logPrefix}] Error closing socket:`, err.message);
+        log.error('stt_close_error', { prefix: this.logPrefix, error: err.message });
       }
     }
   }
@@ -254,7 +255,7 @@ async function requestCompletion(client, modelName, messages, tools, timeoutMs =
   const isGemini = modelName.toLowerCase().includes('gemini');
 
   if (isGemini) {
-    console.log(`[LLM Tool Check] Non-streamed call to Gemini (${modelName}) to support native tool calls`);
+    log.info('llm_gemini_non_streamed', { model: modelName });
     const completion = await client.chat.completions.create({
       model: modelName,
       messages,
@@ -400,11 +401,11 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
 
   for (const candidate of candidates) {
     try {
-      console.log(`[${logPrefix}] Attempting completion with ${candidate.name} (${candidate.model})...`);
+      log.info('llm_attempt', { prefix: logPrefix, provider: candidate.name, model: candidate.model });
       stream = await requestCompletion(candidate.client, candidate.model, prunedHistory, tools, 12000);
       break; // Success!
     } catch (err) {
-      console.warn(`[${logPrefix}] ${candidate.name} failed:`, err.message);
+      log.warn('llm_provider_failed', { prefix: logPrefix, provider: candidate.name, error: err.message });
       lastErr = err;
     }
   }
@@ -482,9 +483,9 @@ export async function executeToolCalls({ toolCalls, agentObj, toolAlreadyExecute
     try {
       args = JSON.parse(tc.arguments);
     } catch {
-      console.warn(`[${logPrefix}] Failed to parse arguments.`);
+      log.warn('tool_parse_arguments_failed', { prefix: logPrefix });
     }
-    console.log(`[${logPrefix} Execute] ${name}`, args);
+    log.info('tool_execute', { prefix: logPrefix, tool: name, args });
 
     const result = await executeTool(name, args, {
       agentObj,
@@ -524,11 +525,11 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
         });
         const customGreeting = completion.choices[0]?.message?.content?.trim();
         if (customGreeting) {
-          console.log(`[Orchestrator] Generated opening greeting from custom prompt: "${customGreeting}"`);
+          log.info('greeting_generated', { greeting: customGreeting });
           return customGreeting;
         }
       } catch (err) {
-        console.warn('[Orchestrator] Dynamic prompt greeting fallback:', err.message);
+        log.warn('greeting_fallback', { error: err.message });
       }
     }
   }
@@ -545,7 +546,7 @@ export async function translateIfNeeded(systemInstructions, greetingText, langua
       greetingText = await translateText(greetingText, language);
       systemInstructions += `\n\nLANGUAGE RULE: Your default/starting language is ${langName}. You must greet and respond in ${langName}. However, if the user speaks or switches to another language (such as English, Hindi, etc.), you MUST switch and respond in the user's language directly.`;
     } catch (trErr) {
-      console.error('[Translation] Pre-processing failed:', trErr.message);
+      log.error('translation_failed', { error: trErr.message });
     }
   }
   return { systemInstructions, greetingText };
@@ -556,7 +557,7 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
     try {
       deepgramWs.close();
     } catch (err) {
-      console.error('[Cleanup] Error closing deepgramWs:', err.message);
+      log.error('cleanup_deepgram_close_error', { error: err.message });
     }
   }
 
@@ -568,19 +569,19 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
       if (recorder) {
         try {
           const wavBuffer = recorder.getWavBuffer();
-          console.log(`[Audio Recording] WAV buffer size: ${wavBuffer.length} bytes, maxByteOffset: ${recorder.maxByteOffset}`);
+          log.info('audio_recording_wav_buffer', { size: wavBuffer.length, maxByteOffset: recorder.maxByteOffset });
           if (recorder.maxByteOffset > 0) {
             const filename = `${callSid}.wav`;
             recordingUrl = await uploadRecording(wavBuffer, filename);
-            console.log(`[Audio Recording] Uploaded to Cloudinary: ${recordingUrl}`);
+            log.info('audio_recording_uploaded', { url: recordingUrl });
           } else {
-            console.log(`[Audio Recording] No audio data recorded, skipping upload`);
+            log.info('audio_recording_no_data');
           }
         } catch (recErr) {
-          console.error('[Audio Recording] Failed to upload to Cloudinary:', recErr.message, recErr.stack);
+          log.error('audio_recording_upload_failed', { error: recErr.message, stack: recErr.stack });
         }
       } else {
-        console.log(`[Audio Recording] No recorder instance, skipping`);
+        log.info('audio_recording_no_recorder');
       }
 
       const updateData = {
@@ -608,9 +609,9 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
           await User.findByIdAndUpdate(agentObj.userId, {
             $inc: { minutesUsed: billingMinutes, callsUsed: 1 }
           });
-          console.log(`[Billing] Added ${billingMinutes} minutes for user: ${agentObj.userId}`);
+          log.info('billing_added', { minutes: billingMinutes, userId: agentObj.userId });
         } else {
-          console.log(`[Billing] Skipped — call ${callSid} already billed.`);
+          log.info('billing_skipped', { callSid });
         }
       }
     }
@@ -639,11 +640,11 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
 
       if (!existingLead) {
         const lead = await Lead.create(pendingLeadData);
-        console.log(`[Lead] Saved lead ${lead._id} for agent ${pendingLeadData.agentId}`);
+        log.info('lead_saved', { leadId: lead._id, agentId: pendingLeadData.agentId });
       }
     }
   } catch (dbErr) {
-    console.error('[Close Cleanup Error]', dbErr.message);
+    log.error('close_cleanup_error', { error: dbErr.message });
   }
 }
 

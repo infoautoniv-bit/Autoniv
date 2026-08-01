@@ -308,8 +308,9 @@ function WhiteLabelSection({ user, onUnlockPlan }: { user: any; onUnlockPlan: ()
       });
       setMsg({ type: 'success', text: res.data.message || 'White Label & Custom Branding saved successfully!' });
       dispatch(checkAuth());
-    } catch (err: any) {
-      setMsg({ type: 'error', text: err.response?.data?.message || 'Failed to save White Label settings.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save White Label settings.';
+      setMsg({ type: 'error', text: msg });
     } finally {
       setSaving(false);
     }
@@ -527,8 +528,8 @@ export function UserBilling() {
     try {
       await dispatch(createUpgradeRequest(selectedPlan)).unwrap();
       setShowUpgrade(false);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Something went wrong';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong';
       alert(msg);
     } finally {
       setUpgrading(false);

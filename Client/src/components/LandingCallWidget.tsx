@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import VapiModule from '@vapi-ai/web';
 import { publicDemoService } from '../services/api';
 import { logger } from '../utils/logger';
@@ -113,6 +114,7 @@ function ConnectingDots() {
 type CallMode = 'idle' | 'connecting' | 'active' | 'ended' | 'error';
 
 export default function LandingCallWidget() {
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState<CallMode>('idle');
   const [callSeconds, setCallSeconds] = useState(0);
@@ -512,7 +514,7 @@ export default function LandingCallWidget() {
                   </div>
 
                   <button
-                    onClick={() => window.location.href = '/'}
+                    onClick={() => navigate('/')}
                     style={{
                       width: '100%', padding: '13px 24px', borderRadius: 13, cursor: 'pointer',
                       border: '1px solid rgba(0,119,255,0.25)',

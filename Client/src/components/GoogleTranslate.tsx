@@ -185,8 +185,8 @@ export function GoogleTranslate() {
           setCurrentLang(code);
           setLanguageCookie(code);
         }
-      } catch (err) {
-        console.error(err);
+      } catch {
+        // Translation lookup failed — silent in production
       }
     }
 

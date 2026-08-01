@@ -6,19 +6,27 @@ import { securityEvent, IS_PROD, log } from '../services/logger.js';
 function getAccessSecret() {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
+    log.fatal('startup_fatal_missing_jwt_secret');
     if (IS_PROD) {
-      log.fatal('startup_fatal_missing_jwt_secret');
       process.exit(1);
-    } else {
-      log.warn('jwt_secret_using_insecure_dev_fallback');
-      return 'dev-fallback-secret-do-not-use-in-production';
     }
+    throw new Error('JWT_SECRET environment variable is missing.');
   }
   return secret;
 }
 
 function getRefreshSecret() {
-  return process.env.JWT_REFRESH_SECRET || getAccessSecret();
+  const secret = process.env.JWT_REFRESH_SECRET;
+  if (!secret) {
+    log.fatal('startup_fatal_missing_jwt_refresh_secret');
+    if (IS_PROD) {
+      process.exit(1);
+    }
+    // In dev, fallback to access secret with a warning
+    log.warn('jwt_refresh_secret_fallback_to_access');
+    return getAccessSecret();
+  }
+  return secret;
 }
 
 function getSecrets() {

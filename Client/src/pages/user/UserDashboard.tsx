@@ -14,10 +14,12 @@ import { useOnboarding } from '../../hooks/useOnboarding';
 import { OnboardingTour } from '../../components/OnboardingTour';
 import { EmptyStateGuide } from '../../components/EmptyStateGuide';
 import { HRCrmVoiceIntegrationCard } from '../../components/HRCrmVoiceIntegrationCard';
+import { Modal } from '../../components/Modal';
 import VapiModule from '@vapi-ai/web';
 import { callService, apiKeyService } from '../../services/api';
 import { logger } from '../../utils/logger';
 import { COUNTRY_CODES } from '../../config/constants';
+import { API_BASE_URL } from '../../config/api';
 import { useToast } from '../../hooks/useToast';
 import { ToastContainer } from '../../components/ToastContainer';
 import { WebCallDialog } from '../../components/CallDialogs';
@@ -58,14 +60,21 @@ const staggerContainer = {
 function Tip({ text, children }: { text: string; children: React.ReactNode }) {
   const [show, setShow] = useState(false);
   return (
-    <div className="relative inline-flex" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+    <div
+      className="relative inline-flex"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+      onFocus={() => setShow(true)}
+      onBlur={() => setShow(false)}
+    >
       {children}
       <AnimatePresence>
         {show && (
           <motion.div
+            role="tooltip"
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap pointer-events-none z-50 shadow-md border bg-white border-slate-200/60 text-slate-500"
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider whitespace-nowrap pointer-events-none z-50 shadow-md border bg-white border-slate-200/60 text-slate-600"
           >
             {text}
             <span className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-200" />
@@ -406,6 +415,9 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
             onClick={onClose}
           />
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Call detail drawer"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -640,6 +652,9 @@ function CallMeDialog({
             onClick={onClose}
           />
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Test agent phone call"
             initial={{ scale: 0.95, opacity: 0, y: 8 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 8 }}
@@ -930,6 +945,7 @@ export function UserDashboard() {
   const [widgetApiKey, setWidgetApiKey] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [apiKeyLoading, setApiKeyLoading] = useState(false);
+  const [confirmRegenerateOpen, setConfirmRegenerateOpen] = useState(false);
   
   // Chart active tab
   const [chartTab, setChartTab] = useState<'volume' | 'minutes'>('volume');
@@ -1261,11 +1277,12 @@ export function UserDashboard() {
       webCallTimerRef.current = setInterval(() => setWebCallSeconds(prev => prev + 1), 1000);
       webCallMaxDurationRef.current = setTimeout(() => stopWebCall(), 210_000); // 3.5 min duration
       addToast(`Connected with ${agent.name} via Web Call`, 'success');
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to start Web call';
       logger.error('[UserDashboard] Web call failed:', err);
       setWebCallMode('error');
-      setWebCallErrorMsg(err?.message || 'Failed to start Web call');
-      addToast(err?.message || 'Failed to start Web call', 'error');
+      setWebCallErrorMsg(message);
+      addToast(message, 'error');
       webCallVapiRef.current = null;
     }
   };
@@ -1278,8 +1295,8 @@ export function UserDashboard() {
       await callService.outbound(callTarget.id, phoneNumber);
       addToast(`Test call initiated to ${phoneNumber} successfully!`, 'success');
       setCallTarget(null);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to initiate call';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to initiate call';
       addToast(msg, 'error');
     } finally {
       setCalling(false);
@@ -1542,79 +1559,94 @@ export function UserDashboard() {
                     Generate API Key
                   </button>
                 </div>
-              ) : widgetApiKey && !widgetApiKey.startsWith('ak_••••') ? (
-                <div className="space-y-3">
-                  <div className="bg-amber-500/10 border-2 border-amber-500/50 rounded-xl p-3.5 text-xs font-bold text-amber-950 flex items-center gap-2.5 shadow-sm">
-                    <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white font-black text-[10px] uppercase tracking-wider shrink-0 shadow-sm">Important</span>
-                    <span className="text-amber-950 font-black">Save this key now. It won't be shown again after you leave this page.</span>
-                  </div>
-                  <div className="bg-slate-900 rounded-xl p-4 font-mono text-[11px] text-green-400 overflow-x-auto">
-                    <code>{`<script src="${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/widget/widget.js"\n  data-api-key="${widgetApiKey}"\n  data-position="bottom-right">\n</script>`}</code>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        const scriptUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/widget/widget.js`;
-                        navigator.clipboard.writeText(`<script src="${scriptUrl}" data-api-key="${widgetApiKey}" data-position="bottom-right"></script>`);
-                        addToast('Embed code copied to clipboard', 'success');
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-[var(--primary-blue)] text-white hover:opacity-90 transition-all cursor-pointer border-none"
-                    >
-                      Copy Code
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const { data } = await apiKeyService.regenerate();
-                          setWidgetApiKey(data.apiKey);
-                          addToast('API key regenerated. Save it now - it won\'t be shown again!', 'success');
-                        } catch {
-                          addToast('Failed to regenerate API key', 'error');
-                        }
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all cursor-pointer border-none"
-                    >
-                      Regenerate Key
-                    </button>
-                  </div>
-                </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="bg-slate-900 rounded-xl p-4 font-mono text-[11px] text-green-400 overflow-x-auto">
-                    <code>{`<script src="${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/widget/widget.js"\n  data-api-key="${widgetApiKey}"\n  data-position="bottom-right">\n</script>`}</code>
+                  {widgetApiKey && !widgetApiKey.startsWith('ak_••••') && (
+                    <div className="bg-amber-500/10 border-2 border-amber-500/50 rounded-xl p-3.5 text-xs font-bold text-amber-950 flex items-center gap-2.5 shadow-sm">
+                      <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white font-black text-[10px] uppercase tracking-wider shrink-0 shadow-sm">Important</span>
+                      <span className="text-amber-950 font-black">Save this key now. It won't be shown again after you leave this page.</span>
+                    </div>
+                  )}
+                  <div className="bg-slate-900 rounded-xl p-4 font-mono text-xs text-green-400 overflow-x-auto">
+                    <code>{`<script src="${API_BASE_URL}/widget/widget.js"\n  data-api-key="${widgetApiKey}"\n  data-position="bottom-right">\n</script>`}</code>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
+                      type="button"
                       onClick={() => {
-                        const scriptUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/widget/widget.js`;
+                        const scriptUrl = `${API_BASE_URL}/widget/widget.js`;
                         navigator.clipboard.writeText(`<script src="${scriptUrl}" data-api-key="${widgetApiKey}" data-position="bottom-right"></script>`);
                         addToast('Embed code copied to clipboard', 'success');
                       }}
-                      className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-[var(--primary-blue)] text-white hover:opacity-90 transition-all cursor-pointer border-none"
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--primary-blue)] text-white hover:opacity-90 transition-all cursor-pointer border-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >
                       Copy Code
                     </button>
+                    {widgetApiKey && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(widgetApiKey);
+                          addToast('API key copied to clipboard', 'success');
+                        }}
+                        className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer border border-slate-300/60 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      >
+                        Copy Key
+                      </button>
+                    )}
                     <button
-                      onClick={async () => {
-                        try {
-                          const { data } = await apiKeyService.regenerate();
-                          setWidgetApiKey(data.apiKey);
-                          addToast('API key regenerated. Save it now - it won\'t be shown again!', 'success');
-                        } catch {
-                          addToast('Failed to regenerate API key', 'error');
-                        }
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all cursor-pointer border-none"
+                      type="button"
+                      onClick={() => setConfirmRegenerateOpen(true)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-all cursor-pointer border-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >
                       Regenerate Key
                     </button>
-                    <span className="text-[10px] text-slate-400 font-medium">Add this to your website's &lt;head&gt; tag</span>
+                    <span className="text-xs text-slate-500 font-medium">Add this to your website's &lt;head&gt; tag</span>
                   </div>
                 </div>
               )}
             </div>
           </motion.div>
         )}
+
+        {/* ── Regenerate Key Confirmation Modal ── */}
+        <Modal
+          isOpen={confirmRegenerateOpen}
+          onClose={() => setConfirmRegenerateOpen(false)}
+          title="Regenerate API Key?"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              Are you sure you want to regenerate your widget API key? Your existing key will be permanently invalidated and any active website widgets using the old key will stop working.
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmRegenerateOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors focus:ring-2 focus:ring-slate-400 focus:outline-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setConfirmRegenerateOpen(false);
+                  try {
+                    const { data } = await apiKeyService.regenerate();
+                    setWidgetApiKey(data.apiKey);
+                    addToast('API key regenerated. Save it now - it won\'t be shown again!', 'success');
+                  } catch {
+                    addToast('Failed to regenerate API key', 'error');
+                  }
+                }}
+                className="px-4 py-2 text-xs font-extrabold text-white bg-rose-600 rounded-xl hover:bg-rose-700 transition-all shadow-md shadow-rose-600/20 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              >
+                Regenerate Key
+              </button>
+            </div>
+          </div>
+        </Modal>
 
         {/* ── Chat Usage Breakdown ── */}
         {isChat && (

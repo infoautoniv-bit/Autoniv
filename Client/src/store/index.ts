@@ -23,6 +23,7 @@ export const store = configureStore({
     addOns: addOnsReducer,
     bulkCalls: bulkCallsReducer,
   },
+  devTools: !import.meta.env.PROD,
 });
 
 export type RootState = ReturnType<typeof store.getState>;

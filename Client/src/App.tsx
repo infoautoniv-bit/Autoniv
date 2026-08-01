@@ -8,9 +8,11 @@ import { Breadcrumbs } from './components/Breadcrumbs';
 import ScrollToTop from './components/ScrollToTop';
 import LoadingScreen from './components/LoadingScreen';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 import { MetaRobots, PUBLIC_ROBOTS, PRIVATE_ROBOTS } from './components/MetaRobots';
 import { isChatPlan, isVoicePlan } from './utils/plan';
 import UnifiedAssistantWidget from './components/UnifiedAssistantWidget';
+import { CommandPalette } from './components/CommandPalette';
 import { STUDIES } from './pages/public/caseStudiesData';
 import { injectSchema, ORGANIZATION_SCHEMA, WEBSITE_SCHEMA, SOFTWARE_APPLICATION_SCHEMA } from './utils/schema';
 
@@ -482,6 +484,7 @@ function AppRoutes() {
   return (
     <Suspense fallback={<LoadingScreen />}>
       <ScrollToTop />
+      <CommandPalette />
       <MetaRobots content={
         (location.pathname.startsWith('/dashboard/support')) ? PUBLIC_ROBOTS :
         (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/onboarding') || location.pathname === '/connect' || location.pathname === '/contact' || location.pathname === '/contact-ad') ? PRIVATE_ROBOTS :
@@ -520,25 +523,25 @@ function AppRoutes() {
         <Route path="/pricing/ai-chatbot" element={<AiChatbotPricing />} />
         <Route path="/news" element={<News />} />
 
-        <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-voice-agent" element={<ProtectedRoute feature="voice"><MyAgents /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-phone-answering" element={<ProtectedRoute feature="voice"><CustomWebCall /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-phone-answering/:agentId" element={<ProtectedRoute feature="voice"><CustomWebCall /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-voice-agent/new" element={<ProtectedRoute feature="voice"><CreateAgent /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-voice-agent/new-custom" element={<ProtectedRoute feature="voice"><CreateCustomAgent /></ProtectedRoute>} />
-        <Route path="/dashboard/calls" element={<ProtectedRoute feature="voice"><MyCalls /></ProtectedRoute>} />
-        <Route path="/dashboard/bulk-calls" element={<ProtectedRoute feature="voice"><BulkCallDashboard /></ProtectedRoute>} />
-        <Route path="/dashboard/phone-numbers" element={<ProtectedRoute feature="voice"><MyPhoneNumbers /></ProtectedRoute>} />
-        <Route path="/dashboard/leads" element={<ProtectedRoute><MyLeads /></ProtectedRoute>} />
-        <Route path="/dashboard/appointment-booking" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-chatbot" element={<ProtectedRoute feature="chat"><MyChat /></ProtectedRoute>} />
-        <Route path="/dashboard/chatbots" element={<ProtectedRoute feature="chat"><MyChatbots /></ProtectedRoute>} />
-        <Route path="/dashboard/chatbots/new" element={<ProtectedRoute feature="chat"><CreateChatbot /></ProtectedRoute>} />
-        <Route path="/dashboard/chatbots/:id" element={<ProtectedRoute feature="chat"><CreateChatbot /></ProtectedRoute>} />
-        <Route path="/dashboard/billing" element={<ProtectedRoute><UserBilling /></ProtectedRoute>} />
-        <Route path="/dashboard/team" element={<ProtectedRoute><MyTeam /></ProtectedRoute>} />
-        <Route path="/dashboard/add-ons" element={<ProtectedRoute><MyAddOns /></ProtectedRoute>} />
-        <Route path="/dashboard/support" element={<CustomerSupport />} />
+        <Route path="/dashboard" element={<ProtectedRoute><RouteErrorBoundary><UserDashboard /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-voice-agent" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><MyAgents /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-phone-answering" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><CustomWebCall /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-phone-answering/:agentId" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><CustomWebCall /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-voice-agent/new" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><CreateAgent /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-voice-agent/new-custom" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><CreateCustomAgent /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/calls" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><MyCalls /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/bulk-calls" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><BulkCallDashboard /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/phone-numbers" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><MyPhoneNumbers /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/leads" element={<ProtectedRoute><RouteErrorBoundary><MyLeads /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/appointment-booking" element={<ProtectedRoute><RouteErrorBoundary><MyAppointments /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-chatbot" element={<ProtectedRoute feature="chat"><RouteErrorBoundary><MyChat /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/chatbots" element={<ProtectedRoute feature="chat"><RouteErrorBoundary><MyChatbots /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/chatbots/new" element={<ProtectedRoute feature="chat"><RouteErrorBoundary><CreateChatbot /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/chatbots/:id" element={<ProtectedRoute feature="chat"><RouteErrorBoundary><CreateChatbot /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/billing" element={<ProtectedRoute><RouteErrorBoundary><UserBilling /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/team" element={<ProtectedRoute><RouteErrorBoundary><MyTeam /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/add-ons" element={<ProtectedRoute><RouteErrorBoundary><MyAddOns /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/support" element={<ProtectedRoute><RouteErrorBoundary><CustomerSupport /></RouteErrorBoundary></ProtectedRoute>} />
 
         {/* Admin routes — isolated Suspense so admin.js chunk is never fetched on public pages */}
         <Route path="/admin" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute></Suspense>} />

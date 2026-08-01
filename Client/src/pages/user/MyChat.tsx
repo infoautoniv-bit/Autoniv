@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppSelector, useAppDispatch } from '../../hooks/useStore';
 import { userChatService, chatHistoryService } from '../../services/api';
@@ -237,6 +238,7 @@ const UserAvatar = () => (
 );
 
 export function MyChat() {
+  const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
   const chatLimit = user?.chatLimit || 100;
@@ -516,7 +518,7 @@ export function MyChat() {
               {isUnlimited ? 'Unlimited' : over ? 'Limit reached' : `${Math.round(pct)}% used`}
             </span>
             {over && (
-              <button type="button" onClick={() => window.location.href = '/dashboard/billing'} style={{ fontSize: 10, fontWeight: 600, background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+              <button type="button" onClick={() => navigate('/dashboard/billing')} className="text-[10px] font-semibold text-[var(--primary)] hover:underline cursor-pointer bg-transparent border-none p-0 whitespace-nowrap">
                 Upgrade
               </button>
             )}

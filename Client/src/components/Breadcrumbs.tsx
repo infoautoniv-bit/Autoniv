@@ -29,18 +29,18 @@ export function Breadcrumbs() {
   if (crumbs.length <= 1) return null;
 
   return (
-    <nav className="flex items-center gap-1.5 text-xs mt-6 sm:-mt-8 sm:mb-4">
+    <nav className="flex items-center gap-1.5 text-xs mt-6 sm:-mt-8 sm:mb-4" aria-label="Breadcrumb">
       {crumbs.map((crumb, i) => (
         <span key={crumb.path} className="flex items-center gap-1.5">
           {i > 0 && (
-            <svg className="w-3 h-3 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           )}
           {crumb.isLast ? (
-            <span className="text-[var(--text-secondary)] font-medium">{crumb.label}</span>
+            <span className="text-[var(--text-secondary)] font-medium" aria-current="page">{crumb.label}</span>
           ) : (
-            <Link to={crumb.path} className="text-[var(--text-secondary)] hover:text-[var(--cyan)]-400 transition-colors">
+            <Link to={crumb.path} className="text-[var(--text-secondary)] hover:text-cyan-400 transition-colors">
               {crumb.label}
             </Link>
           )}

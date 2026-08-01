@@ -219,8 +219,9 @@ export function MyPhoneNumbers() {
       setPhoneNumbers(numsRes.data.phoneNumbers || []);
       setUsersList(usersRes.data.users || []);
       setAgentsList(agentsRes.data.agents || []);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to load phone numbers');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load phone numbers';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -266,8 +267,9 @@ export function MyPhoneNumbers() {
       });
       setShowAddModal(false);
       fetchData();
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to add phone number');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to add phone number';
+      alert(message);
     } finally {
       setSubmitting(false);
     }
@@ -291,8 +293,9 @@ export function MyPhoneNumbers() {
       setShowAssignModal(false);
       setSelectedNumber(null);
       fetchData();
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to update assignment');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update assignment';
+      alert(message);
     } finally {
       setSubmitting(false);
     }
@@ -303,8 +306,9 @@ export function MyPhoneNumbers() {
     try {
       await phoneNumberService.delete(id);
       fetchData();
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to delete phone number');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete phone number';
+      alert(message);
     }
   };
 

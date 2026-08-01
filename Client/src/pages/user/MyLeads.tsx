@@ -273,21 +273,44 @@ export function MyLeads() {
           </button>
         </motion.div>
 
-        {/* ── Filter pills ── */}
-        <motion.div variants={fadeUp} className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap sm:gap-2 p-1 rounded-xl border bg-white/70 w-full sm:w-fit" style={{ borderColor: 'var(--slate-border)' }}>
-          {FILTERS.map((f) => (
+        {/* ── Filter pills & View Mode Toggle ── */}
+        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap sm:gap-2 p-1 rounded-xl border bg-white/70 w-full sm:w-fit" style={{ borderColor: 'var(--slate-border)' }}>
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => handleFilterChange(f.value)}
+                className={`px-2 sm:px-3.5 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase transition-all cursor-pointer whitespace-nowrap truncate ${
+                  filter === f.value
+                    ? 'btn-cta'
+                    : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 p-1 rounded-xl border bg-white/70 border-slate-200 self-end sm:self-auto">
             <button
-              key={f.value}
-              onClick={() => handleFilterChange(f.value)}
-              className={`px-2 sm:px-3.5 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase transition-all cursor-pointer whitespace-nowrap truncate ${
-                filter === f.value
-                  ? 'btn-cta'
-                  : 'text-slate-400 hover:text-slate-600'
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'table' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              {f.label}
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+              Table
             </button>
-          ))}
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'cards' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+              Kanban
+            </button>
+          </div>
         </motion.div>
 
         {/* ── DataTable ── */}

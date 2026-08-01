@@ -47,8 +47,8 @@ export const checkAuth = createAsyncThunk(
       const res = await authService.me();
       fetchCsrfToken(true);
       return res.data.user as User;
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Session expired');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Session expired');
     }
   },
 );
@@ -74,8 +74,8 @@ export const login = createAsyncThunk(
       fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Login failed');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Login failed');
     }
   },
 );
@@ -93,8 +93,8 @@ export const googleLogin = createAsyncThunk(
       fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Google authentication failed');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Google authentication failed');
     }
   },
 );
@@ -106,8 +106,8 @@ export const fetchDashboardStats = createAsyncThunk(
     try {
       const res = await authService.getDashboardStats();
       return res.data;
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Failed to load dashboard stats');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to load dashboard stats');
     }
   },
 );
@@ -142,8 +142,8 @@ export const register = createAsyncThunk(
       fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Registration failed');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Registration failed');
     }
   },
 );
@@ -165,8 +165,8 @@ export const verifyOtp = createAsyncThunk(
       fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Verification failed');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Verification failed');
     }
   },
 );

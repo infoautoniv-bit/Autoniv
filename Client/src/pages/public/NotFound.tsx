@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const POPULAR_LINKS = [
@@ -11,12 +11,12 @@ const POPULAR_LINKS = [
 
 export function NotFound() {
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Redirect to help desk with the search query
-      window.location.href = `/help?q=${encodeURIComponent(searchQuery)}`;
+      navigate(`/help?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 

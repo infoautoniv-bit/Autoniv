@@ -12,6 +12,7 @@ import { synthesizeSpeech } from './tts.js';
 import { LANGUAGE_NAMES } from './translate.js';
 import { AudioRecorder } from './audioRecorder.js';
 import { verifyMediaStreamToken } from './mediaStreamToken.js';
+import { log } from './logger.js';
 import {
   createDeepgramSTT,
   createLLMClient,
@@ -184,16 +185,16 @@ export function initOrchestrator(server) {
 
     const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
     const urlPath = parsedUrl.pathname;
-    console.log(`[WebSocket] Connection request on path: ${urlPath}`);
+    log.info('websocket_connection_request', { path: urlPath });
 
     if (urlPath === '/media-stream') {
       const agentId = parsedUrl.searchParams.get('agentId');
       const token = parsedUrl.searchParams.get('token') || parsedUrl.searchParams.get('amp;token');
-      console.log(`[WebSocket Debug] agentId=${agentId}, token=${token}, rawUrl=${req.url}`);
+      log.info('websocket_debug', { agentId, hasToken: Boolean(token), path: urlPath });
       // Defer verification to 'start' message if query params are stripped (standard for Twilio)
       if (agentId || token) {
         if (!verifyMediaStreamToken(agentId, token)) {
-          console.warn(`[WebSocket Warning] /media-stream token warning (agentId=${agentId}, token=${token})`);
+          log.warn('websocket_token_verification_failed', { agentId });
         }
       }
       handleTwilioStream(ws, agentId);
@@ -206,11 +207,11 @@ export function initOrchestrator(server) {
     }
   });
 
-  console.log('[Orchestrator] Voice agent WebSocket handlers initialized on /media-stream, /web-call, and /exotel-stream');
+  log.info('orchestrator_initialized', { handlers: ['/media-stream', '/web-call', '/exotel-stream'] });
 }
 
 function handleTwilioStream(twilioWs, urlAgentId) {
-  console.log('[Twilio WS] Stream connection established.');
+  log.info('twilio_stream_connected');
 
   let streamSid = null;
   let callSid = null;
@@ -225,30 +226,15 @@ function handleTwilioStream(twilioWs, urlAgentId) {
   let toolAlreadyExecuted = { saveAppointment: false, saveLead: false };
   let callerInfo = { name: null, phone: null };
   let cleanedUp = false;
-  // Twilio stamps every inbound media frame with a monotonic `timestamp` (ms
-  // since stream start). We anchor it to wall-clock once so caller audio is
-  // placed in the recording by true capture time, not jittery arrival time —
-  // otherwise bursts of queued frames overlap-add and sound like scratching.
-  let mediaEpoch = null;
-  // Hard 2-minute call cap. Armed once the call starts; on expiry we speak a
-  // closing line and end the stream so no call can run past the limit.
+ 
   let callTimeout = null;
   let timeLimitReached = false;
-  // While the agent is speaking, mu-law audio we send to Twilio echoes back on
-  // the inbound leg and Deepgram transcribes it as caller speech (the agent
-  // "hears itself" and answers its own greeting in a loop). We mute the STT
-  // feed for the exact playback duration plus a short tail so that can't happen.
+  
   let muteInputUntil = 0;
   const ECHO_TAIL_MS = 600;
-  // Records caller (inbound) + agent (outbound) mu-law audio into one track so
-  // phone calls produce a recordingUrl, just like the web-call path.
   const recorder = new AudioRecorder(24000); // 24kHz mixed track
 
   const { groq, openaiClient, gemini } = getSharedLLM();
-
-  // Cleanup is triggered by BOTH the Twilio 'stop' message and the socket
-  // 'close' event, which fire back-to-back. Guard so the billing $inc and
-  // recording write in closeAndCleanup happen exactly once per call.
   const runCleanup = async () => {
     if (cleanedUp) return;
     cleanedUp = true;
@@ -260,13 +246,9 @@ function handleTwilioStream(twilioWs, urlAgentId) {
   };
 
   const triggerInterruption = () => {
-    // Only a barge-in matters: ignore interim transcripts unless the agent is
-    // actively responding, and only fire once per interruption. This stops
-    // routine listening from spuriously cutting the agent off (or spamming
-    // 'clear' events) on every word-by-word interim result.
     if (!isProcessing || isInterrupted) return;
     isInterrupted = true;
-    console.log('[Interruption] Caller barged in — stopping agent playback.');
+    log.info('twilio_interruption', { message: 'Caller barged in — stopping agent playback.' });
     if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
       twilioWs.send(JSON.stringify({ event: 'clear', streamSid }));
     }
@@ -292,13 +274,11 @@ function handleTwilioStream(twilioWs, urlAgentId) {
         const agentAudio = Buffer.from(base64Audio, 'base64');
         recorder.writeMulaw8k(agentAudio, Date.now());
         twilioWs.send(JSON.stringify({ event: 'media', streamSid, media: { payload: base64Audio } }));
-        // mu-law @ 8kHz mono = 8 bytes/ms. Keep the STT feed muted for the
-        // playback duration (+ echo tail) so the agent doesn't hear itself.
         const playbackMs = agentAudio.length / 8;
         muteInputUntil = Math.max(muteInputUntil, Date.now() + playbackMs + ECHO_TAIL_MS);
       }
     } catch (err) {
-      console.error('[Orchestrator TTS Error] Telephony TTS synthesis failed:', err.message);
+      log.error('tts_synthesis_failed', { error: err.message });
     }
   };
 
@@ -352,9 +332,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
         return;
       }
     } catch (err) {
-      console.error('[Twilio Completion Flow Error]', err.message);
-      // Every LLM provider failed (or timed out). Don't leave the caller in
-      // dead silence — speak a short recovery line so the turn degrades gracefully.
+      log.error('twilio_completion_flow_error', { error: err.message });
       if (!isInterrupted) {
         try {
           await processSentenceForPlay('Sorry, I missed that. Could you say it again?');
@@ -370,7 +348,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
       if (resolvedAgentId && mongoose.Types.ObjectId.isValid(resolvedAgentId)) {
         agentObj = await Agent.findById(resolvedAgentId).lean();
         if (agentObj) {
-          console.log(`[Database] Loaded Telephony Agent directly: ${agentObj.name}`);
+          log.info('database_agent_loaded', { method: 'direct', name: agentObj.name });
         }
       }
 
@@ -378,11 +356,11 @@ function handleTwilioStream(twilioWs, urlAgentId) {
         const callObj = await Call.findOne({ vapiCallId: callSid }).populate('agentId').lean();
         if (callObj?.agentId) {
           agentObj = callObj.agentId;
-          console.log(`[Database] Loaded Telephony Agent via Call record fallback: ${agentObj.name}`);
+          log.info('database_agent_loaded', { method: 'call_record_fallback', name: agentObj.name });
         }
       }
     } catch (dbErr) {
-      console.error('[Database] Resolution error:', dbErr.message);
+      log.error('database_resolution_error', { error: dbErr.message });
     }
 
     try {
@@ -392,7 +370,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
         onInterruption: triggerInterruption,
       });
     } catch (sttErr) {
-      console.error('[Twilio WS] Deepgram STT failed to initialize:', sttErr.message);
+      log.error('deepgram_stt_init_failed', { error: sttErr.message });
     }
 
     const ownerUser = agentObj ? await User.findById(agentObj.userId).lean() : null;
@@ -414,7 +392,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
     greetingText = result.greetingText;
 
     conversationHistory.push({ role: 'system', content: systemInstructions });
-    console.log(`[Twilio WS] Playing greeting: "${greetingText}"`);
+    log.info('twilio_greeting', { greeting: greetingText });
     conversationHistory.push({ role: 'assistant', content: greetingText });
     fullTranscript += `Agent: ${greetingText}\n`;
     // Mark the agent as speaking so the caller can barge in over the greeting.
@@ -436,7 +414,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
   const endCallOnTimeLimit = async () => {
     if (timeLimitReached || cleanedUp) return;
     timeLimitReached = true;
-    console.log('[Twilio WS] 3.5-minute call limit reached — closing call.');
+    log.info('twilio_call_time_limit_reached');
     // Cut off any current agent turn so the closing line plays immediately.
     isInterrupted = true;
     if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
@@ -465,20 +443,18 @@ function handleTwilioStream(twilioWs, urlAgentId) {
             const customParams = data.start.customParameters || {};
             resolvedAgentId = customParams.agentId;
             const token = customParams.token;
-            console.log(`[Twilio WS] Verifying deferred custom parameters: agentId=${resolvedAgentId}, token=${token}`);
+            log.info('twilio_ws_verifying_deferred_params', { agentId: resolvedAgentId });
             if (!verifyMediaStreamToken(resolvedAgentId, token)) {
-              console.warn(`[WebSocket Warning] /media-stream token warning in start event`);
+              log.warn('websocket_token_warning_start_event');
             }
           }
 
-          console.log(`[Twilio WS] Call streaming started. StreamSid: ${streamSid}, CallSid: ${callSid}, agentId: ${resolvedAgentId}`);
+          log.info('twilio_stream_started', { streamSid, callSid, agentId: resolvedAgentId });
           await handleStartCall();
           break;
         case 'media': {
           const inboundMulaw = Buffer.from(data.media.payload, 'base64');
-          // Place the chunk by Twilio's monotonic media timestamp (jitter-free),
-          // falling back to arrival time only if it's ever missing.
-          const mediaTs = Number(data.media?.timestamp);
+       
           let recordTs;
           if (Number.isFinite(mediaTs)) {
             if (mediaEpoch === null) mediaEpoch = Date.now() - mediaTs;
@@ -487,9 +463,6 @@ function handleTwilioStream(twilioWs, urlAgentId) {
             recordTs = Date.now();
           }
           recorder.writeMulaw8k(inboundMulaw, recordTs);
-          // Don't forward to STT while the agent is speaking (+ echo tail):
-          // this is the agent's own voice bleeding back, not the caller.
-          // Still recorded above so the call recording stays complete.
           if (Date.now() < muteInputUntil) break;
           if (deepgramWs && deepgramWs.readyState === WebSocket.OPEN) {
             deepgramWs.send(inboundMulaw);
@@ -497,17 +470,17 @@ function handleTwilioStream(twilioWs, urlAgentId) {
           break;
         }
         case 'stop':
-          console.log('[Twilio WS] Call streaming stopped.');
+          log.info('twilio_stream_stopped');
           await runCleanup();
           break;
       }
     } catch (err) {
-      console.error('[Twilio WS Message Error]', err.message);
+      log.error('twilio_message_error', { error: err.message });
     }
   });
 
   twilioWs.on('close', async () => {
-    console.log('[Twilio WS] Connection closed.');
+    log.info('twilio_connection_closed');
     await runCleanup();
   });
 }
@@ -516,7 +489,7 @@ function handleTwilioStream(twilioWs, urlAgentId) {
 // 3. Exotel Voicebot Stream Handler
 // ==========================================
 async function handleExotelStream(exotelWs) {
-  console.log('[Exotel WS] Stream connection established.');
+  log.info('exotel_stream_connected');
 
   let streamSid = null;
   let callSid = null;
@@ -555,7 +528,7 @@ async function handleExotelStream(exotelWs) {
   const endCallOnTimeLimit = async () => {
     if (timeLimitReached || cleanedUp) return;
     timeLimitReached = true;
-    console.log('[Exotel Call] 3.5-minute limit reached — closing.');
+    log.info('exotel_call_time_limit_reached');
     isInterrupted = true;
     if (exotelWs.readyState === WebSocket.OPEN && streamSid) {
       try { exotelWs.send(JSON.stringify({ event: 'clear', stream_sid: streamSid })); } catch (_) { /* gone */ }
@@ -576,7 +549,7 @@ async function handleExotelStream(exotelWs) {
   const triggerInterruption = () => {
     if (!isProcessing || isInterrupted) return;
     isInterrupted = true;
-    console.log('[Exotel Interruption] Caller barged in.');
+    log.info('exotel_interruption', { message: 'Caller barged in.' });
     if (exotelWs.readyState === WebSocket.OPEN && streamSid) {
       exotelWs.send(JSON.stringify({ event: 'clear', stream_sid: streamSid }));
     }
@@ -617,7 +590,7 @@ async function handleExotelStream(exotelWs) {
         }
       }
     } catch (err) {
-      console.error('[Exotel TTS Error]', err.message);
+      log.error('tts_synthesis_failed', { error: err.message });
     }
   };
 
@@ -663,7 +636,7 @@ async function handleExotelStream(exotelWs) {
         return;
       }
     } catch (err) {
-      console.error('[Exotel Completions Error]', err.message);
+      log.error('exotel_completions_error', { error: err.message });
       if (!isInterrupted) {
         try { await processSentenceForPlay('Sorry, I missed that. Could you say it again?'); } catch (_) { /* best-effort */ }
       }
@@ -691,7 +664,7 @@ async function handleExotelStream(exotelWs) {
           agentObj = phoneNumber.assignedToAgent;
           // Store Exotel credentials for potential outbound API calls
           agentObj._exotelCredentials = phoneNumber.credentials || {};
-          console.log(`[Database] Loaded Exotel Agent via PhoneNumber: ${agentObj.name}`);
+          log.info('database_agent_loaded', { method: 'exotel_phone_number', name: agentObj.name });
         }
       }
       // Fallback 1: try callSid if it looks like a MongoDB ObjectId
@@ -699,7 +672,7 @@ async function handleExotelStream(exotelWs) {
         const callObj = await Call.findOne({ vapiCallId: callSid }).populate('agentId').lean();
         if (callObj?.agentId) {
           agentObj = callObj.agentId;
-          console.log(`[Database] Loaded Exotel Agent via Call record: ${agentObj.name}`);
+          log.info('database_agent_loaded', { method: 'exotel_call_record', name: agentObj.name });
         }
       }
 
@@ -713,7 +686,7 @@ async function handleExotelStream(exotelWs) {
 
         if (fallbackPhone?.assignedToAgent) {
           agentObj = fallbackPhone.assignedToAgent;
-          console.log(`[Database] Loaded fallback Exotel Agent via PhoneNumber: ${agentObj.name}`);
+          log.info('database_agent_loaded', { method: 'exotel_fallback', name: agentObj.name });
         }
       }
 
@@ -721,15 +694,15 @@ async function handleExotelStream(exotelWs) {
       if (!agentObj) {
         agentObj = await Agent.findOne({ isActive: true }).sort({ updatedAt: -1 }).lean();
         if (agentObj) {
-          console.log(`[Database] Loaded default active Agent for Exotel call: ${agentObj.name}`);
+          log.info('database_agent_loaded', { method: 'exotel_default_active', name: agentObj.name });
         }
       }
     } catch (dbErr) {
-      console.error('[Database] Exotel agent resolution error:', dbErr.message);
+      log.error('exotel_agent_resolution_error', { error: dbErr.message });
     }
 
     if (!agentObj) {
-      console.error('[Exotel] No agent found — cannot start call.');
+      log.error('exotel_no_agent_found');
       exotelWs.close(4001, 'Agent not found');
       return;
     }
@@ -750,7 +723,7 @@ async function handleExotelStream(exotelWs) {
         onInterruption: triggerInterruption,
       });
     } catch (sttErr) {
-      console.error('[Exotel] Deepgram STT init failed:', sttErr.message);
+      log.error('deepgram_stt_init_failed', { error: sttErr.message });
     }
 
     const ownerUser = await User.findById(agentObj.userId).lean();
@@ -772,7 +745,7 @@ async function handleExotelStream(exotelWs) {
     greetingText = result.greetingText;
 
     conversationHistory.push({ role: 'system', content: systemInstructions });
-    console.log(`[Exotel Greeting] "${greetingText}"`);
+    log.info('exotel_greeting', { greeting: greetingText });
     conversationHistory.push({ role: 'assistant', content: greetingText });
     fullTranscript += `Agent: ${greetingText}\n`;
 
@@ -806,7 +779,7 @@ async function handleExotelStream(exotelWs) {
 
       switch (data.event) {
         case 'connected':
-          console.log('[Exotel] Stream connected.');
+          log.info('exotel_stream_connected');
           break;
 
         case 'start':
@@ -814,7 +787,7 @@ async function handleExotelStream(exotelWs) {
           streamSid = data.stream_sid || data.start?.stream_sid || null;
           exotelToNumber = data.start?.to || null;
           callSid = data.start?.call_sid || 'exotel-call';
-          console.log(`[Exotel] Stream started. streamSid=${streamSid}, callSid=${callSid}, from=${data.start?.from}, to=${exotelToNumber}`);
+          log.info('exotel_stream_started', { streamSid, callSid, from: data.start?.from, to: exotelToNumber });
           handleStartCall();
           break;
 
@@ -833,29 +806,29 @@ async function handleExotelStream(exotelWs) {
 
         case 'dtmf':
           // DTMF digits from caller — can be used for menu navigation if needed.
-          console.log(`[Exotel] DTMF digit: ${data.dtmf?.digit}`);
+          log.info('exotel_dtmf', { digit: data.dtmf?.digit });
           break;
 
         case 'mark':
           // Notification that previously sent audio finished playing.
-          console.log(`[Exotel] Mark received: ${data.mark?.name}`);
+          log.info('exotel_mark_received', { name: data.mark?.name });
           break;
 
         case 'stop':
-          console.log(`[Exotel] Stream stop received. Reason: ${data.stop?.reason || 'unknown'}`);
+          log.info('exotel_stream_stopped', { reason: data.stop?.reason || 'unknown' });
           exotelWs.close(1000, 'Exotel stream ended');
           break;
 
         default:
-          console.log(`[Exotel] Unknown event: ${data.event}`);
+          log.info('exotel_unknown_event', { event: data.event });
       }
     } catch (err) {
-      console.error('[Exotel WS Parse Error]', err.message);
+      log.error('exotel_ws_parse_error', { error: err.message });
     }
   });
 
   exotelWs.on('close', async () => {
-    console.log('[Exotel WS] Client closed.');
+    log.info('exotel_connection_closed');
     await runCleanup();
   });
 }
@@ -864,7 +837,7 @@ async function handleExotelStream(exotelWs) {
 // 4. Web Call Connection Handler
 // ==========================================
 async function handleWebCall(clientWs, req) {
-  console.log('[Web Call] Client connection request.');
+  log.info('web_call_connection_request');
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const agentId = parsedUrl.searchParams.get('agentId');
@@ -928,9 +901,9 @@ async function handleWebCall(clientWs, req) {
     callSid = callRecord._id.toString();
     callRecord.vapiCallId = callSid;
     await callRecord.save();
-    console.log(`[Database] Web Call record initialized. CallSid: ${callSid}`);
+    log.info('web_call_record_initialized', { callSid });
   } catch (err) {
-    console.error('[Web Call Setup] Database resolution failed:', err.message);
+    log.error('web_call_setup_error', { error: err.message });
     clientWs.close(4999, 'Database setup error');
     return;
   }
@@ -942,7 +915,7 @@ async function handleWebCall(clientWs, req) {
     // 'clear' events) on every word-by-word interim result.
     if (!isProcessing || isInterrupted) return;
     isInterrupted = true;
-    console.log('[Interruption] Caller barged in — stopping agent playback.');
+    log.info('twilio_interruption', { message: 'Caller barged in — stopping agent playback.' });
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.send(JSON.stringify({ event: 'clear' }));
     }
@@ -973,7 +946,7 @@ async function handleWebCall(clientWs, req) {
         }
       }
     } catch (err) {
-      console.error('[Orchestrator TTS Error] Web call TTS synthesis failed:', err.message);
+      log.error('tts_synthesis_failed', { error: err.message });
     }
   };
 
@@ -1030,7 +1003,7 @@ async function handleWebCall(clientWs, req) {
         return;
       }
     } catch (err) {
-      console.error('[Web Completions Error]', err.message);
+      log.error('web_completions_error', { error: err.message });
       // All providers failed/timed out — speak a recovery line instead of silence.
       if (!isInterrupted) {
         try {
@@ -1062,7 +1035,7 @@ async function handleWebCall(clientWs, req) {
     greetingText = result.greetingText;
 
     conversationHistory.push({ role: 'system', content: systemInstructions });
-    console.log(`[Web Greeting] "${greetingText}"`);
+    log.info('web_greeting', { greeting: greetingText });
     conversationHistory.push({ role: 'assistant', content: greetingText });
     fullTranscript += `Agent: ${greetingText}\n`;
 
@@ -1095,7 +1068,7 @@ async function handleWebCall(clientWs, req) {
   const endCallOnTimeLimit = async () => {
     if (timeLimitReached || cleanedUp) return;
     timeLimitReached = true;
-    console.log('[Web Call] 3.5-minute call limit reached — closing call.');
+    log.info('web_call_time_limit_reached');
     isInterrupted = true;
     if (clientWs.readyState === WebSocket.OPEN) {
       try { clientWs.send(JSON.stringify({ event: 'clear' })); } catch (_) { /* gone */ }
@@ -1126,7 +1099,7 @@ async function handleWebCall(clientWs, req) {
       onInterruption: triggerInterruption,
     });
   } catch (sttErr) {
-    console.error('[Web Call] Deepgram STT failed to initialize:', sttErr.message);
+    log.error('deepgram_stt_init_failed', { error: sttErr.message });
   }
   await handleStartCall();
 
@@ -1137,7 +1110,7 @@ async function handleWebCall(clientWs, req) {
         recorder.writeAudio(audioBuffer, Date.now(), 16000);
         chunkCount++;
         if (chunkCount % 50 === 0 || chunkCount <= 5) {
-          console.log(`[Web Call] Received chunk #${chunkCount}. Length: ${audioBuffer.length} bytes.`);
+          log.info('web_call_audio_chunk', { chunkCount, length: audioBuffer.length });
         }
         if (deepgramWs && deepgramWs.readyState === WebSocket.OPEN) {
           deepgramWs.send(audioBuffer);
@@ -1147,12 +1120,12 @@ async function handleWebCall(clientWs, req) {
         if (data.event === 'stop') clientWs.close();
       }
     } catch (err) {
-      console.error('[Web WS Input Parse Error]', err.message);
+      log.error('web_ws_input_parse_error', { error: err.message });
     }
   });
 
   clientWs.on('close', async () => {
-    console.log('[Web Call WS] Client closed.');
+    log.info('web_call_connection_closed');
     await runCleanup();
   });
 }

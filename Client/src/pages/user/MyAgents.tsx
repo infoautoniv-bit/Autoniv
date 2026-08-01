@@ -114,6 +114,9 @@ function CallMeDialog({
             onClick={onClose}
           />
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Call agent test dialog"
             initial={{ scale: 0.95, opacity: 0, y: 8 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 8 }}
@@ -466,8 +469,8 @@ export function MyAgents() {
         await dispatch(fetchMyAgents({ page, limit: 20 }));
       }
       setPanelOpen(false);
-    } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || err?.message || 'Something went wrong.';
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Something went wrong.';
       setError(errorMsg);
       addToast(errorMsg, 'error');
     } finally {
@@ -567,11 +570,12 @@ export function MyAgents() {
       webCallTimerRef.current = setInterval(() => setWebCallSeconds(prev => prev + 1), 1000);
       webCallMaxDurationRef.current = setTimeout(() => stopWebCall(), 210_000); // 3.5 min duration
       addToast(`Connected with ${agent.name} via Web Call`, 'success');
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to start Web call';
       logger.error('[MyAgents] Web call failed:', err);
       setWebCallMode('error');
-      setWebCallErrorMsg(err?.message || 'Failed to start Web call');
-      addToast(err?.message || 'Failed to start Web call', 'error');
+      setWebCallErrorMsg(message);
+      addToast(message, 'error');
       webCallVapiRef.current = null;
     }
   };
@@ -584,8 +588,8 @@ export function MyAgents() {
       await callService.outbound(callTarget.id, phoneNumber);
       addToast(`Test call initiated to ${phoneNumber} successfully!`, 'success');
       setCallTarget(null);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to initiate call';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to initiate call';
       addToast(msg, 'error');
     } finally {
       setCalling(false);

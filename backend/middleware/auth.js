@@ -48,7 +48,7 @@ export function authenticate(req, res, next) {
 }
 
 export async function authenticateApiKeyOrJwt(req, res, next) {
-  const apiKeyHeader = req.headers['x-api-key'] || req.query.apiKey;
+  const apiKeyHeader = req.headers['x-api-key'];
   const authHeader = req.headers.authorization;
   let apiKey = apiKeyHeader;
 

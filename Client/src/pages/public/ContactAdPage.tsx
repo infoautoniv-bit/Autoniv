@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MetaRobots, PRIVATE_ROBOTS } from '../../components/MetaRobots';
 import PublicNavbar from '../../components/PublicNavbar';
@@ -193,11 +194,11 @@ export function ContactAdPage() {
 
       setRefId(generatedRef);
       setSubmitted(true);
-    } catch (err: any) {
-      setServerError(
-        err.response?.data?.message ||
-          'Failed to submit request. Please check your connection and try again.'
-      );
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err)
+        ? err.response?.data?.message
+        : 'Failed to submit request. Please check your connection and try again.';
+      setServerError(message || 'Failed to submit request. Please check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -385,7 +386,7 @@ export function ContactAdPage() {
                     </div>
 
                     {serverError && (
-                      <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold">
+                      <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold" role="alert">
                         {serverError}
                       </div>
                     )}

@@ -27,7 +27,7 @@ function getGroq() {
 // ─── API Key authentication middleware ───────────────────────────────────────
 async function authenticateApiKey(req, res, next) {
   try {
-    const apiKey = req.headers['x-api-key'] || req.query.apiKey;
+    const apiKey = req.headers['x-api-key'];
     if (!apiKey) {
       return res.status(401).json({ message: 'API key required' });
     }

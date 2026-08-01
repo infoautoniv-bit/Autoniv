@@ -54,7 +54,7 @@ export const MobileBottomNav: React.FC = () => {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[50] bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-1.5 flex items-center justify-around shadow-2xl">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[50] bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-1.5 flex items-center justify-around shadow-2xl" aria-label="Mobile navigation">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
 
@@ -62,6 +62,7 @@ export const MobileBottomNav: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-150 ${
                 isActive
                   ? 'text-blue-400 font-extrabold bg-blue-500/10'
@@ -81,7 +82,7 @@ export const MobileBottomNav: React.FC = () => {
           type="button"
           onClick={() => setShowLogoutModal(true)}
           className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all duration-150"
-          title="Sign Out"
+          aria-label="Sign Out"
         >
           <div className="p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>

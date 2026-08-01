@@ -32,9 +32,11 @@ export function Tooltip({ content, children, position = 'top', disabled = false 
 
   return (
     <div
-      className="relative inline-block w-full"
+      className="relative inline-block"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
+      onFocus={() => setIsVisible(true)}
+      onBlur={() => setIsVisible(false)}
     >
       {children}
       <AnimatePresence>
@@ -44,7 +46,7 @@ export function Tooltip({ content, children, position = 'top', disabled = false 
             animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.15 }}
-            className={`absolute z-50 ${positions[position]} px-2 py-1 bg-[var(--surface-light)] text-xs text-[var(--amber)]50 rounded-lg whitespace-nowrap shadow-lg border border-white/10`}
+            className={`absolute z-50 ${positions[position]} px-2 py-1 bg-[var(--surface-light)] text-xs text-amber-100 rounded-lg whitespace-nowrap shadow-lg border border-white/10`}
           >
             {content}
             <div className={`absolute w-0 h-0 border-4 ${arrows[position]}`}></div>

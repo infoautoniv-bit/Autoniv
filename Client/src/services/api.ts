@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { getCookie, setCookie, deleteCookie } from './cookies';
+import { API_BASE_URL } from '../config/api';
 
 const REQUEST_TIMEOUT_MS = 30000;
 const TOKEN_REFRESH_BUFFER_MS = 30_000;
+
+const BASE_URL = API_BASE_URL;
 
 // ─── CSRF Token Management ──────────────────────────────────────────────────
 let csrfToken: string | null = null;
@@ -36,7 +39,7 @@ async function fetchCsrfToken(forceRefresh = false): Promise<string> {
       }
 
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/csrf-token`,
+        `${BASE_URL}/csrf-token`,
         { 
           withCredentials: true,
           headers
@@ -58,7 +61,7 @@ async function fetchCsrfToken(forceRefresh = false): Promise<string> {
 export { fetchCsrfToken };
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
   timeout: REQUEST_TIMEOUT_MS,
@@ -583,7 +586,7 @@ export const publicLeadService = {
     notes?: string;
   }) =>
     axios.post(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/leads/public`,
+      `${BASE_URL}/leads/public`,
       data,
       { headers: { 'Content-Type': 'application/json' } },
     ),
@@ -756,7 +759,7 @@ export const chatHistoryService = {
 export const publicDemoService = {
   getAgent: () =>
     axios.get(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/agents/public/demo`,
+      `${BASE_URL}/agents/public/demo`,
     ),
 };
 

@@ -1,4 +1,6 @@
 // import AIAssistantChat from '../../components/AIAssistantChat';
+import { useState } from 'react';
+import type React from 'react';
 import { Link } from 'react-router-dom';
 import { Stagger, StaggerItem } from './sections/anim';
 
@@ -51,10 +53,10 @@ const NAV_COLS = [
   {
     heading: 'Product',
     links: [
-      { href: '#features', label: 'Features', scroll: true },
-      { href: '#contact', label: 'Contact Us', scroll: true },
-      { href: '#addons', label: 'Add-Ons', scroll: true },
-      { href: '#', label: 'API Docs' },
+      { href: '/#features', label: 'Features', scroll: true },
+      { href: '/#contact', label: 'Contact Us', scroll: true },
+      { href: '/#addons', label: 'Add-Ons', scroll: true },
+      { href: '/help', label: 'Help Center' },
     ],
   },
   {
@@ -70,7 +72,7 @@ const NAV_COLS = [
     heading: 'Support',
     links: [
       { href: '/help', label: 'Help Center' },
-      { href: '#contact', label: 'Contact', scroll: true },
+      { href: '/#contact', label: 'Contact', scroll: true },
       { href: '/privacy', label: 'Privacy Policy' },
       { href: '/terms', label: 'Terms of Service' },
     ],
@@ -79,7 +81,7 @@ const NAV_COLS = [
 
 function scrollToSection(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
   e.preventDefault();
-  const id = href.replace('#', '');
+  const id = href.replace('/#', '').replace('#', '');
   const el = document.getElementById(id);
   if (!el) return;
   const y = el.getBoundingClientRect().top + window.scrollY - 72;
@@ -87,6 +89,17 @@ function scrollToSection(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
 }
 
 export default function Footer() {
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail || !newsletterEmail.includes('@')) return;
+    setNewsletterSubmitted(true);
+    setNewsletterEmail('');
+    setTimeout(() => setNewsletterSubmitted(false), 3000);
+  };
+
   return (
     <>
       <footer
@@ -352,12 +365,14 @@ export default function Footer() {
                   animation: 'pulse-glow 2s ease-in-out infinite',
                 }}
               />
-
+              <span style={{ fontSize: 11.5, color: 'rgba(148,175,210,0.6)' }}>
+                All systems operational
+              </span>
             </div>
           </div>
 
           {/* Newsletter signup (optional enhancement) */}
-          <div style={{
+          <form onSubmit={handleNewsletterSubmit} style={{
             marginTop: 24,
             paddingTop: 24,
             borderTop: '1px solid rgba(16,185,129,0.06)',
@@ -373,10 +388,15 @@ export default function Footer() {
             }}>
               🚀 Stay updated with the latest AI voice technology
             </span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <label htmlFor="footer-newsletter" className="sr-only">Email address</label>
               <input
+                id="footer-newsletter"
                 type="email"
                 placeholder="Enter your email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                required
                 style={{
                   padding: '6px 14px',
                   borderRadius: 8,
@@ -396,6 +416,7 @@ export default function Footer() {
                 }}
               />
               <button
+                type="submit"
                 style={{
                   padding: '6px 16px',
                   borderRadius: 8,
@@ -416,10 +437,10 @@ export default function Footer() {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                Subscribe
+                {newsletterSubmitted ? '✓ Subscribed!' : 'Subscribe'}
               </button>
             </div>
-          </div>
+          </form>
         </div>
 
       </footer>

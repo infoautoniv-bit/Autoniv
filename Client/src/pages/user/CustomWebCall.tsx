@@ -241,10 +241,9 @@ export function CustomWebCall() {
       an.fftSize = 256;
       analyser.current = an;
 
-      const raw = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      const { API_HOST } = await import('../../config/api');
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      let host = location.host;
-      if (raw.startsWith('http')) host = new URL(raw).host;
+      const host = API_HOST || location.host;
 
       const url = `${proto}//${host}/web-call?agentId=${agentId}`;
       setLogs(p => [...p, { role: 'system', text: `Establishing stream connection to voice lab...`, time: getNowTimeString() }]);

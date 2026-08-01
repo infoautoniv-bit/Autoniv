@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 let fromEmail = process.env.RESEND_FROM;
 if (fromEmail && !fromEmail.includes('@')) {
@@ -41,9 +41,13 @@ function renderEmailTemplate({ title, subtitle, contentHtml, footerNote }) {
                 <!-- Gradient Header -->
                 <tr>
                   <td style="background: linear-gradient(135deg, #1d4ed8, #059669); padding: 28px 32px; text-align: center;">
-                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background-color: rgba(255, 255, 255, 0.2); border-radius: 12px; margin-bottom: 12px; backdrop-filter: blur(8px);">
-                      <span style="color: #ffffff; font-size: 22px; font-weight: 900; letter-spacing: -0.5px;">A</span>
-                    </div>
+                    <table role="presentation" align="center" border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto 12px auto;">
+                      <tr>
+                        <td align="center" valign="middle" width="44" height="44" style="width: 44px; height: 44px; background-color: rgba(255, 255, 255, 0.2); border-radius: 12px; text-align: center; vertical-align: middle; line-height: 44px;">
+                          <span style="color: #ffffff; font-size: 22px; font-weight: 900; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 44px; display: inline-block;">A</span>
+                        </td>
+                      </tr>
+                    </table>
                     <h1 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0; tracking: -0.5px;">Autoniv</h1>
                     <p style="color: rgba(255, 255, 255, 0.85); font-size: 13px; font-weight: 500; margin: 4px 0 0 0;">AI Vocal & Chat Automation Platform</p>
                   </td>
@@ -331,5 +335,59 @@ export async function sendWelcomeEmail({ to, name }) {
     return data;
   } catch (error) {
     console.error('Failed to send welcome email:', error?.message || error);
+  }
+}
+
+export async function sendTeamInviteEmail({ to, inviterName, role }) {
+  if (!to || !to.includes('@')) return null;
+  const safeInviter = escapeHtml(inviterName || 'Your team admin');
+  const roleLabel = escapeHtml(role || 'member');
+
+  const contentHtml = `
+    <p style="color: #e2e8f0; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+      <strong>${safeInviter}</strong> has invited you to join their organization's Autoniv AI workspace as a <strong>${roleLabel}</strong>.
+    </p>
+    <div style="background-color: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 14px; padding: 20px; margin-bottom: 24px;">
+      <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="font-size: 14px; color: #e2e8f0;">
+        <tr>
+          <td style="padding: 8px 0; color: #94a3b8; font-weight: 500;">Workspace Inviter</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 700; color: #ffffff;">${safeInviter}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #94a3b8; font-weight: 500;">Assigned Role</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 700; color: #10b981; text-transform: capitalize;">${roleLabel}</td>
+        </tr>
+      </table>
+    </div>
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="https://autoniv.ai/login" style="display: inline-block; background: linear-gradient(135deg, #1d4ed8, #059669); color: #ffffff; font-weight: 700; font-size: 14px; padding: 14px 28px; border-radius: 12px; text-decoration: none; box-shadow: 0 10px 20px rgba(29, 78, 216, 0.3);">
+        Accept Invitation & Join Team 🚀
+      </a>
+    </div>
+  `;
+
+  const html = renderEmailTemplate({
+    title: `Team Invitation — Autoniv`,
+    subtitle: `You've been invited to collaborate on AI vocal agents and chatbot automation.`,
+    contentHtml,
+    footerNote: 'If you were not expecting this invitation, you can safely ignore this email.',
+  });
+
+  try {
+    if (!resend || !resend.emails) {
+      log.warn('resend_not_configured_skipping_email', { to });
+      return null;
+    }
+    const { data, error } = await resend.emails.send({
+      from: `${fromName} <${fromEmail}>`,
+      to,
+      subject: `Invitation: Join ${safeInviter}'s Team on Autoniv`,
+      html,
+    });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    log.error('team_invite_email_error', { error: error.message, to });
+    return null;
   }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { agentFormSchema } from '../../utils/schemas';
 import { useAppDispatch } from '../../hooks/useStore';
 import { createAgent } from '../../store/slices/agentsSlice';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
@@ -339,6 +340,12 @@ export function CreateCustomAgent() {
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
+    const validation = agentFormSchema.safeParse(formData);
+    if (!validation.success) {
+      const issue = validation.error.issues[0];
+      setError(issue ? issue.message : 'Invalid parameters');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {

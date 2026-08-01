@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { publicLeadService } from '../services/api';
 import { logger } from '../utils/logger';
@@ -489,6 +490,7 @@ type CallMode = 'idle' | 'connecting' | 'active' | 'ended' | 'error';
 type TabName = 'chat' | 'call';
 
 export default function UnifiedAssistantWidget() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState<TabName>('chat');
 
@@ -620,10 +622,9 @@ export default function UnifiedAssistantWidget() {
       an.fftSize = 256;
       analyser.current = an;
 
-      const raw = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      const { API_HOST } = await import('../config/api');
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      let host = window.location.host;
-      if (raw.startsWith('http')) host = new URL(raw).host;
+      const host = API_HOST || window.location.host;
 
       const url = `${proto}//${host}/web-call?agentId=demo`;
       const socket = new WebSocket(url);
@@ -1219,7 +1220,7 @@ export default function UnifiedAssistantWidget() {
                           ))}
                         </div>
                         <button
-                          onClick={() => window.location.href = '/'}
+                          onClick={() => navigate('/')}
                           style={{
                             width: '100%', padding: '11px 16px', borderRadius: 12, cursor: 'pointer',
                             border: 'none', background: T.gradAccent,

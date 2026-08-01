@@ -16,22 +16,22 @@ interface ConfirmDialogProps {
 
 const variants = {
   danger: {
-    icon: 'text-[var(--red)]500',
-    bg: 'bg-[var(--red)]/10',
+    icon: 'text-rose-500',
+    bg: 'bg-rose-500/10',
     border: 'border-rose-500/20',
-    button: 'bg-[var(--red)] hover:bg-rose-600 text-white',
+    button: 'bg-rose-600 hover:bg-rose-700 text-white',
   },
   warning: {
-    icon: 'text-[var(--amber)]500',
-    bg: 'bg-[var(--amber)]/10',
+    icon: 'text-amber-500',
+    bg: 'bg-amber-500/10',
     border: 'border-amber-500/20',
-    button: 'bg-[var(--amber)] hover:bg-amber-600 text-white',
+    button: 'bg-amber-500 hover:bg-amber-600 text-white',
   },
   info: {
-    icon: 'text-[var(--cyan)]500',
-    bg: 'bg-[var(--cyan)]/10',
-    border: 'border-[var(--border)]',
-    button: 'bg-[var(--cyan)] hover-bg-[var(--primary)] text-white',
+    icon: 'text-cyan-500',
+    bg: 'bg-cyan-500/10',
+    border: 'border-cyan-500/20',
+    button: 'bg-cyan-500 hover:bg-cyan-600 text-white',
   },
 };
 
@@ -81,16 +81,8 @@ export function ConfirmDialog({
                     {title}
                   </Dialog.Title>
                   <button onClick={onClose} disabled={loading}
-                    className="p-1 rounded-lg transition-colors disabled:opacity-40"
-                    style={{ color: 'var(--slate-gray)' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'white';
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--slate-gray)';
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}>
+                    className="p-1 rounded-lg transition-colors disabled:opacity-40 text-slate-400 hover:text-white hover:bg-white/5"
+                    aria-label="Close dialog">
                     <XMarkIcon className="w-5 h-5" />
                   </button>
                 </div>
@@ -118,14 +110,12 @@ export function ConfirmDialog({
                   backgroundColor: 'var(--bg)'
                 }}>
                   <button onClick={onClose} disabled={loading}
-                    className="px-4 py-2 text-sm font-medium transition-colors disabled:opacity-40"
-                    style={{ color: 'var(--slate-light)' }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--slate-light)'}>
+                    className="px-4 py-2 text-sm font-medium transition-colors disabled:opacity-40 text-slate-300 hover:text-white">
                     {cancelLabel}
                   </button>
                   <button onClick={onConfirm} disabled={loading}
-                    className={`px-5 py-2 text-sm font-medium rounded-xl transition-all disabled:opacity-50 flex items-center gap-2 ${v.button} ${variant === 'info' ? 'btn-cta' : ''}`}>
+                    className={`px-5 py-2 text-sm font-medium rounded-xl transition-all disabled:opacity-50 flex items-center gap-2 ${v.button}`}
+                    aria-label={loading ? 'Loading...' : confirmLabel}>
                     {loading && (
                       <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

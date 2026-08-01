@@ -1,335 +1,301 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-export interface CommandPaletteProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-}
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CommandItem {
   id: string;
-  category: 'Navigation' | 'Actions' | 'Help & Docs';
   title: string;
-  subtitle?: string;
+  category: 'Navigation' | 'Actions' | 'Create';
   icon: React.ReactNode;
   action: () => void;
   shortcut?: string;
 }
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen: controlledIsOpen, onClose }) => {
-  const [internalIsOpen, setInternalIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+export function CommandPalette() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const navigate = useNavigate();
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
 
   const handleClose = useCallback(() => {
-    if (onClose) {
-      onClose();
-    } else {
-      setInternalIsOpen(false);
-    }
-    setSearchQuery('');
-    setSelectedIndex(0);
-  }, [onClose]);
+    setOpen(false);
+    setQuery('');
+  }, []);
 
-  // Global keydown listener for Ctrl+K or Cmd+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      const isK = e.key?.toLowerCase() === 'k' || e.code === 'KeyK';
+      if ((e.metaKey || e.ctrlKey) && isK) {
         e.preventDefault();
-        if (controlledIsOpen !== undefined && onClose && isOpen) {
-          onClose();
-        } else if (controlledIsOpen === undefined) {
-          setInternalIsOpen((prev) => !prev);
-        }
+        e.stopPropagation();
+        setOpen((prev) => !prev);
+      }
+      if (e.key === 'Escape') {
+        setOpen(false);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [controlledIsOpen, onClose, isOpen]);
+    const handleCustomToggle = () => setOpen((prev) => !prev);
 
-  // Auto focus input when opened
-  useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [isOpen]);
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('toggle-command-palette', handleCustomToggle);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('toggle-command-palette', handleCustomToggle);
+    };
+  }, []);
 
-  const items: CommandItem[] = [
-    // Navigation
-    {
-      id: 'nav-dashboard',
-      category: 'Navigation',
-      title: 'Dashboard Overview',
-      subtitle: 'Analytics, usage metrics, and active calls',
-      icon: (
-        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-      ),
-      action: () => { navigate('/dashboard'); handleClose(); },
-      shortcut: 'G D',
-    },
+  const commands: CommandItem[] = [
     {
       id: 'nav-agents',
+      title: 'Go to AI Voice Agents',
       category: 'Navigation',
-      title: 'Voice Agents',
-      subtitle: 'Configure AI voice assistants & prompts',
+      shortcut: '⌘1',
       icon: (
-        <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
         </svg>
       ),
-      action: () => { navigate('/dashboard/ai-voice-agent'); handleClose(); },
-      shortcut: 'G A',
+      action: () => {
+        navigate('/dashboard/ai-voice-agent');
+        handleClose();
+      },
     },
     {
       id: 'nav-chatbots',
+      title: 'Go to AI Chatbots',
       category: 'Navigation',
-      title: 'AI Chatbots',
-      subtitle: 'Manage website & WhatsApp chatbots',
+      shortcut: '⌘2',
       icon: (
-        <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4z" />
+        <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
         </svg>
       ),
-      action: () => { navigate('/dashboard/ai-chatbot'); handleClose(); },
+      action: () => {
+        navigate('/dashboard/chatbots');
+        handleClose();
+      },
     },
     {
       id: 'nav-calls',
+      title: 'Go to Call Logs & Analytics',
       category: 'Navigation',
-      title: 'Call Logs & Transcripts',
-      subtitle: 'Review audio recordings and voice analytics',
+      shortcut: '⌘3',
       icon: (
-        <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+        <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
         </svg>
       ),
-      action: () => { navigate('/dashboard/calls'); handleClose(); },
-      shortcut: 'G C',
+      action: () => {
+        navigate('/dashboard/calls');
+        handleClose();
+      },
     },
     {
       id: 'nav-leads',
+      title: 'Go to CRM Leads',
       category: 'Navigation',
-      title: 'Leads & CRM',
-      subtitle: 'Captured contacts & qualification pipeline',
+      shortcut: '⌘4',
       icon: (
-        <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       ),
-      action: () => { navigate('/dashboard/leads'); handleClose(); },
-      shortcut: 'G L',
+      action: () => {
+        navigate('/dashboard/leads');
+        handleClose();
+      },
     },
     {
-      id: 'nav-appointments',
+      id: 'nav-billing',
+      title: 'Subscription & Plans',
       category: 'Navigation',
-      title: 'Appointments',
-      subtitle: 'View booked slots & calendar events',
+      shortcut: '⌘5',
       icon: (
-        <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       ),
-      action: () => { navigate('/dashboard/appointment-booking'); handleClose(); },
-    },
-    // Actions
-    {
-      id: 'act-new-agent',
-      category: 'Actions',
-      title: 'Create New Voice Agent',
-      subtitle: 'Build a custom AI phone assistant',
-      icon: (
-        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-      ),
-      action: () => { navigate('/dashboard/ai-voice-agent/new'); handleClose(); },
-      shortcut: 'N A',
+      action: () => {
+        navigate('/dashboard/billing');
+        handleClose();
+      },
     },
     {
-      id: 'act-billing',
-      category: 'Actions',
-      title: 'Manage Subscription & Credits',
-      subtitle: 'View plan limits, usage, and invoices',
+      id: 'create-agent',
+      title: 'Create Custom AI Voice Agent',
+      category: 'Create',
       icon: (
-        <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
         </svg>
       ),
-      action: () => { navigate('/dashboard/billing'); handleClose(); },
+      action: () => {
+        navigate('/dashboard/ai-voice-agent/new-custom');
+        handleClose();
+      },
     },
     {
-      id: 'act-add-ons',
-      category: 'Actions',
-      title: 'Add-ons & Extra Minutes',
-      subtitle: 'Top up calling minutes and chatbots',
+      id: 'create-chatbot',
+      title: 'Build New AI Chatbot',
+      category: 'Create',
       icon: (
-        <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+        <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
         </svg>
       ),
-      action: () => { navigate('/dashboard/add-ons'); handleClose(); },
-    },
-    // Help & Docs
-    {
-      id: 'help-docs',
-      category: 'Help & Docs',
-      title: 'Help Center & Guides',
-      subtitle: 'Step-by-step tutorials & widget installation',
-      icon: (
-        <svg className="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-      ),
-      action: () => { navigate('/help'); handleClose(); },
+      action: () => {
+        navigate('/dashboard/chatbots/new');
+        handleClose();
+      },
     },
   ];
 
-  const filteredItems = items.filter(
-    (item) =>
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.subtitle && item.subtitle.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = commands.filter(
+    (c) =>
+      c.title.toLowerCase().includes(query.toLowerCase()) ||
+      c.category.toLowerCase().includes(query.toLowerCase())
   );
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
 
   const handleKeyDownModal = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev + 1) % Math.max(1, filteredItems.length));
+      setSelectedIndex((prev) => (prev + 1) % (filtered.length || 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % Math.max(1, filteredItems.length));
+      setSelectedIndex((prev) => (prev - 1 + filtered.length) % (filtered.length || 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (filteredItems[selectedIndex]) {
-        filteredItems[selectedIndex].action();
+      if (filtered[selectedIndex]) {
+        filtered[selectedIndex].action();
       }
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      handleClose();
     }
   };
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-950/60 backdrop-blur-sm">
-          {/* Backdrop click to close */}
-          <div className="fixed inset-0" onClick={handleClose} />
-
+      {open && (
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-16 sm:pt-24 px-4">
+          {/* Backdrop overlay with blur */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: -10 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md"
+            onClick={handleClose}
+          />
+
+          {/* Glowing background ambient aura */}
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-48 bg-gradient-to-tr from-blue-600/30 via-indigo-600/20 to-purple-600/30 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Modal Container */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -10 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            exit={{ opacity: 0, scale: 0.95, y: -12 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             onKeyDown={handleKeyDownModal}
+            className="relative w-full max-w-xl bg-[#0F172A]/90 border border-slate-700/60 rounded-2xl shadow-2xl shadow-blue-900/30 backdrop-blur-2xl overflow-hidden z-10 ring-1 ring-white/10"
           >
             {/* Search Input Bar */}
-            <div className="relative flex items-center px-4 py-3.5 border-b border-slate-200 dark:border-slate-800">
-              <svg className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <div className="flex items-center px-4 py-3.5 border-b border-slate-700/50 bg-slate-900/60">
+              <svg className="w-5 h-5 text-blue-400 shrink-0 mr-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
-                ref={inputRef}
+                autoFocus
                 type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setSelectedIndex(0);
-                }}
-                placeholder="Type a command or search..."
-                className="w-full bg-transparent text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm font-medium focus:outline-none"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search commands, agents, chatbots, leads..."
+                className="w-full text-sm text-slate-100 placeholder-slate-400 bg-transparent focus:outline-none font-medium tracking-wide"
               />
-              <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 text-xs font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-                ESC
-              </kbd>
+              {query ? (
+                <button
+                  onClick={() => setQuery('')}
+                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              ) : (
+                <kbd className="px-2 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-slate-800/80 rounded-md border border-slate-700/60 shrink-0">
+                  ESC
+                </kbd>
+              )}
             </div>
 
-            {/* Results List */}
-            <div className="max-h-[360px] overflow-y-auto p-2 divide-y divide-slate-100 dark:divide-slate-800/60">
-              {filteredItems.length === 0 ? (
-                <div className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                  No matching commands found for <span className="font-semibold text-slate-700 dark:text-slate-200">"{searchQuery}"</span>
+            {/* Command Items List */}
+            <div className="max-h-80 overflow-y-auto p-2 space-y-1 scrollbar-thin">
+              {filtered.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400 font-medium">
+                  No matching commands found for <span className="text-blue-400 font-bold">"{query}"</span>
                 </div>
               ) : (
-                (['Navigation', 'Actions', 'Help & Docs'] as const).map((cat) => {
-                  const catItems = filteredItems.filter((i) => i.category === cat);
-                  if (catItems.length === 0) return null;
-
+                filtered.map((item, index) => {
+                  const isSelected = index === selectedIndex;
                   return (
-                    <div key={cat} className="py-1.5">
-                      <div className="px-3 py-1 text-[11px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
-                        {cat}
+                    <button
+                      key={item.id}
+                      onClick={item.action}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-left text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-blue-600/25 via-indigo-600/15 to-transparent border border-blue-500/40 text-white shadow-md shadow-blue-900/20 translate-x-0.5'
+                          : 'text-slate-300 border border-transparent hover:bg-slate-800/50 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg border transition-all ${
+                          isSelected
+                            ? 'bg-blue-500/20 border-blue-400/40 text-blue-300 shadow-inner'
+                            : 'bg-slate-800/60 border-slate-700/50 text-slate-400'
+                        }`}>
+                          {item.icon}
+                        </div>
+                        <span className="tracking-wide">{item.title}</span>
                       </div>
-                      <div className="space-y-0.5">
-                        {catItems.map((item) => {
-                          const globalIdx = filteredItems.findIndex((fi) => fi.id === item.id);
-                          const isSelected = globalIdx === selectedIndex;
 
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={item.action}
-                              onMouseEnter={() => setSelectedIndex(globalIdx)}
-                              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-colors duration-150 ${
-                                isSelected
-                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100'
-                                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-800 dark:text-slate-200'
-                              }`}
-                            >
-                              <div className="flex items-center space-x-3 min-w-0">
-                                <div className={`p-2 rounded-lg shrink-0 ${isSelected ? 'bg-white dark:bg-slate-800 shadow-sm' : 'bg-slate-100 dark:bg-slate-800/80'}`}>
-                                  {item.icon}
-                                </div>
-                                <div className="truncate">
-                                  <div className="text-sm font-semibold leading-snug">{item.title}</div>
-                                  {item.subtitle && (
-                                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle}</div>
-                                  )}
-                                </div>
-                              </div>
-                              {item.shortcut && (
-                                <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/90 rounded border border-slate-200 dark:border-slate-700">
-                                  {item.shortcut}
-                                </kbd>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                      {item.shortcut && (
+                        <kbd className={`px-2 py-1 text-[10px] font-mono font-extrabold rounded-md border transition-all ${
+                          isSelected
+                            ? 'bg-blue-500/30 text-blue-200 border-blue-400/50 shadow-sm'
+                            : 'bg-slate-800/80 text-slate-400 border-slate-700/60'
+                        }`}>
+                          {item.shortcut}
+                        </kbd>
+                      )}
+                    </button>
                   );
                 })
               )}
             </div>
 
-            {/* Footer */}
-            <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <div className="flex items-center space-x-3">
+            {/* Footer hints */}
+            <div className="px-4 py-3 bg-slate-950/70 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-medium">
+              <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1 py-0.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-[10px] font-bold">↑</kbd>
-                  <kbd className="px-1 py-0.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-[10px] font-bold">↓</kbd>
-                  <span className="ml-0.5">Navigate</span>
+                  <kbd className="px-1.5 py-0.5 text-[9px] font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded">↑</kbd>
+                  <kbd className="px-1.5 py-0.5 text-[9px] font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded">↓</kbd>
+                  Navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1 py-0.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-[10px] font-bold">↵</kbd>
-                  <span className="ml-0.5">Select</span>
+                  <kbd className="px-1.5 py-0.5 text-[9px] font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded">↵</kbd>
+                  Select
                 </span>
               </div>
-              <div>
-                Press <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-[10px] font-bold">Ctrl + K</kbd> anytime
-              </div>
+              <span className="text-slate-500 font-mono text-[10px]">Autoniv Command Palette</span>
             </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
   );
-};
+}
+
+export default CommandPalette;

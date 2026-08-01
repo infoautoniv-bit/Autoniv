@@ -17,7 +17,7 @@ interface ToastContainerProps {
 
 export function ToastContainer({ toasts, remove }: ToastContainerProps) {
   return (
-    <div className="fixed top-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none" role="status" aria-live="polite" aria-atomic="false">
       <AnimatePresence>
         {toasts.map(t => {
           const colors = TOAST_COLORS[t.type];
@@ -29,6 +29,7 @@ export function ToastContainer({ toasts, remove }: ToastContainerProps) {
               exit={{ opacity: 0, x: 60, scale: 0.88 }}
               transition={spring}
               onClick={() => remove(t.id)}
+              role="alert"
               className="pointer-events-auto flex items-center gap-3 px-5 py-3.5 rounded-xl border cursor-pointer select-none shadow-md backdrop-blur-md bg-white/95"
               style={{
                 borderColor: colors.border,

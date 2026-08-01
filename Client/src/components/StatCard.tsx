@@ -37,25 +37,16 @@ export function StatCard({ label, value, icon, trend, color = 'primary', onClick
   return (
     <div
       onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       className={`relative overflow-hidden border rounded-2xl p-6 transition-all duration-300 ${
-        onClick ? 'cursor-pointer' : ''
+        onClick ? 'cursor-pointer hover:shadow-lg hover:border-white/10' : ''
       }`}
       style={{
         backgroundColor: 'var(--s1)',
         borderColor: 'rgba(255, 255, 255, 0.05)',
         boxShadow: `0 1px 3px rgba(0,0,0,0.2)`,
-      }}
-      onMouseEnter={e => {
-        if (onClick) {
-          (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 32px ${c.glow}`;
-          (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.1)';
-        }
-      }}
-      onMouseLeave={e => {
-        if (onClick) {
-          (e.currentTarget as HTMLElement).style.boxShadow = `0 1px 3px rgba(0,0,0,0.2)`;
-          (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.05)';
-        }
       }}
     >
       {/* Subtle gradient accent bar */}

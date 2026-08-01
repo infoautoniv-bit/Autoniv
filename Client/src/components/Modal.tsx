@@ -22,7 +22,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-100" onClose={onClose}>
+      <Dialog as="div" className="relative z-[100]" onClose={onClose}>
         {/* ── Backdrop ── */}
         <Transition.Child
           as={Fragment}
@@ -33,7 +33,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-md" />
+          <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -76,6 +76,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
                                bg-white/[0.03] hover:bg-white/[0.06]
                                border border-white/[0.06] hover:border-white/[0.12]
                                hover:scale-105 active:scale-95"
+                    aria-label="Close"
                   >
                     <XMarkIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                   </button>
@@ -100,21 +101,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
                     {footer}
                   </div>
                 )}
-                <style>{`
-                  .custom-scrollbar::-webkit-scrollbar {
-                    width: 5px;
-                  }
-                  .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                  }
-                  .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 99px;
-                  }
-                  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: rgba(16, 185, 129, 0.3);
-                  }
-                `}</style>
+
               </Dialog.Panel>
             </Transition.Child>
           </div>
@@ -162,18 +149,8 @@ export function ModalButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`${base} ${variants[variant]}`}
+      className={`${base} ${variants[variant]} ${variant === 'primary' ? 'hover:shadow-[0_8px_28px_rgba(16,185,129,0.30)]' : ''}`}
       style={primaryStyle}
-      onMouseEnter={(e) => {
-        if (variant === 'primary') {
-          e.currentTarget.style.boxShadow = '0 8px 28px rgba(16,185,129,0.30), inset 0 1px 0 rgba(255,255,255,0.15)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (variant === 'primary') {
-          e.currentTarget.style.boxShadow = '0 4px 20px rgba(16,185,129,0.20), inset 0 1px 0 rgba(255,255,255,0.12)';
-        }
-      }}
       {...props}
     >
       {children}

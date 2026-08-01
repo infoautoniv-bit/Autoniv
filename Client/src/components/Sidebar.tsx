@@ -6,7 +6,6 @@ import { logout, checkAuth } from '../store/slices/authSlice';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from './Modal';
-import { CommandPalette } from './CommandPalette';
 import { userService, authService } from '../services/api';
 import type { User } from '../types';
 import { isChatPlan, isVoicePlan } from '../utils/plan';
@@ -383,7 +382,7 @@ const UserSection: React.FC<{
   };
 
   return (
-    <div className="p-3 border-t border-white/5 space-y-3" ref={dropdownRef}>
+    <div className="p-3 pb-3 border-t border-white/5 space-y-3 flex-shrink-0 mt-auto" ref={dropdownRef}>
       {/* User Info Card */}
       <motion.div
         whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
@@ -402,7 +401,7 @@ const UserSection: React.FC<{
             }}>
             {initials}
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[var(--primary-soft)]0 rounded-full animate-pulse"
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"
             style={{ borderColor: 'var(--s1)', borderWidth: '2px' }} />
         </div>
 
@@ -735,7 +734,6 @@ export const Sidebar = memo(function Sidebar() {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useLocalStorage('sidebarCollapsed', false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -860,10 +858,9 @@ export const Sidebar = memo(function Sidebar() {
       <div className="px-3 pt-2 pb-1">
         <button
           type="button"
-          onClick={() => setCmdPaletteOpen(true)}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-white/60 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all ${
-            isCollapsed && !forceExpanded ? 'justify-center px-2' : ''
-          }`}
+          onClick={() => window.dispatchEvent(new CustomEvent('toggle-command-palette'))}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-white/60 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all ${isCollapsed && !forceExpanded ? 'justify-center px-2' : ''
+            }`}
           title="Search or type a command (Ctrl+K)"
         >
           <div className="flex items-center space-x-2">
@@ -881,7 +878,7 @@ export const Sidebar = memo(function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Dashboard navigation">
         {navItems.map((item, index) => (
           <NavLinkItem
             key={item.path}
@@ -901,8 +898,6 @@ export const Sidebar = memo(function Sidebar() {
 
   return (
     <>
-      <CommandPalette isOpen={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
-
       {/* Mobile Menu Button */}
       <motion.button
         initial={false}
@@ -962,7 +957,7 @@ export const Sidebar = memo(function Sidebar() {
         animate={{ width: isCollapsed ? 80 : 256 }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
         className="hidden md:flex flex-col flex-shrink-0 sticky top-0 h-screen
-                   bg-[#050d1a] border-r border-white/5 shadow-2xl z-20 overflow-y-auto"
+                   bg-[#050d1a] border-r border-white/5 shadow-2xl z-20 overflow-hidden"
       >
         {/* Collapse/Expand Toggle Button */}
         <button

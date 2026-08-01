@@ -279,7 +279,16 @@ const userSchema = new mongoose.Schema(
     otpPurpose:      { type: String, default: null, select: false },
     passwordChangedAt: { type: Date,   default: null },
     lastLoginAt:     { type: Date,   default: null },
-    lastLoginIp:     { type: String, default: null },
+    teamLimit: { type: Number, default: 5 },
+    teamMembers: [
+      {
+        name: { type: String, required: true },
+        email: { type: String, required: true },
+        role: { type: String, enum: ['admin', 'member', 'agent'], default: 'member' },
+        status: { type: String, default: 'active' },
+        addedAt: { type: Date, default: Date.now },
+      }
+    ],
 
     apiKey: { type: String, default: null, select: false },
   },

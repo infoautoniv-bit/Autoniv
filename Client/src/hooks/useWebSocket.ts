@@ -137,12 +137,15 @@ export const useWebSocket = ({
           return;
         }
 
-        // Auto reconnect logic with exponential backoff
+        // Auto reconnect logic with exponential backoff + jitter
         if (autoReconnect && retryCountRef.current < maxRetries) {
-          const delay = Math.min(
+          const baseDelay = Math.min(
             initialDelayMs * Math.pow(backoffFactor, retryCountRef.current),
             maxDelayMs
           );
+          // Add jitter (±25%) to prevent thundering herd
+          const jitter = baseDelay * 0.25 * (Math.random() * 2 - 1);
+          const delay = Math.max(0, Math.round(baseDelay + jitter));
           retryCountRef.current += 1;
           setReconnectAttempt(retryCountRef.current);
           setStatus('reconnecting');

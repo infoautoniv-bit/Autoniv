@@ -1,10 +1,40 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Sentry from '@sentry/react';
 import { store } from './store';
 import App from './App.tsx';
 import { PlanSyncProvider } from './components/PlanSyncProvider';
+import { CookieConsent } from './components/CookieConsent';
 import './index.css';
+
+// ─── Sentry init (only in production with DSN configured) ────────────────
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
+if (SENTRY_DSN && import.meta.env.PROD) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: import.meta.env.MODE,
+    tracesSampleRate: 0.1,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false }),
+    ],
+    replaysSessionSampleRate: 0.01,
+    replaysOnErrorSampleRate: 1.0,
+  });
+}
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
 function loadFonts() {
   const sheets = [
     '@fontsource/inter/latin-400.css',
@@ -24,51 +54,22 @@ function loadFonts() {
   });
 }
 
-// ─── Dynamic tracking script loaders — deferred until page is idle ────────────
-// Wrapping in requestIdleCallback (with setTimeout fallback) ensures these
-// 158 kB third-party scripts never block LCP or FCP on the critical path.
-function loadTrackers() {
-  const gaId = import.meta.env.VITE_GA_ID;
-  if (gaId && gaId.startsWith('G-')) {
-    const gaScript = document.createElement('script');
-    gaScript.async = true;
-    gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
-    document.head.appendChild(gaScript);
-
-    const w = window as any;
-    w.dataLayer = w.dataLayer || [];
-    w.gtag = function (...args: any[]) { w.dataLayer.push(args); };
-    w.gtag('js', new Date());
-    w.gtag('config', gaId);
-  }
-
-  const clarityId = import.meta.env.VITE_CLARITY_ID;
-  if (clarityId && clarityId.length > 5 && !clarityId.includes('%')) {
-    const w = window as any;
-    w.clarity = w.clarity || function (...args: any[]) {
-      (w.clarity.q = w.clarity.q || []).push(args);
-    };
-    const clarityScript = document.createElement('script');
-    clarityScript.async = true;
-    clarityScript.src = 'https://www.clarity.ms/tag/' + clarityId;
-    document.head.appendChild(clarityScript);
-  }
-}
-
+// ─── Load fonts on idle (trackers are now loaded via CookieConsent after consent) ──
 if ('requestIdleCallback' in window) {
-  (window as any).requestIdleCallback(loadTrackers, { timeout: 4000 });
-  (window as any).requestIdleCallback(loadFonts, { timeout: 2000 });
+  (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback(loadFonts, { timeout: 2000 });
 } else {
-  setTimeout(loadTrackers, 3000);
   setTimeout(loadFonts, 500);
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <PlanSyncProvider>
-        <App />
-      </PlanSyncProvider>
+      <QueryClientProvider client={queryClient}>
+        <PlanSyncProvider>
+          <App />
+          <CookieConsent />
+        </PlanSyncProvider>
+      </QueryClientProvider>
     </Provider>
   </React.StrictMode>
 );

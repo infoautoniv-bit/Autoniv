@@ -516,13 +516,13 @@ export function AboutUS() {
                     alt="Rajnesh Yadav - Founder & CEO of Autoniv" 
                     width={500}
                     height={500}
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover',
-                    }}
+                    loading="lazy"
+                    className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.currentTarget.style.display = 'none';
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      const fallback = target.parentElement?.querySelector('.fallback-initials') as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
                     }}
                   />
                   
@@ -537,6 +537,7 @@ export function AboutUS() {
                       textShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     }}
                     className="fallback-initials"
+                    aria-hidden="true"
                   >
                     RY
                   </span>

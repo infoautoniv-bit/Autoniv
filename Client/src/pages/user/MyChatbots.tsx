@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { chatbotService } from '../../services/api';
 import ActiveAddOnsBanner from '../../components/ActiveAddOnsBanner';
 
@@ -46,34 +47,26 @@ interface Chatbot {
 type Toast = { id: number; text: string; kind: 'success' | 'error' };
 
 export function MyChatbots() {
-  const [chatbots, setChatbots] = useState<Chatbot[]>([]);
-  const [limit, setLimit] = useState<number>(-1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'active' | 'inactive' | 'whatsapp' | 'widget'>('all');
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [pendingDelete, setPendingDelete] = useState<Chatbot | null>(null);
   const toastId = useRef(0);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const { data } = await chatbotService.list({ limit: 50 });
-        if (!active) return;
-        setChatbots(data.chatbots || []);
-        if (typeof data.limit === 'number') setLimit(data.limit);
-      } catch {
-        if (active) setError('Failed to load chatbots list');
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { data: queryData, isLoading, error: queryError } = useQuery({
+    queryKey: ['chatbots'],
+    queryFn: async () => {
+      const res = await chatbotService.list({ limit: 50 });
+      return res.data;
+    },
+  });
+
+  const rawChatbots = queryData?.chatbots;
+  const chatbots = useMemo<Chatbot[]>(() => rawChatbots || [], [rawChatbots]);
+  const limit: number = typeof queryData?.limit === 'number' ? queryData.limit : -1;
+  const loading = isLoading;
+  const error = queryError ? 'Failed to load chatbots list' : '';
 
   const pushToast = useCallback((text: string, kind: Toast['kind'] = 'success') => {
     const id = ++toastId.current;
@@ -81,32 +74,40 @@ export function MyChatbots() {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2600);
   }, []);
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => chatbotService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chatbots'] });
+    },
+    onError: () => {
+      pushToast('Failed to delete chatbot from server', 'error');
+      queryClient.invalidateQueries({ queryKey: ['chatbots'] });
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, current }: { id: string; current: boolean }) =>
+      chatbotService.update(id, { isActive: !current }),
+    onSuccess: (_, variables) => {
+      pushToast(!variables.current ? 'Chatbot activated' : 'Chatbot paused');
+      queryClient.invalidateQueries({ queryKey: ['chatbots'] });
+    },
+    onError: () => {
+      pushToast('Failed to update status', 'error');
+      queryClient.invalidateQueries({ queryKey: ['chatbots'] });
+    },
+  });
+
   async function confirmDelete() {
     if (!pendingDelete) return;
     const target = pendingDelete;
-    setPendingDelete(null); // Close modal instantly from UI
-
-    // Optimistic UI deletion in 0ms!
-    setChatbots((prev) => prev.filter((c) => c._id !== target._id));
+    setPendingDelete(null);
     pushToast(`"${target.name}" deleted successfully`, 'success');
-
-    // Run HTTP delete in background without blocking UI
-    try {
-      await chatbotService.delete(target._id);
-    } catch {
-      pushToast('Failed to delete chatbot from server', 'error');
-    }
+    deleteMutation.mutate(target._id);
   }
 
   async function handleToggle(id: string, current: boolean) {
-    setChatbots((prev) => prev.map((c) => (c._id === id ? { ...c, isActive: !current } : c)));
-    try {
-      await chatbotService.update(id, { isActive: !current });
-      pushToast(!current ? 'Chatbot activated' : 'Chatbot paused');
-    } catch {
-      setChatbots((prev) => prev.map((c) => (c._id === id ? { ...c, isActive: current } : c)));
-      pushToast('Failed to update status', 'error');
-    }
+    toggleMutation.mutate({ id, current });
   }
 
   function copyEmbedCode(id: string) {

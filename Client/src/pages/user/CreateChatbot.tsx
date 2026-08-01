@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { chatbotFormSchema } from '../../utils/schemas';
 import { chatbotService } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -402,13 +403,20 @@ export function CreateChatbot() {
     if (e) e.preventDefault();
     setError('');
 
-    if (!name.trim()) {
-      setActiveStep('overview');
-      return setError('Please enter a chatbot name');
-    }
-    if (!systemPrompt.trim()) {
-      setActiveStep('personality');
-      return setError('Please configure a system prompt or select a template');
+    const validation = chatbotFormSchema.safeParse({
+      name: name.trim(),
+      description: description.trim(),
+      systemPrompt: systemPrompt.trim(),
+      welcomeMessage: welcomeMessage.trim(),
+      brandColor,
+      brandLogo: brandLogo.trim() || null,
+    });
+
+    if (!validation.success) {
+      const issue = validation.error.issues[0];
+      if (issue.path.includes('name')) setActiveStep('overview');
+      if (issue.path.includes('systemPrompt')) setActiveStep('personality');
+      return setError(issue ? issue.message : 'Please check required fields');
     }
 
     setLoading(true);

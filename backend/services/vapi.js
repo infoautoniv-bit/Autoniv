@@ -19,7 +19,7 @@ function getVapiApiKey() {
   return key;
 }
 
-async function vapiRequest(endpoint, method = 'GET', body = null) {
+async function vapiRequest(endpoint, method = 'GET', body = null, retries = 2) {
   const url = `${VAPI_BASE_URL}${endpoint}`;
   const options = {
     method,
@@ -27,22 +27,32 @@ async function vapiRequest(endpoint, method = 'GET', body = null) {
       Authorization: `Bearer ${getVapiApiKey()}`,
       'Content-Type': 'application/json',
     },
+    signal: AbortSignal.timeout(10000),
   };
   if (body !== null && !['GET', 'HEAD', 'DELETE'].includes(method)) {
     options.body = JSON.stringify(body);
   }
   let response;
-  try {
-    response = await fetch(url, options);
-  } catch (networkErr) {
-    throw new Error(`[vapi] Network error calling ${method} ${url}: ${networkErr.message}`);
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      response = await fetch(url, options);
+      if (response.status === 204) return null;
+      if (!response.ok) {
+        const text = await response.text().catch(() => '(no body)');
+        throw new Error(`[vapi] ${method} ${endpoint} => ${response.status}: ${text}`);
+      }
+      return await response.json();
+    } catch (networkErr) {
+      lastErr = networkErr;
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 500));
+        continue;
+      }
+      throw new Error(`[vapi] Network error calling ${method} ${url}: ${networkErr.message}`);
+    }
   }
-  if (response.status === 204) return null;
-  if (!response.ok) {
-    const text = await response.text().catch(() => '(no body)');
-    throw new Error(`[vapi] ${method} ${endpoint} => ${response.status}: ${text}`);
-  }
-  return response.json();
+  throw lastErr;
 }
 
 const VOICE_TONE_GUIDE = `

@@ -38,11 +38,21 @@ export function buildCors() {
     const isFacebookWebhook = path.startsWith('/api/webhooks/facebook');
     const isChatbotWidget = path.startsWith('/api/chatbot-widget');
 
-    if (isWhatsAppWebhook || isTelegramWebhook || isFacebookWebhook || isChatbotWidget) {
+    if (isWhatsAppWebhook || isTelegramWebhook || isFacebookWebhook) {
       cb(null, {
-        origin: '*',
+        origin: "*",
         methods: ['GET', 'POST', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'X-Hub-Signature-256'],
+        maxAge: 600,
+      });
+      return;
+    }
+
+    if (isChatbotWidget) {
+      cb(null, {
+        origin: origin || '*',
+        methods: ['GET', 'POST', 'OPTIONS'],
+        allowedHeaders: ['Content-Type'],
         maxAge: 600,
       });
       return;
@@ -179,8 +189,8 @@ function appendDebugLog(event, details) {
   try {
     const logPath = path.resolve('csrf-debug.log');
     const logLine = `${new Date().toISOString()} [${event}] ${JSON.stringify(details)}\n`;
-    fs.appendFileSync(logPath, logLine);
-  } catch (err) {
+    fs.appendFile(logPath, logLine, () => {});
+  } catch {
     // Ignore log write errors
   }
 }
