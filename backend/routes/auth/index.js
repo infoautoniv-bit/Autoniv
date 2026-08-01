@@ -343,16 +343,15 @@ router.get('/plan-status', authenticate, async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: 'User not found. Please log in again.', code: 'USER_NOT_FOUND' });
     }
-    const plans = resolvePlans(user);
+    const resolved = resolvePlans(user);
     return res.json({
-      plan: user.plan || 'chat_free',
-      chatPlan: user.chatPlan || 'chat_free',
-      voicePlan: user.voicePlan || 'none',
-      chatEnabled: user.chatEnabled ?? true,
-      voiceEnabled: user.voiceEnabled ?? false,
+      plan: user.plan || resolved.chatPlan,
+      chatPlan: resolved.chatPlan,
+      voicePlan: resolved.voicePlan,
+      chatEnabled: user.chatEnabled ?? (resolved.chatPlan !== 'none'),
+      voiceEnabled: user.voiceEnabled ?? (resolved.voicePlan !== 'none'),
       minutesUsed: user.minutesUsed || 0,
       callsUsed: user.callsUsed || 0,
-      plans,
     });
   } catch (error) {
     log.error('plan_status_error', { error: error.message });
