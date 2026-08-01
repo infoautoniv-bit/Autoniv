@@ -658,7 +658,7 @@ router.get('/voiceWidget.js', (req, res) => {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
-        utterance.lang = 'en-US';
+        utterance.lang = (navigator && navigator.language) ? navigator.language : 'en-US';
         window.speechSynthesis.speak(utterance);
       }
     }
@@ -678,7 +678,7 @@ router.get('/voiceWidget.js', (req, res) => {
           recognition = new SpeechRecognition();
           recognition.continuous = true;
           recognition.interimResults = false;
-          recognition.lang = 'en-US';
+          recognition.lang = (navigator && navigator.language) ? navigator.language : 'en-US';
 
           recognition.onresult = async (event) => {
             const transcript = event.results[event.results.length - 1][0].transcript;

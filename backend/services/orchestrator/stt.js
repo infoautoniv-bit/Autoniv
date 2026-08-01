@@ -2,9 +2,30 @@ import WebSocket from 'ws';
 import { log } from '../logger.js';
 
 const LANGUAGE_MAP = {
-  en: 'en-IN', hi: 'hi', ta: 'ta', te: 'te',
-  bn: 'bn', gu: 'gu', kn: 'kn', ml: 'ml',
-  mr: 'mr', pa: 'pa', or: 'or',
+  en: 'en-IN',
+  hi: 'hi',
+  ta: 'ta',
+  te: 'te',
+  bn: 'bn',
+  gu: 'gu',
+  kn: 'kn',
+  ml: 'ml',
+  mr: 'mr',
+  pa: 'pa',
+  or: 'or',
+  es: 'es',
+  fr: 'fr',
+  de: 'de',
+  it: 'it',
+  pt: 'pt',
+  pl: 'pl',
+  ar: 'ar',
+  ja: 'ja',
+  ko: 'ko',
+  zh: 'zh',
+  nl: 'nl',
+  ru: 'ru',
+  tr: 'tr',
 };
 
 export function getLangCode(language) {
@@ -172,8 +193,7 @@ export function createDeepgramSTT({ agentObj, encoding, sampleRate, logPrefix, o
   }
 
   const langCode = getLangCode(agentObj?.language || 'en');
-  const langParam = (agentObj?.language === 'en' || !agentObj?.language) ? 'multi' : langCode;
-  const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langParam}&encoding=${encoding}&sample_rate=${sampleRate}&interim_results=true&endpointing=350&utterance_end_ms=1000&vad_events=true&smart_format=true`;
+  const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langCode}&encoding=${encoding}&sample_rate=${sampleRate}&interim_results=true&endpointing=350&utterance_end_ms=1000&vad_events=true&smart_format=true`;
 
   const wrapper = new ReconnectingDeepgramWS(
     deepgramUrl,

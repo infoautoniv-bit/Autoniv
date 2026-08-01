@@ -328,8 +328,9 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     }
 
     const targetLangCode = languageCodes[language];
-    const sampleRate = fmt.sampleRate || 8000;
-    const outputCodec = fmt.encoding || 'linear16';
+    const isTelephony = fmt.encoding === 'mulaw' || fmt.encoding === 'ulaw';
+    const sampleRate = isTelephony ? 8000 : 16000;
+    const outputCodec = isTelephony ? 'mulaw' : 'linear16';
 
     let sarvamModel = 'bulbul:v3';
     let speaker = 'shreya';
@@ -447,7 +448,7 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
 
     if (fmt.encoding !== 'mulaw') {
       const pcmBuffer = Buffer.from(base64Audio, 'base64');
-      const wavBuffer = addWavHeader(pcmBuffer, fmt.sampleRate || 24000, 1, 16);
+      const wavBuffer = addWavHeader(pcmBuffer, 16000, 1, 16);
       return wavBuffer.toString('base64');
     }
 

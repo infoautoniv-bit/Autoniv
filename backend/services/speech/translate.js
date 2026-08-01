@@ -1,7 +1,10 @@
 export const LANGUAGE_NAMES = {
   en: 'English', hi: 'Hindi', ta: 'Tamil', te: 'Telugu',
   bn: 'Bengali', gu: 'Gujarati', kn: 'Kannada', ml: 'Malayalam',
-  mr: 'Marathi', pa: 'Punjabi', or: 'Odia',
+  mr: 'Marathi', pa: 'Punjabi', or: 'Odia', es: 'Spanish',
+  fr: 'French', de: 'German', it: 'Italian', pt: 'Portuguese',
+  pl: 'Polish', ar: 'Arabic', ja: 'Japanese', ko: 'Korean',
+  zh: 'Chinese', nl: 'Dutch', ru: 'Russian', tr: 'Turkish',
 };
 
 export async function translateText(text, targetLang) {
