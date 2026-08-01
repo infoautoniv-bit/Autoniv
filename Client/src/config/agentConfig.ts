@@ -2,13 +2,22 @@ import { VOICE_OPTIONS } from './voices';
 
 export const LANGUAGE_OPTIONS = [
   { value: 'en', label: '🇺🇸 English' },
+  { value: 'hi', label: '🇮🇳 Hindi (हिंदी)' },
+  { value: 'ta', label: '🇮🇳 Tamil (தமிழ்)' },
+  { value: 'te', label: '🇮🇳 Telugu (తెలుగు)' },
+  { value: 'mr', label: '🇮🇳 Marathi (मराठी)' },
+  { value: 'bn', label: '🇮🇳 Bengali (বাংলা)' },
+  { value: 'gu', label: '🇮🇳 Gujarati (ગુજરાતી)' },
+  { value: 'kn', label: '🇮🇳 Kannada (ಕನ್ನಡ)' },
+  { value: 'ml', label: '🇮🇳 Malayalam (മലയാളം)' },
+  { value: 'pa', label: '🇮🇳 Punjabi (ਪੰਜਾਬੀ)' },
+  { value: 'or', label: '🇮🇳 Odia (ଓଡ଼ିଆ)' },
   { value: 'es', label: '🇪🇸 Spanish' },
   { value: 'fr', label: '🇫🇷 French' },
   { value: 'de', label: '🇩🇪 German' },
   { value: 'it', label: '🇮🇹 Italian' },
   { value: 'pt', label: '🇵🇹 Portuguese' },
   { value: 'pl', label: '🇵🇱 Polish' },
-  { value: 'hi', label: '🇮🇳 Hindi' },
   { value: 'ar', label: '🇸🇦 Arabic' },
   { value: 'ja', label: '🇯🇵 Japanese' },
   { value: 'ko', label: '🇰🇷 Korean' },
@@ -54,6 +63,16 @@ export const PROMPT_TEMPLATES = [
 ];
 
 export const AGENT_TEMPLATES = [
+  {
+    title: 'हिंदी AI रिसेप्शनिस्ट (Hindi Agent)',
+    description: 'भारतीय ग्राहकों के लिए प्राकृतिक हिंदी में बात करने वाला AI एजेंट।',
+    type: 'receptionist',
+    prompt: 'आप एक बहुत ही विनम्र और पेशेवर AI रिसेप्शनिस्ट हैं। कॉल करने वाले ग्राहक का स्वागत करें, उनका नाम, फोन नंबर और ईमेल दर्ज करें और उनकी सहायता करें।',
+    language: 'hi',
+    voiceId: 'sarvam:bulbul:v3:shreya',
+    icon: '🇮🇳',
+    borderClass: 'border-l-orange-500 hover:border-orange-300',
+  },
   {
     title: 'Front-Desk Receptionist',
     description: 'Greets callers warmly, captures names, phone numbers, and routes business messages.',

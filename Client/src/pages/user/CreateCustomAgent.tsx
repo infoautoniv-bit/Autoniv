@@ -12,34 +12,7 @@ import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
 import { phoneNumberService } from '../../services/api';
 import { logger } from '../../utils/logger';
-
-// ── Constants ──────────────────────────────────────────────────────────────
-const LANGUAGE_OPTIONS = [
-  { value: 'en', label: '🇺🇸 English' },
-  { value: 'hi', label: '🇮🇳 Hindi' },
-  { value: 'bn', label: '🇮🇳 Bengali' },
-  { value: 'te', label: '🇮🇳 Telugu' },
-  { value: 'ta', label: '🇮🇳 Tamil' },
-  { value: 'mr', label: '🇮🇳 Marathi' },
-  { value: 'gu', label: '🇮🇳 Gujarati' },
-  { value: 'kn', label: '🇮🇳 Kannada' },
-  { value: 'ml', label: '🇮🇳 Malayalam' },
-  { value: 'pa', label: '🇮🇳 Punjabi' },
-  { value: 'or', label: '🇮🇳 Odia' },
-  { value: 'es', label: '🇪🇸 Spanish' },
-  { value: 'fr', label: '🇫🇷 French' },
-  { value: 'de', label: '🇩🇪 German' },
-  { value: 'it', label: '🇮🇹 Italian' },
-  { value: 'pt', label: '🇵🇹 Portuguese' },
-  { value: 'pl', label: '🇵🇱 Polish' },
-  { value: 'ar', label: '🇸🇦 Arabic' },
-  { value: 'ja', label: '🇯🇵 Japanese' },
-  { value: 'ko', label: '🇰🇷 Korean' },
-  { value: 'zh', label: '🇨🇳 Chinese' },
-  { value: 'nl', label: '🇳🇱 Dutch' },
-  { value: 'ru', label: '🇷🇺 Russian' },
-  { value: 'tr', label: '🇹🇷 Turkish' },
-];
+import { LANGUAGE_OPTIONS } from '../../config/agentConfig';
 
 
 

@@ -14,25 +14,7 @@ import type { Agent, PhoneNumber } from '../../types';
 import { createPortal } from 'react-dom';
 import { agentService, phoneNumberService } from '../../services/api';
 import { logger } from '../../utils/logger';
-
-// ── Constants ──────────────────────────────────────────────────────────────
-const LANGUAGE_OPTIONS = [
-  { value: 'en', label: '🇺🇸 English' },
-  { value: 'es', label: '🇪🇸 Spanish' },
-  { value: 'fr', label: '🇫🇷 French' },
-  { value: 'de', label: '🇩🇪 German' },
-  { value: 'it', label: '🇮🇹 Italian' },
-  { value: 'pt', label: '🇵🇹 Portuguese' },
-  { value: 'pl', label: '🇵🇱 Polish' },
-  { value: 'hi', label: '🇮🇳 Hindi' },
-  { value: 'ar', label: '🇸🇦 Arabic' },
-  { value: 'ja', label: '🇯🇵 Japanese' },
-  { value: 'ko', label: '🇰🇷 Korean' },
-  { value: 'zh', label: '🇨🇳 Chinese' },
-  { value: 'nl', label: '🇳🇱 Dutch' },
-  { value: 'ru', label: '🇷🇺 Russian' },
-  { value: 'tr', label: '🇹🇷 Turkish' },
-];
+import { LANGUAGE_OPTIONS } from '../../config/agentConfig';
 
 const AGENT_TYPES = [
   {

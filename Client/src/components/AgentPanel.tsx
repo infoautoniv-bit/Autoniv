@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { VoicePreviewButton } from './VoicePreviewButton';
 import { VOICE_OPTIONS } from '../config/voices';
 import { PROMPT_TEMPLATES } from '../config/agentPrompts';
+import { LANGUAGE_OPTIONS } from '../config/agentConfig';
 import { agentService, phoneNumberService } from '../services/api';
 import { logger } from '../utils/logger';
 import type { Agent, PhoneNumber as SavedPhoneNumber } from '../types';
@@ -15,24 +16,6 @@ interface PhoneNumber {
   assistantId: string | null;
   status: string;
 }
-
-const LANGUAGE_OPTIONS = [
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'fr', label: 'French' },
-  { value: 'de', label: 'German' },
-  { value: 'it', label: 'Italian' },
-  { value: 'pt', label: 'Portuguese' },
-  { value: 'pl', label: 'Polish' },
-  { value: 'hi', label: 'Hindi' },
-  { value: 'ar', label: 'Arabic' },
-  { value: 'ja', label: 'Japanese' },
-  { value: 'ko', label: 'Korean' },
-  { value: 'zh', label: 'Chinese' },
-  { value: 'nl', label: 'Dutch' },
-  { value: 'ru', label: 'Russian' },
-  { value: 'tr', label: 'Turkish' },
-];
 
 const ENGINE_OPTIONS = [
   { value: 'groq:llama-3.3-70b', label: 'Groq Llama-3.3-70b' },

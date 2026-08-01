@@ -5,14 +5,23 @@ import { logger } from '../utils/logger';
 
 const LANGUAGE_SAMPLES: Record<string, string> = {
   en: "Hello, this is your AI voice agent speaking. How can I help you today?",
+  hi: "नमस्ते, मैं आपका AI वॉइस असिस्टेंट हूं। आज मैं आपकी कैसे मदद कर सकता हूं?",
+  ta: "வணக்கம், நான் உங்கள் AI குரல் உதவியாளர். இன்று உங்களுக்கு எவ்வாறு உதவ முடியும்?",
+  te: "நமஸ்காரம், நேனு மீ AI வாய்ஸ் அசிஸ்டெண்ட். நேடு மீகு ஏవిధంగా సహాయపడగలను?",
+  mr: "नमस्कार, मी तुमचा AI व्हॉइस असिस्टंट आहे. आज मी तुम्हाला कशी मदत करू शकतो?",
+  bn: "নমস্কার, আমি আপনার AI ভয়েস সহকারী। আজ আমি আপনাকে কীভাবে সাহায্য করতে পারি?",
+  gu: "નમસ્તે, હું તમારો AI વોઇસ આસિસ્ટન્ટ છું. આજે હું તમને કેવી રીતે મદદ કરી શકું?",
+  kn: "ನಮಸ್ಕಾರ, ನಾನು ನಿಮ್ಮ AI ಧ್ವನಿ ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
+  ml: "നമസ്കാരം, ഞാൻ നിങ്ങളുടെ AI വോയ്സ് അസിസ്റ്റന്റാണ്. ഇന്ന് ഞാൻ നിങ്ങളെ എങ്ങനെ സഹായിക്കും?",
+  pa: "ਸਤਿ ਸ਼੍ਰੀ ਅਕਾਲ, ਮੈਂ ਤੁਹਾਡਾ AI ਵੌਇਸ ਸਹਾਇਕ ਹਾਂ। ਅੱਜ ਮੈਂ ਤੁਹਾਡੀ ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ?",
+  or: "ନମସ୍କାର, ମୁଁ ଆପଣଙ୍କର AI ଭଏସ୍ ସହାୟକ। ଆଜି ମୁଁ ଆପଣଙ୍କୁ କିପରି ସାହାଯ୍ୟ କରିପାରିବି?",
   es: "Hola, soy tu asistente de voz con inteligencia artificial. ¿Cómo puedo ayudarte hoy?",
   fr: "Bonjour, je suis votre assistant vocal IA. Comment puis-je vous aider aujourd'hui ?",
   de: "Hallo, ich bin Ihr KI-Sprachassistent. Wie kann ich Ihnen heute helfen?",
   it: "Ciao, sono il tuo assistente vocale AI. Come posso aiutarti oggi?",
   pt: "Olá, sou seu assistente de voz IA. Como posso ajudá-lo hoje?",
   pl: "Cześć, jestem twoim asystentem głosowym AI. Jak mogę ci dzisiaj pomóc?",
-  hi: "नमस्ते, मैं आपका AI वॉइस असिस्टेंट हूं। आज मैं आपकी कैसे मदद कर सकता हूं?",
-  ar: "مرحبًا، أنا مساعد الصوت الذكي الخاص بك. كيف يمكنني مساعدتك اليوم? ",
+  ar: "مرحبًا، أنا مساعد الصوت الذكي الخاص بك. كيف يمكنني مساعدتك اليوم?",
   ja: "こんにちは、私はあなたのAI音声アシスタントです。今日はどのようにお手伝いできますか？",
   ko: "안녕하세요, 저는 당신의 AI 음성 어시스턴트입니다. 오늘 어떻게 도와드릴까요？",
   zh: "你好，我是你的AI语音助手。今天我能怎么帮助你？",
@@ -58,10 +67,8 @@ export function VoicePreviewButton({ voiceId, language, prompt }: VoicePreviewBu
     setMode('connecting');
 
     try {
-      // Keep it short (max 100 chars) so synthesis is fast and instant
-      const rawFirstMessage = (prompt && prompt.trim().length > 0)
-        ? prompt.trim().slice(0, 100)
-        : (LANGUAGE_SAMPLES[language] || LANGUAGE_SAMPLES.en);
+      // Always use language-native sample text so voice preview speaks in the selected language
+      const rawFirstMessage = LANGUAGE_SAMPLES[language] || (prompt && prompt.trim().length > 0 ? prompt.trim().slice(0, 100) : LANGUAGE_SAMPLES.en);
 
       const response = await ttsService.preview(voiceId, language, rawFirstMessage);
       
