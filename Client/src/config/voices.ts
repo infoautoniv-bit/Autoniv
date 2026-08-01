@@ -93,13 +93,12 @@ export const VOICE_OPTIONS: VoiceOption[] = [
 
 ];
 
-export function getVoicesForLanguage(language: string): VoiceOption[] {
-  const indicLangs = ['hi', 'ta', 'te', 'mr', 'bn', 'gu', 'kn', 'ml', 'pa', 'or'];
-  // If language is an Indic language, bubble up Sarvam AI and Indian voices first
-  if (indicLangs.includes(language)) {
-    const indicVoices = VOICE_OPTIONS.filter(v => v.value.includes('sarvam') || v.value.includes('hi-IN') || v.value.includes('en-IN') || v.value.includes('vapi:Rohan') || v.value.includes('vapi:Sagar') || v.value.includes('vapi:Neil') || v.value.includes('vapi:Naina'));
-    const otherVoices = VOICE_OPTIONS.filter(v => !indicVoices.includes(v));
-    return [...indicVoices, ...otherVoices];
+export const INDIC_LANGUAGES = ['hi', 'ta', 'te', 'mr', 'bn', 'gu', 'kn', 'ml', 'pa', 'or'];
+
+export function getVoicesForLanguage(language?: string): VoiceOption[] {
+  if (!language) return VOICE_OPTIONS;
+  if (INDIC_LANGUAGES.includes(language)) {
+    return VOICE_OPTIONS.filter(v => v.value.startsWith('sarvam:') || v.value.includes('sarvam'));
   }
   return VOICE_OPTIONS;
 }

@@ -240,7 +240,12 @@ export function CustomWebCall() {
       mic.current = stream;
 
       const AC = window.AudioContext || (window as any).webkitAudioContext;
-      const ac = new AC();
+      let ac: AudioContext;
+      try {
+        ac = new AC({ sampleRate: 16000 });
+      } catch (_) {
+        ac = new AC();
+      }
       ctx.current = ac;
       if (ac.state === 'suspended') await ac.resume();
       nextT.current = ac.currentTime;
@@ -275,16 +280,36 @@ export function CustomWebCall() {
         src.connect(an);
 
         p.onaudioprocess = e => {
-          const d = e.inputBuffer.getChannelData(0);
+          const input = e.inputBuffer.getChannelData(0);
           let s = 0;
-          for (let i = 0; i < d.length; i++) s += d[i] * d[i];
-          setRms(Math.sqrt(s / d.length));
+          for (let i = 0; i < input.length; i++) s += input[i] * input[i];
+          setRms(Math.sqrt(s / input.length));
 
-          const pcm = new Int16Array(d.length);
-          for (let i = 0; i < d.length; i++) pcm[i] = Math.max(-1, Math.min(1, d[i])) * 0x7fff;
+          const inputRate = ac.sampleRate;
+          const targetRate = 16000;
+          let pcm: Int16Array;
+
+          if (inputRate === targetRate) {
+            pcm = new Int16Array(input.length);
+            for (let i = 0; i < input.length; i++) {
+              pcm[i] = Math.max(-1, Math.min(1, input[i])) * 0x7fff;
+            }
+          } else {
+            const ratio = inputRate / targetRate;
+            const outputLen = Math.floor(input.length / ratio);
+            const resampled = new Float32Array(outputLen);
+            for (let i = 0; i < outputLen; i++) {
+              const idx = Math.floor(i * ratio);
+              resampled[i] = input[idx];
+            }
+            pcm = new Int16Array(resampled.length);
+            for (let i = 0; i < resampled.length; i++) {
+              pcm[i] = Math.max(-1, Math.min(1, resampled[i])) * 0x7fff;
+            }
+          }
 
           if (socket.readyState === WebSocket.OPEN) {
-            socket.send(pcm.buffer);
+            socket.send(pcm.buffer as ArrayBuffer);
           }
         };
       };

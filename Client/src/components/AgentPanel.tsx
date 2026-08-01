@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { VoicePreviewButton } from './VoicePreviewButton';
-import { VOICE_OPTIONS } from '../config/voices';
+import { getVoicesForLanguage } from '../config/voices';
 import { PROMPT_TEMPLATES } from '../config/agentPrompts';
 import { LANGUAGE_OPTIONS } from '../config/agentConfig';
 import { agentService, phoneNumberService } from '../services/api';
@@ -247,9 +247,15 @@ export function AgentPanel({
   open, onClose, editing, formData, setFormData, onSubmit, submitting,
   onAssignPhone, onUnlinkPhone,
 }: AgentPanelProps) {
-  const filteredVoices = formData.useCustomEngine ? VOICE_OPTIONS : VOICE_OPTIONS.filter(v => !v.value.startsWith('sarvam:'));
+  const filteredVoices = useMemo(() => getVoicesForLanguage(formData.language), [formData.language]);
   const agentTypeMeta = AGENT_TYPES.find((t) => t.value === formData.type) || AGENT_TYPES[0];
   const showConnectTab = !!(editing && onAssignPhone);
+
+  useEffect(() => {
+    if (filteredVoices.length > 0 && !filteredVoices.some(v => v.value === formData.voiceId)) {
+      setFormData((prev: any) => ({ ...prev, voiceId: filteredVoices[0].value }));
+    }
+  }, [formData.language, filteredVoices]);
 
   const [tab, setTab] = useState<TabId>('identity');
   const [voiceHover, setVoiceHover] = useState(false);

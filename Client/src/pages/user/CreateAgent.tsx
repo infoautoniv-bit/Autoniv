@@ -6,9 +6,7 @@ import { createAgent } from '../../store/slices/agentsSlice';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
 import { AgentCard } from '../../components/AgentCard';
-import { VOICE_OPTIONS } from '../../config/voices';
-
-const VAPI_VOICE_OPTIONS = VOICE_OPTIONS;
+import { VOICE_OPTIONS, getVoicesForLanguage } from '../../config/voices';
 import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import type { Agent, PhoneNumber } from '../../types';
 import { createPortal } from 'react-dom';
@@ -59,7 +57,7 @@ const AGENT_TYPES = [
 ];
 
 const DEFAULT_FORM_DATA = {
-  name: '', type: 'receptionist', prompt: '', language: 'en', voiceId: VAPI_VOICE_OPTIONS[0].value,
+  name: '', type: 'receptionist', prompt: '', language: 'en', voiceId: VOICE_OPTIONS[0].value,
   phoneNumberId: '',
   phoneNumber: '',
   twilioAccountSid: '',
@@ -314,8 +312,8 @@ export function CreateAgent() {
     fetchPhoneNumbers();
   }, []);
 
-  const filteredVoices = VAPI_VOICE_OPTIONS;
-  const voiceOpt  = VAPI_VOICE_OPTIONS.find(v => v.value === formData.voiceId);
+  const filteredVoices = getVoicesForLanguage(formData.language);
+  const voiceOpt  = filteredVoices.find(v => v.value === formData.voiceId) || filteredVoices[0];
   let voiceName = 'Default';
   if (voiceOpt) {
     const firstPart = voiceOpt.label.split(' - ')[0];
@@ -593,7 +591,7 @@ export function CreateAgent() {
                 <SelectInput
                   value={formData.voiceId}
                   onChange={v => patch({ voiceId: v })}
-                  options={VAPI_VOICE_OPTIONS}
+                  options={filteredVoices}
                 />
 
                 {/* Voice indicator */}

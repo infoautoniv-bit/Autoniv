@@ -7,7 +7,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AgentCard } from '../../components/AgentCard';
 import type { Agent, PhoneNumber } from '../../types';
 import { createPortal } from 'react-dom';
-import { VOICE_OPTIONS } from '../../config/voices';
+import { getVoicesForLanguage } from '../../config/voices';
 import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
 import { phoneNumberService } from '../../services/api';
@@ -296,10 +296,17 @@ export function CreateCustomAgent() {
         }
       : DEFAULT_FORM_DATA
   );
-  const selectedVoiceOpt = VOICE_OPTIONS.find(v => v.value === formData.voiceId);
+  const filteredVoices = getVoicesForLanguage(formData.language);
+  const selectedVoiceOpt = filteredVoices.find(v => v.value === formData.voiceId) || filteredVoices[0];
   const selectedVoiceName = selectedVoiceOpt ? selectedVoiceOpt.label.split(' (')[0] : 'Sarvam Bulbul';
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
+
+  useEffect(() => {
+    if (filteredVoices.length > 0 && !filteredVoices.some(v => v.value === formData.voiceId)) {
+      setFormData(prev => ({ ...prev, voiceId: filteredVoices[0].value }));
+    }
+  }, [formData.language, filteredVoices]);
 
   const [savedPhoneNumbers, setSavedPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [phoneMode, setPhoneMode] = useState<'saved' | 'direct'>('saved');
@@ -575,7 +582,7 @@ export function CreateCustomAgent() {
                 <SelectInput
                   value={formData.voiceId}
                   onChange={v => patch({ voiceId: v })}
-                  options={VOICE_OPTIONS}
+                  options={filteredVoices}
                 />
 
                 {/* Voice indicator */}
