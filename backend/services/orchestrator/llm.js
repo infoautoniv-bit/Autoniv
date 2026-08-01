@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { getToolDefinitions, executeTool } from '../crm/appointmentTools.js';
+import { getToolDefinitions, executeTool } from '../appointmentTools.js';
 import { log } from '../logger.js';
 
 const GROQ_MODEL_ALIASES = {
