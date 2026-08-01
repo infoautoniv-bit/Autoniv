@@ -336,4 +336,25 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
+router.get('/plan-status', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).lean();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const plans = resolvePlans(user);
+    return res.json({
+      plan: user.plan || 'chat_free',
+      chatPlan: user.chatPlan || 'chat_free',
+      voicePlan: user.voicePlan || 'none',
+      chatEnabled: user.chatEnabled ?? true,
+      voiceEnabled: user.voiceEnabled ?? false,
+      minutesUsed: user.minutesUsed || 0,
+      callsUsed: user.callsUsed || 0,
+      plans,
+    });
+  } catch (error) {
+    log.error('plan_status_error', { error: error.message });
+    return res.status(500).json({ message: 'Failed to fetch plan status' });
+  }
+});
+
 export default router;
