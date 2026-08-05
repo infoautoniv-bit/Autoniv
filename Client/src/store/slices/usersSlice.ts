@@ -3,7 +3,7 @@ import type { User } from '../../types';
 import { userService } from '../../services/api.users';
 import type { PaginationMeta } from '../../components/Pagination';
 
-interface UsersState {
+export interface UsersState {
   items: User[];
   pagination: PaginationMeta;
   loading: boolean;

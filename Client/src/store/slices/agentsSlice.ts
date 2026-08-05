@@ -5,7 +5,7 @@ import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 import { loadFromSession, saveToSession } from '../../utils/storage';
 
-interface AgentsState {
+export interface AgentsState {
   items: Agent[];
   myAgents: Agent[];
   pagination: PaginationMeta;

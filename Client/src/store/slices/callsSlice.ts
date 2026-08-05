@@ -4,7 +4,7 @@ import { callService } from '../../services/api.calls';
 import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
-interface CallsState {
+export interface CallsState {
   items: Call[];
   myCalls: Call[];
   pagination: PaginationMeta;

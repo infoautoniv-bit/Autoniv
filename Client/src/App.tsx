@@ -11,6 +11,7 @@ import { MetaRobots, PUBLIC_ROBOTS, PRIVATE_ROBOTS } from './components/MetaRobo
 import { isChatPlan, isVoicePlan } from './utils/plan';
 import { STUDIES } from './pages/public/caseStudiesData';
 import { injectSchema, ORGANIZATION_SCHEMA, WEBSITE_SCHEMA, SOFTWARE_APPLICATION_SCHEMA } from './utils/schema';
+import { loadAdminSlices } from './store';
 
 const UnifiedAssistantWidget = lazy(() => import('./components/UnifiedAssistantWidget'));
 
@@ -321,6 +322,11 @@ const ProtectedRoute = memo(function ProtectedRoute({
   const { user, isAdmin } = useAuth();
   const initialized = useAppSelector((s) => s.auth.initialized);
   const token = useAppSelector((s) => s.auth.token);
+
+  // Eagerly load admin slices when user is authenticated — runs once
+  useEffect(() => {
+    if (user) loadAdminSlices();
+  }, [user]);
 
   if (token && !initialized) return <LoadingScreen />;
   if (!user) return <Navigate to="/" replace />;

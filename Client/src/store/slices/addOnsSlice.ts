@@ -5,7 +5,7 @@ import type { PaginationParams } from '../../services/api.base';
 import { STATIC_ADDON_CATALOG } from '../../data/addOnCatalog';
 import type { PaginationMeta } from '../../components/Pagination';
 
-interface AddOnsState {
+export interface AddOnsState {
   catalog: AddOnCatalogEntry[];
   my: UserAddOn[];
   all: UserAddOn[];

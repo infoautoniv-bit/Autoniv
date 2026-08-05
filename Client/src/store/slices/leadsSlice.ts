@@ -4,7 +4,7 @@ import { leadService } from '../../services/api.leads';
 import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
-interface LeadsState {
+export interface LeadsState {
   items: Lead[];
   myLeads: Lead[];
   publicLeads: Lead[];

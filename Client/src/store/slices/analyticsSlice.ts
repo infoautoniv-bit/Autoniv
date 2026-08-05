@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import type { Stats, MyStats, TrendPoint, PeriodOverview } from '../../types';
 import { analyticsService } from '../../services/api.analytics';
 
-interface AnalyticsState {
+export interface AnalyticsState {
   overview: Stats | null;
   myStats: MyStats | null;
   usage: Array<{ id: string; name: string; plan: string; minutesUsed: number; minutesLimit: number; callCount: number; calcMinutes: number }>;

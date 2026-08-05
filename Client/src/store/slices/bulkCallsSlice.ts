@@ -4,7 +4,7 @@ import { bulkCallService } from '../../services/api.bulkCalls';
 import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
-interface BulkCallsState {
+export interface BulkCallsState {
   myCampaigns: BulkCampaign[];
   activeCampaign: BulkCampaign | null;
   myPagination: PaginationMeta;
