@@ -13,6 +13,7 @@ export default defineConfig({
     cssMinify: true,
     chunkSizeWarningLimit: 1000,
     sourcemap: 'hidden',
+    modulePreload: false,
     rollupOptions: {
       output: {
         manualChunks(id: string) {

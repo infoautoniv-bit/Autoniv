@@ -240,6 +240,7 @@ export function PublicNavbar() {
               width={180}
               height={120}
               fetchPriority="high"
+              loading="eager"
               decoding="async"
               className="h-30 sm:h-30 w-auto object-contain transition-transform hover:scale-105"
             />
