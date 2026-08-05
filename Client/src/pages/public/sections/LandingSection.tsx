@@ -1,10 +1,11 @@
 import { useState, lazy, Suspense, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { PublicNavbar } from "../../../components/PublicNavbar";
-import Footer from "../Footer";
 import { USPSlider } from "./USPSlider";
 import { DeferRender } from "../../../components/DeferRender";
 import { Hero } from "./Hero/Hero";
+
+const Footer = lazy(() => import("../Footer"));
 
 const Features = lazy(() => import("./Features").then(m => ({ default: m.Features })));
 const Services = lazy(() => import("./ServicesSection").then(m => ({ default: m.Services })));
@@ -141,7 +142,9 @@ export function LandingSection() {
           </div>
         </div>
       </main>
-      <Footer />
+      <Suspense fallback={<div style={{ minHeight: 200 }} />}>
+        <Footer />
+      </Suspense>
 
       <Suspense fallback={null}>
         <AuthDialog

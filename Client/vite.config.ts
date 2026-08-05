@@ -32,10 +32,7 @@ export default defineConfig({
           if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
             return 'charts';
           }
-          // Landing page & section components
-          if (id.includes('pages/public/sections') || id.includes('pages/public/AuthDialog')) {
-            return 'landing';
-          }
+
           // Feature product pages
           if (
             id.includes('pages/public/AiVoiceAgent') ||

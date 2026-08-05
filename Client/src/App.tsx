@@ -17,7 +17,7 @@ import { injectSchema, ORGANIZATION_SCHEMA, WEBSITE_SCHEMA, SOFTWARE_APPLICATION
 const UnifiedAssistantWidget = lazy(() => import('./components/UnifiedAssistantWidget'));
 const CommandPalette = lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
 
-const Landing = lazy(() => import('./pages/public/sections/LandingSection').then(m => ({ default: m.LandingSection })));
+import { LandingSection as Landing } from './pages/public/sections/LandingSection';
 const Login = lazy(() => import('./pages/public/Login').then(m => ({ default: m.Login })));
 const Register = lazy(() => import('./pages/public/Register').then(m => ({ default: m.Register })));
 const UserDashboard = lazy(() => import('./pages/user/UserDashboard').then(m => ({ default: m.UserDashboard })));
@@ -480,7 +480,11 @@ function AppRoutes() {
     [user]
   );
 
-  if (token && !initialized) return <LoadingScreen />;
+  const isProtectedRoute = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname === '/onboarding';
+
+  // Only block rendering for protected routes that actually need auth.
+  // Public pages (landing, pricing, blog, etc.) render immediately.
+  if (token && !initialized && isProtectedRoute) return <LoadingScreen />;
 
   return (
     <Suspense fallback={<LoadingScreen />}>
