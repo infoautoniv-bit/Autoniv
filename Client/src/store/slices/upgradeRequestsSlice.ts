@@ -4,7 +4,7 @@ import { upgradeRequestService } from '../../services/api.upgradeRequests';
 import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
-export interface UpgradeRequestsState {
+interface UpgradeRequestsState {
   my: UpgradeRequest[];
   all: UpgradeRequest[];
   pagination: PaginationMeta;

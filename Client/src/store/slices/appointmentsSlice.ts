@@ -4,7 +4,7 @@ import { appointmentService } from '../../services/api.appointments';
 import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
-export interface AppointmentsState {
+interface AppointmentsState {
   items: Appointment[];
   myAppointments: Appointment[];
   pagination: PaginationMeta;

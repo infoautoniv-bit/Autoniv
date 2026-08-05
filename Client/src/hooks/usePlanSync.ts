@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from './useStore';
 import { updatePlan } from '../store/slices/authSlice';
-import { authService } from '../services/api.auth';
+import { authService } from '../services/api';
 
 const POLL_INTERVAL_MS = 10_000;
 

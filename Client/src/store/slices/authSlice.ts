@@ -16,7 +16,7 @@ export interface DashboardStats {
   totalMinutes?: number;
 }
 
-export interface AuthState {
+interface AuthState {
   user: User | null;
   token: string | null;
   refreshToken: string | null;
