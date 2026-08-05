@@ -635,9 +635,8 @@ export default function UnifiedAssistantWidget() {
       an.fftSize = 256;
       analyser.current = an;
 
-      const { API_HOST } = await import('../config/api');
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = API_HOST || window.location.host;
+      const host = window.location.host;
 
       const url = `${proto}//${host}/web-call?agentId=demo`;
       const socket = new WebSocket(url);
