@@ -3,10 +3,11 @@ import { useLocation } from "react-router-dom";
 import { PublicNavbar } from "../../../components/PublicNavbar";
 import Footer from "../Footer";
 import { USPSlider } from "./USPSlider";
-import { Features } from "./Features";
-import { Services } from "./ServicesSection";
 import { DeferRender } from "../../../components/DeferRender";
 import { Hero } from "./Hero/Hero";
+
+const Features = lazy(() => import("./Features").then(m => ({ default: m.Features })));
+const Services = lazy(() => import("./ServicesSection").then(m => ({ default: m.Services })));
 
 const Demo = lazy(() => import("./Demo/Demo").then(m => ({ default: m.Demo })));
 
@@ -70,10 +71,18 @@ export function LandingSection() {
                 <Demo />
               </Suspense>
             </DeferRender>
-              <div id="feature">
-                <Features />
-              </div>
-              <Services openAuth={openAuth} />
+            <DeferRender height={500} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+                <div id="feature">
+                  <Features />
+                </div>
+              </Suspense>
+            </DeferRender>
+            <DeferRender height={600} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 600 }} />}>
+                <Services openAuth={openAuth} />
+              </Suspense>
+            </DeferRender>
             <DeferRender height={500} forceRender={forceRender}>
               <Suspense fallback={<div style={{ minHeight: 500 }} />}>
                 <Comparison />

@@ -54,7 +54,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://i.pravatar.cc" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
 
   <!-- font-display:swap — prevents FOIT when webfonts are deferred -->
   <style>
@@ -168,19 +168,37 @@
     }
     </script>
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18349392281"></script>
+  <!-- Google tag (gtag.js) — deferred to after page load so it doesn't compete with FCP/LCP -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'AW-18349392281');
+    window.addEventListener('load', function() {
+      var s = document.createElement('script');
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=AW-18349392281';
+      s.async = true;
+      document.head.appendChild(s);
+      gtag('js', new Date());
+      gtag('config', 'AW-18349392281');
+    });
   </script>
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Inline critical loading skeleton — gives browser immediate FCP before React boots -->
+    <div id="preload-shell" style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:radial-gradient(900px 500px at 50% 30%,#131a2e 0%,#0b1120 55%,#060912 100%)">
+      <div style="width:200px;height:48px;border-radius:12px;background:linear-gradient(90deg,rgba(99,102,241,.08),rgba(99,102,241,.18),rgba(99,102,241,.08));background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite"></div>
+      <div style="display:flex;align-items:center;gap:6px;height:48px">
+        <span style="display:block;width:5px;height:32px;border-radius:999px;background:linear-gradient(180deg,#10b981,#3b82f6);animation:eq .82s ease-in-out infinite"></span>
+        <span style="display:block;width:5px;height:40px;border-radius:999px;background:linear-gradient(180deg,#10b981,#3b82f6);animation:eq .7s ease-in-out .15s infinite"></span>
+        <span style="display:block;width:5px;height:28px;border-radius:999px;background:linear-gradient(180deg,#10b981,#3b82f6);animation:eq .95s ease-in-out .05s infinite"></span>
+        <span style="display:block;width:5px;height:44px;border-radius:999px;background:linear-gradient(180deg,#10b981,#3b82f6);animation:eq .76s ease-in-out .25s infinite"></span>
+        <span style="display:block;width:5px;height:36px;border-radius:999px;background:linear-gradient(180deg,#10b981,#3b82f6);animation:eq .88s ease-in-out .1s infinite"></span>
+      </div>
+      <span style="font-family:system-ui,sans-serif;font-size:12px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(148,163,184,.75)">Loading</span>
+      <style>@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes eq{0%,100%{transform:scaleY(.28);opacity:.7}50%{transform:scaleY(1);opacity:1}}</style>
+    </div>
+  </div>
   <!-- Facebook JS SDK root (WhatsApp Embedded Signup) -->
   <div id="fb-root"></div>
   <script type="module" src="/src/main.tsx"></script>

@@ -2,26 +2,29 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import * as Sentry from '@sentry/react';
 import { store } from './store';
 import App from './App.tsx';
 import { PlanSyncProvider } from './components/PlanSyncProvider';
 import { CookieConsent } from './components/CookieConsent';
 import './index.css';
 
-// ─── Sentry init (only in production with DSN configured) ────────────────
+// ─── Sentry init (deferred to after load so it doesn't block FCP/LCP) ─────
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 if (SENTRY_DSN && import.meta.env.PROD) {
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    environment: import.meta.env.MODE,
-    tracesSampleRate: 0.1,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false }),
-    ],
-    replaysSessionSampleRate: 0.01,
-    replaysOnErrorSampleRate: 1.0,
+  window.addEventListener('load', () => {
+    import('@sentry/react').then((Sentry) => {
+      Sentry.init({
+        dsn: SENTRY_DSN,
+        environment: import.meta.env.MODE,
+        tracesSampleRate: 0.1,
+        integrations: [
+          Sentry.browserTracingIntegration(),
+          Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false }),
+        ],
+        replaysSessionSampleRate: 0.01,
+        replaysOnErrorSampleRate: 1.0,
+      });
+    });
   });
 }
 
