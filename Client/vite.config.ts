@@ -57,9 +57,9 @@ export default defineConfig({
           if (id.includes('pages/public/CaseStudies') || id.includes('pages/public/CaseStudyDetail')) {
             return 'public-cases';
           }
-          // Shared UI components — separate from admin pages
-          if (id.includes('src/components/')) {
-            return 'shared-components';
+          // Vapi Web SDK
+          if (id.includes('node_modules/@vapi-ai')) {
+            return 'vapi';
           }
           // Admin pages — split individually so admin modules are never fetched on public pages
           if (id.includes('src/pages/admin/AdminUsers')) {

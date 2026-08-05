@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from './hooks/useStore';
 import { useAuth } from './hooks/useAuth';
-import { useEffect, useMemo, lazy, Suspense, type ReactNode, memo } from 'react';
+import { useEffect, useMemo, lazy, Suspense, type ReactNode, memo, useState } from 'react';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import LoadingScreen from './components/LoadingScreen';
@@ -13,6 +13,25 @@ import { STUDIES } from './pages/public/caseStudiesData';
 import { injectSchema, ORGANIZATION_SCHEMA, WEBSITE_SCHEMA, SOFTWARE_APPLICATION_SCHEMA } from './utils/schema';
 
 const UnifiedAssistantWidget = lazy(() => import('./components/UnifiedAssistantWidget'));
+
+const DeferredAssistantWidget = memo(function DeferredAssistantWidget() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShow(true), 3500);
+    const handleScroll = () => {
+      setShow(true);
+      window.removeEventListener('scroll', handleScroll);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  if (!show) return null;
+  return <UnifiedAssistantWidget />;
+});
 const CommandPalette = lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
 const Sidebar = lazy(() => import('./components/Sidebar').then(m => ({ default: m.Sidebar })));
 const Breadcrumbs = lazy(() => import('./components/Breadcrumbs').then(m => ({ default: m.Breadcrumbs })));
@@ -569,7 +588,7 @@ function AppRoutes() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {!user && <UnifiedAssistantWidget />}
+      {!user && <DeferredAssistantWidget />}
       <MobileBottomNav />
     </Suspense>
   );

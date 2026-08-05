@@ -45,7 +45,7 @@ const KB = {
   platform: {
     name: 'Autoniv',
     tagline: 'AI Voice Agent Platform',
-    description: 'A professional multi-tenant SaaS platform for managing AI voice agents powered by Vapi. Deploy intelligent voice assistants in 20+ languages with 100+ realistic voices.',
+    description: 'A professional multi-tenant SaaS platform for managing AI voice agents powered by Autoniv AI. Deploy intelligent voice assistants in 20+ languages with 100+ realistic voices.',
     stats: { businesses: '10,000+', accuracy: '99.8%', integrations: '50+', languages: '20+', voices: '100+' },
   },
   features: [
