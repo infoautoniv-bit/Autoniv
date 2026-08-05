@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { User } from '../../types';
-import { authService, fetchCsrfToken, resetCsrfToken } from '../../services/api';
+import { authService } from '../../services/api.auth';
+import { fetchCsrfToken, resetCsrfToken } from '../../services/api.base';
 import { getCookie, setCookie, deleteCookie } from '../../services/cookies';
 import { loadFromSession, saveToSession } from '../../utils/storage';
 

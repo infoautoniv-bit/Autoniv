@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { UpgradeRequest } from '../../types';
-import { upgradeRequestService, type PaginationParams } from '../../services/api';
+import { upgradeRequestService } from '../../services/api.upgradeRequests';
+import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
 interface UpgradeRequestsState {

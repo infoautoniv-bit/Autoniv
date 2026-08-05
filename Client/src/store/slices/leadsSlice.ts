@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { Lead } from '../../types';
-import { leadService, type PaginationParams } from '../../services/api';
+import { leadService } from '../../services/api.leads';
+import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
 interface LeadsState {

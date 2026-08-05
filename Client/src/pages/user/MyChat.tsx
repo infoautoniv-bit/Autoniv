@@ -442,7 +442,7 @@ export function MyChat() {
   const placeholder      = STEP_PLACEHOLDERS[context.step] ?? 'Message your assistant...';
 
   return (
-    <div style={{ height: isMobile ? 'calc(100vh - 4rem)' : 'calc(100vh - 7rem)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ height: isMobile ? 'calc(100dvh - 9rem)' : 'calc(100vh - 7.5rem)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
       {/* ── Header ── */}
       <motion.div

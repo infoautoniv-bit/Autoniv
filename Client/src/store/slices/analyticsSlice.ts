@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { Stats, MyStats, TrendPoint, PeriodOverview } from '../../types';
-import { analyticsService } from '../../services/api';
+import { analyticsService } from '../../services/api.analytics';
 
 interface AnalyticsState {
   overview: Stats | null;

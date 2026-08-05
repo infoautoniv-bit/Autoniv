@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { Call } from '../../types';
-import { callService, type PaginationParams } from '../../services/api';
+import { callService } from '../../services/api.calls';
+import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
 interface CallsState {

@@ -337,7 +337,7 @@ const ProtectedRoute = memo(function ProtectedRoute({
             <Breadcrumbs />
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6 md:p-8 md:mt-4 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-6 md:p-8 md:mt-4 overflow-y-auto pb-20 md:pb-8">
           <div className="hidden md:block">
             <Breadcrumbs />
           </div>

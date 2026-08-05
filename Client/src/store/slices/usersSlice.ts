@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { User } from '../../types';
-import { userService } from '../../services/api';
+import { userService } from '../../services/api.users';
 import type { PaginationMeta } from '../../components/Pagination';
 
 interface UsersState {

@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { Appointment } from '../../types';
-import { appointmentService, type PaginationParams } from '../../services/api';
+import { appointmentService } from '../../services/api.appointments';
+import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
 interface AppointmentsState {

@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { Agent } from '../../types';
-import { agentService, type PaginationParams } from '../../services/api';
+import { agentService } from '../../services/api.agents';
+import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 import { loadFromSession, saveToSession } from '../../utils/storage';
 

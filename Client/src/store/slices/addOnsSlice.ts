@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk} from '@reduxjs/toolkit';
 import type { AddOnCatalogEntry, UserAddOn } from '../../types';
-import { addOnService, type PaginationParams } from '../../services/api';
+import { addOnService } from '../../services/api.addOns';
+import type { PaginationParams } from '../../services/api.base';
 import { STATIC_ADDON_CATALOG } from '../../data/addOnCatalog';
 import type { PaginationMeta } from '../../components/Pagination';
 

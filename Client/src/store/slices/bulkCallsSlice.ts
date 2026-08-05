@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { BulkCampaign } from '../../types';
-import { bulkCallService, type PaginationParams } from '../../services/api';
+import { bulkCallService } from '../../services/api.bulkCalls';
+import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
 
 interface BulkCallsState {
