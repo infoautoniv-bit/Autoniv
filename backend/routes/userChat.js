@@ -91,7 +91,7 @@ Salesforce, HubSpot, Slack, Zapier, Stripe, Notion, Intercom, Zendesk — plus 4
 2. **Book appointments** — Collect service, date, time, customer name, phone. After all 5, return as appointment to save.
 3. **Convert lead to appointment** — Ask which lead, use their name/phone, then ask for service, date, time.
 4. **Answer FAQs** — Use the Autoniv data above to answer ANY question about Autoniv's features, pricing, plans, add-ons, integrations, use cases, company info, agents.
-5. **List recent records** — Show the user their recent leads and appointments from [Recent Records].
+5. **List recent records** — When asked to view, show, or list leads or appointments (e.g. "My Records" or "Show me all my leads and appointments"), format items from [Recent Records Context] into clean, structured bullet lists with bold details. If both leads and appointments are empty ("None saved yet" / "None scheduled yet"), explicitly inform the user: "You don't have any leads or appointments saved yet. You can capture a lead or book an appointment using the options below!"
 6. **General assistant chat** — Greet, help, and guide.
 
 ## Response Format
@@ -115,7 +115,7 @@ You MUST respond in valid JSON only (no markdown fences, no extra text):
 - After successfully saving a lead or appointment, confirm the details and ask "What would you like to do next?"
 - For FAQs, answer helpfully then ask if they need anything else.
 - Never make up information. If unsure, say so and ask for clarification.
-- Use the [Recent Records] section to answer list/show/view requests.`;
+- Always use the data in [Recent Records Context] to answer list/show/view requests accurately.`;
 
 router.post('/', checkChatLimit(), async (req, res) => {
   try {
@@ -138,11 +138,19 @@ router.post('/', checkChatLimit(), async (req, res) => {
 
     // Fetch recent records for AI context
     const [recentLeads, recentAppts] = await Promise.all([
-      Lead.find({ userId }).sort({ createdAt: -1 }).limit(5).lean(),
-      Appointment.find({ userId }).sort({ createdAt: -1 }).limit(5).lean(),
+      Lead.find({ userId }).sort({ createdAt: -1 }).limit(10).lean(),
+      Appointment.find({ userId }).sort({ createdAt: -1 }).limit(10).lean(),
     ]);
 
-    const recordsContext = `\n[Recent Records]\nLeads: ${JSON.stringify(recentLeads.map(l => ({ _id: l._id, name: l.name, phone: l.phone, email: l.email, purpose: l.purpose, status: l.status })))}\nAppointments: ${JSON.stringify(recentAppts.map(a => ({ _id: a._id, name: a.name, service: a.service, date: a.preferredDate, time: a.preferredTime, status: a.status })))}`;
+    const leadsText = recentLeads.length > 0
+      ? recentLeads.map((l, i) => `${i + 1}. **${l.name || 'Unnamed'}** — Phone: ${l.phone || 'N/A'}, Email: ${l.email || 'N/A'}, Purpose: ${l.purpose || 'N/A'} [Status: ${l.status || 'new'}]`).join('\n')
+      : 'None saved yet.';
+
+    const apptsText = recentAppts.length > 0
+      ? recentAppts.map((a, i) => `${i + 1}. **${a.name || 'Unnamed'}** — Service: ${a.service || 'N/A'}, Date: ${a.preferredDate || 'N/A'}, Time: ${a.preferredTime || 'N/A'} [Status: ${a.status || 'pending'}]`).join('\n')
+      : 'None scheduled yet.';
+
+    const recordsContext = `\n\n[Recent Records Context]\nRecent Leads (${recentLeads.length}):\n${leadsText}\n\nRecent Appointments (${recentAppts.length}):\n${apptsText}`;
 
     // Build messages array
     const groqMessages = [
@@ -183,8 +191,41 @@ router.post('/', checkChatLimit(), async (req, res) => {
       return res.json({ response: content, step: 'idle', data: {} });
     }
 
-    const reply = parsed.response || "I'm not sure how to respond to that.";
+    let reply = parsed.response || "I'm not sure how to respond to that.";
     const nextStep = parsed.step || 'idle';
+
+    // Handle "My Records" or list records queries deterministically to avoid LLM truncation
+    const isRecordsQuery = /show.*(lead|appointment|record)|list.*(lead|appointment|record)|my records|view.*(lead|appointment|record)|get.*(lead|appointment|record)/i.test(trimmed);
+    const isTruncatedReply = reply.trim().toLowerCase().startsWith('here are your recent') && !reply.includes('1.') && !reply.includes('•') && !reply.includes('None');
+
+    if (isRecordsQuery || isTruncatedReply) {
+      if (!recentLeads.length && !recentAppts.length) {
+        reply = "You don't have any leads or appointments saved yet. You can capture a lead or book an appointment using the options below!";
+      } else {
+        const parts = [];
+        if (recentLeads.length > 0) {
+          let leadsFormatted = `**📋 Recent Leads (${recentLeads.length}):**\n`;
+          recentLeads.forEach((l, i) => {
+            leadsFormatted += `${i + 1}. **${l.name || 'Unnamed'}** — Phone: ${l.phone || 'N/A'}, Email: ${l.email || 'N/A'}, Purpose: ${l.purpose || 'General inquiry'}\n`;
+          });
+          parts.push(leadsFormatted.trim());
+        } else {
+          parts.push("**📋 Recent Leads:** None saved yet.");
+        }
+
+        if (recentAppts.length > 0) {
+          let apptsFormatted = `**📅 Recent Appointments (${recentAppts.length}):**\n`;
+          recentAppts.forEach((a, i) => {
+            apptsFormatted += `${i + 1}. **${a.name || 'Unnamed'}** — Service: ${a.service || 'N/A'}, Date: ${a.preferredDate || 'N/A'}, Time: ${a.preferredTime || 'N/A'}\n`;
+          });
+          parts.push(apptsFormatted.trim());
+        } else {
+          parts.push("**📅 Recent Appointments:** None scheduled yet.");
+        }
+
+        reply = parts.join('\n\n');
+      }
+    }
 
     // Save lead if AI returned one — require valid details to prevent duplicates
     if (parsed.lead && parsed.lead.name && parsed.lead.phone) {
