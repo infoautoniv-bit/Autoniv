@@ -5,8 +5,11 @@ const AuthDialog = lazy(() =>
   import('../pages/public/AuthDialog').then((m) => ({ default: m.AuthDialog }))
 );
 
+const GoogleTranslate = lazy(() =>
+  import('./GoogleTranslate').then((m) => ({ default: m.GoogleTranslate }))
+);
+
 import logoBrand from '../assets/autoniv-brand-logo.webp';
-import { GoogleTranslate } from './GoogleTranslate';
 
 const LOGO_SRC = logoBrand;
 
@@ -213,7 +216,7 @@ export function PublicNavbar() {
               width={180}
               height={120}
               fetchPriority="high"
-              decoding="sync"
+              decoding="async"
               className="h-30 sm:h-30 w-auto object-contain transition-transform hover:scale-105"
             />
           </Link>
@@ -278,7 +281,9 @@ export function PublicNavbar() {
 
           {/* Desktop CTA buttons */}
           <div className="hidden sm:flex items-center gap-1.5 xl:gap-2 flex-shrink-0">
-            <GoogleTranslate />
+            <Suspense fallback={<div className="w-[72px] h-[34px]" />}>
+              <GoogleTranslate />
+            </Suspense>
             <button
               onClick={() => openAuth('login')}
               className="px-4 py-2 text-xs xl:text-sm font-semibold rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer"
@@ -449,7 +454,9 @@ export function PublicNavbar() {
           style={{ borderTop: '1px solid rgba(37,99,235,0.10)' }}
         >
           <div className="w-full flex justify-center pb-2">
-            <GoogleTranslate />
+            <Suspense fallback={<div className="w-[72px] h-[34px]" />}>
+              <GoogleTranslate />
+            </Suspense>
           </div>
           <button
             onClick={() => {

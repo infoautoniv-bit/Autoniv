@@ -38,30 +38,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function loadFonts() {
-  const sheets = [
-    '@fontsource/inter/latin-400.css',
-    '@fontsource/inter/latin-500.css',
-    '@fontsource/inter/latin-600.css',
-    '@fontsource/inter/latin-700.css',
-    '@fontsource/plus-jakarta-sans/latin-400.css',
-    '@fontsource/plus-jakarta-sans/latin-600.css',
-    '@fontsource/plus-jakarta-sans/latin-700.css',
-  ];
-  sheets.forEach((href) => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    document.head.appendChild(link);
-  });
-}
-
-// ─── Load fonts on idle (trackers are now loaded via CookieConsent after consent) ──
-if ('requestIdleCallback' in window) {
-  (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback(loadFonts, { timeout: 2000 });
-} else {
-  setTimeout(loadFonts, 500);
-}
+// Fonts are loaded via inline @font-face in index.html — no JS-based font loading needed.
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

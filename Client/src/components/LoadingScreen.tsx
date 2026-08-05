@@ -62,6 +62,7 @@ export default function AutonivLoadingScreen() {
           alt="Autoniv Full Logo"
           width={270}
           height={180}
+          decoding="async"
           className="w-auto max-h-[120px] sm:max-h-[180px] object-contain"
         />
       </div>
