@@ -4,6 +4,13 @@ import { useAppSelector, useAppDispatch } from '../hooks/useStore';
 import { logout } from '../store/slices/authSlice';
 import { Modal } from './Modal';
 
+const ROUTE_PREFETCH_MAP: Record<string, () => Promise<any>> = {
+  '/dashboard': () => import('../pages/user/UserDashboard'),
+  '/dashboard/ai-voice-agent': () => import('../pages/user/MyAgents'),
+  '/dashboard/calls': () => import('../pages/user/MyCalls'),
+  '/dashboard/leads': () => import('../pages/user/MyLeads'),
+};
+
 export const MobileBottomNav: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -12,6 +19,12 @@ export const MobileBottomNav: React.FC = () => {
 
   // Only render mobile bottom nav for logged-in users on mobile screens
   if (!user) return null;
+
+  const prefetch = (path: string) => {
+    try {
+      ROUTE_PREFETCH_MAP[path]?.();
+    } catch { /* ignore */ }
+  };
 
   const navItems = [
     {
@@ -62,6 +75,8 @@ export const MobileBottomNav: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
+              onMouseEnter={() => prefetch(item.path)}
+              onTouchStart={() => prefetch(item.path)}
               aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-150 ${
                 isActive

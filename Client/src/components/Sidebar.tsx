@@ -191,6 +191,16 @@ const Tooltip: React.FC<{ label: string; visible: boolean }> = ({ label, visible
 );
 
 // ─── NavLink Component ────────────────────────────────────────────────────────
+const ROUTE_PREFETCH_MAP: Record<string, () => Promise<any>> = {
+  '/dashboard': () => import('../pages/user/UserDashboard'),
+  '/dashboard/ai-voice-agent': () => import('../pages/user/MyAgents'),
+  '/dashboard/calls': () => import('../pages/user/MyCalls'),
+  '/dashboard/leads': () => import('../pages/user/MyLeads'),
+  '/dashboard/appointment-booking': () => import('../pages/user/MyAppointments'),
+  '/dashboard/ai-chatbot': () => import('../pages/user/MyChat'),
+  '/dashboard/billing': () => import('../pages/user/UserBilling'),
+};
+
 const NavLinkItem: React.FC<{
   item: NavItem;
   isActive: boolean;
@@ -200,8 +210,14 @@ const NavLinkItem: React.FC<{
 }> = ({ item, isActive, isCollapsed, index, onClick }) => {
   const [hovered, setHovered] = useState(false);
 
+  const prefetch = () => {
+    try {
+      ROUTE_PREFETCH_MAP[item.path]?.();
+    } catch { /* ignore */ }
+  };
+
   return (
-    <Link to={item.path} onClick={onClick}>
+    <Link to={item.path} onClick={onClick} onMouseEnter={prefetch} onTouchStart={prefetch}>
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}

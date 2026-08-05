@@ -16,7 +16,7 @@ export const HeroContent = React.memo(function HeroContent({
     <div
       className="lg:col-span-7 flex flex-col justify-center text-left space-y-4 lg:space-y-6 z-10 order-1 lg:order-1"
     >
-      <div className="animate-[fadeInUp_0.5s_ease-out_0.02s_forwards] opacity-0">
+      <div>
         <span
           className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full tag text-xs sm:text-sm overflow-hidden"
           style={{
@@ -41,7 +41,7 @@ export const HeroContent = React.memo(function HeroContent({
         </span>
       </div>
 
-      <div className="animate-[fadeInUp_0.5s_ease-out_0.12s_forwards] opacity-0">
+      <div>
         <h1
           className="font-bold leading-[1.08] tracking-tight"
           style={{
@@ -49,12 +49,10 @@ export const HeroContent = React.memo(function HeroContent({
             color: "#0a0a0a",
           }}
         >
-          <WordReveal text="Your Business Never Stops." /> <br />
-          <WordReveal
-            text="Neither Does Your AI Team."
-            wordClassName="hero-gradient-text animated-gradient"
-            delay={0.35}
-          />
+          Your Business Never Stops. <br />
+          <span className="hero-gradient-text animated-gradient">
+            Neither Does Your AI Team.
+          </span>
         </h1>
       </div>
 
