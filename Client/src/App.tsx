@@ -2,9 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useAppSelector } from './hooks/useStore';
 import { useAuth } from './hooks/useAuth';
 import { useEffect, useMemo, lazy, Suspense, type ReactNode, memo } from 'react';
-import { Sidebar } from './components/Sidebar';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { Breadcrumbs } from './components/Breadcrumbs';
 import ScrollToTop from './components/ScrollToTop';
 import LoadingScreen from './components/LoadingScreen';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -16,6 +14,8 @@ import { injectSchema, ORGANIZATION_SCHEMA, WEBSITE_SCHEMA, SOFTWARE_APPLICATION
 
 const UnifiedAssistantWidget = lazy(() => import('./components/UnifiedAssistantWidget'));
 const CommandPalette = lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
+const Sidebar = lazy(() => import('./components/Sidebar').then(m => ({ default: m.Sidebar })));
+const Breadcrumbs = lazy(() => import('./components/Breadcrumbs').then(m => ({ default: m.Breadcrumbs })));
 
 const Landing = lazy(() => import('./pages/public/sections/LandingSection').then(m => ({ default: m.LandingSection })));
 const Login = lazy(() => import('./pages/public/Login').then(m => ({ default: m.Login })));
