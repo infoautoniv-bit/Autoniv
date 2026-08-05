@@ -30,7 +30,9 @@ async function cleanupStaleCalls(userId) {
         duration: 0,
       },
     });
-  } catch (_) {}
+  } catch (err) {
+    log.error('cleanup_stale_calls_error', { error: err.message, userId });
+  }
 }
 
 function normalizeCall(c) {
@@ -64,7 +66,6 @@ const STATUS_MAP = {
 
 router.get('/', requireAdmin, async (req, res) => {
   try {
-    await cleanupStaleCalls(null);
     const { page, limit, skip } = parsePage(req.query);
     const { status } = req.query;
     const filter = {};
@@ -88,7 +89,6 @@ router.get('/my', async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID in token' });
     }
 
-    await cleanupStaleCalls(req.user.userId);
     const { page, limit, skip } = parsePage(req.query);
     const { status } = req.query;
 

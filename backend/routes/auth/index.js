@@ -79,30 +79,7 @@ async function issueTokensForUser({ user, req }) {
   return { accessToken, refreshToken };
 }
 
-async function performLoginAttempt(req, email, password) {
-  const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
-
-  if (!user) {
-    await bcrypt.compare(password, '$2b$12$invalidhashplaceholderforconstttimepadding..').catch(() => false);
-    return { ok: false, status: 401, message: 'Invalid email or password' };
-  }
-
-  if (isAccountLocked(user)) {
-    log.warn('login_attempt_locked_account', { userId: String(user._id), ip: getClientIp(req) });
-    return { ok: false, status: 401, message: 'Invalid email or password' };
-  }
-
-  if (user.isActive === false) {
-    return { ok: false, status: 401, message: 'Invalid email or password' };
-  }
-
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) {
-    await recordFailedLogin(user);
-    authSecurityEvent('login_failed', { email, userId: String(user._id), ip: getClientIp(req) });
-    return { ok: false, status: 401, message: 'Invalid email or password' };
-  }
-
+async function issueLoginTokens(req, user) {
   await User.updateOne(
     { _id: user._id },
     { $set: { loginAttempts: 0, lastLoginAt: new Date(), lastLoginIp: getClientIp(req) }, $unset: { lockUntil: '' } },
@@ -149,9 +126,49 @@ async function performLoginAttempt(req, email, password) {
 
   log.info('login_success', { userId: String(user._id), role: user.role, ip: getClientIp(req) });
 
+  return tokenResponse({ user, dashboardStats, accessToken, refreshToken });
+}
+
+async function performLoginAttempt(req, email, password) {
+  const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
+
+  if (!user) {
+    await bcrypt.compare(password, '$2b$12$invalidhashplaceholderforconstttimepadding..').catch(() => false);
+    return { ok: false, status: 401, message: 'Invalid email or password' };
+  }
+
+  if (isAccountLocked(user)) {
+    log.warn('login_attempt_locked_account', { userId: String(user._id), ip: getClientIp(req) });
+    return { ok: false, status: 401, message: 'Invalid email or password' };
+  }
+
+  if (user.isActive === false) {
+    return { ok: false, status: 401, message: 'Invalid email or password' };
+  }
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) {
+    await recordFailedLogin(user);
+    authSecurityEvent('login_failed', { email, userId: String(user._id), ip: getClientIp(req) });
+    return { ok: false, status: 401, message: 'Invalid email or password' };
+  }
+
+  // Generate 6-digit OTP for login
+  const otp = crypto.randomInt(100000, 999999).toString();
+  user.otpCode = otp;
+  user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  user.otpPurpose = 'login';
+  await user.save();
+
+  await sendOtpEmail({ to: email, otp, purpose: 'login' });
+
+  log.info('login_otp_sent', { userId: String(user._id), ip: getClientIp(req) });
+
   return {
     ok: true,
-    payload: tokenResponse({ user, dashboardStats, accessToken, refreshToken }),
+    requiresOtp: true,
+    email,
+    message: 'Verification code sent to your email. Please verify to sign in.',
   };
 }
 
@@ -248,11 +265,86 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(result.status).json({ message: result.message });
     }
 
-    setTokenCookies(res, result.payload.accessToken, result.payload.refreshToken);
-    return res.json(result.payload);
+    return res.json({
+      requiresOtp: true,
+      email: result.email,
+      message: result.message,
+    });
   } catch (error) {
     log.error('login_error', { error: error.message, stack: error.stack, email: req.body?.email });
     return res.status(500).json({ message: 'Login failed', detail: IS_PROD ? undefined : error.message });
+  }
+});
+
+router.post('/verify-otp', loginLimiter, async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const otp = typeof req.body?.otp === 'string' ? req.body.otp.trim() : '';
+    const purpose = req.body?.purpose || 'login';
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and verification code are required' });
+    }
+
+    const user = await User.findOne({ email }).select('+otpCode +otpExpiresAt +otpPurpose +password');
+    if (!user || !user.otpCode) {
+      return res.status(400).json({ message: 'Invalid or expired verification code' });
+    }
+
+    if (user.otpPurpose && user.otpPurpose !== purpose) {
+      return res.status(400).json({ message: 'Invalid verification request' });
+    }
+
+    if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+      return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
+    }
+
+    if (!constantTimeStringEqual(user.otpCode, otp)) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    user.otpCode = null;
+    user.otpExpiresAt = null;
+    user.otpPurpose = null;
+    user.isVerified = true;
+    await user.save();
+
+    const payload = await issueLoginTokens(req, user);
+    setTokenCookies(res, payload.accessToken, payload.refreshToken);
+    return res.json(payload);
+  } catch (error) {
+    log.error('verify_otp_error', { error: error.message, stack: error.stack, email: req.body?.email });
+    return res.status(500).json({ message: 'Verification failed', detail: IS_PROD ? undefined : error.message });
+  }
+});
+
+router.post('/resend-otp', authLimiter, async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const purpose = req.body?.purpose || 'login';
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found' });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    user.otpCode = otp;
+    user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    user.otpPurpose = purpose;
+    await user.save();
+
+    await sendOtpEmail({ to: email, otp, purpose });
+    log.info('otp_resent', { userId: String(user._id), purpose, ip: getClientIp(req) });
+
+    return res.json({ message: 'A new verification code has been sent to your email.' });
+  } catch (error) {
+    log.error('resend_otp_error', { error: error.message, email: req.body?.email });
+    return res.status(500).json({ message: 'Failed to resend verification code' });
   }
 });
 
@@ -328,7 +420,7 @@ router.post('/refresh', authLimiter, async (req, res) => {
 router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(444).json({ message: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'User not found' });
     return res.json(tokenResponse({ user }));
   } catch (error) {
     log.error('me_error', { error: error.message });

@@ -304,7 +304,7 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
       const buffer = await response.arrayBuffer();
       return Buffer.from(buffer).toString('base64');
     } catch (elevenErr) {
-      console.warn('[TTS] ElevenLabs TTS failed, falling back to Deepgram Aura:', elevenErr.message);
+      log.warn('tts_elevenlabs_failed_fallback_deepgram', { error: elevenErr.message });
       const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
       return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
     }
@@ -322,7 +322,7 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     };
 
     if (!languageCodes[language]) {
-      console.warn(`[TTS] Sarvam does not support language: ${language}. Falling back to Deepgram Aura.`);
+      log.warn('tts_sarvam_unsupported_language_fallback', { language });
       const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
       return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
     }

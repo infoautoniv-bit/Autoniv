@@ -1,10 +1,10 @@
 import crypto from 'node:crypto';
-import { IS_PROD, log } from '../logger.js';
+import { log } from '../logger.js';
 
 const TTL_MS = 5 * 60 * 1000;
 
 function getSecret() {
-  return process.env.MEDIA_STREAM_SECRET || process.env.JWT_SECRET || null;
+  return process.env.MEDIA_STREAM_SECRET || process.env.JWT_SECRET || 'autoniv-media-stream-secret-fallback-key-32chars';
 }
 
 function sign(agentId, exp, secret) {
@@ -33,11 +33,7 @@ export function signMediaStreamToken(agentId) {
 
 export function verifyMediaStreamToken(agentId, token) {
   const secret = getSecret();
-  if (!secret) {
-    if (IS_PROD) log.warn('media_stream_token_no_secret');
-    return true;
-  }
-  if (!token || !agentId) return false;
+  if (!secret || !token || !agentId) return false;
 
   const dot = token.indexOf('.');
   if (dot < 1) return false;
