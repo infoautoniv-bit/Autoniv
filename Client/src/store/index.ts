@@ -36,41 +36,32 @@ export function injectReducer(key: string, reducer: Reducer) {
 
 // Lazy-load admin slices — called by ProtectedRoute when auth is confirmed
 let adminLoaded = false;
-let adminLoading: Promise<void> | null = null;
+export async function loadAdminSlices() {
+  if (adminLoaded) return;
+  adminLoaded = true;
 
-export function isAdminLoaded() { return adminLoaded; }
+  const [agents, calls, leads, users, analytics, upgradeRequests, appointments, addOns, bulkCalls] =
+    await Promise.all([
+      import('./slices/agentsSlice'),
+      import('./slices/callsSlice'),
+      import('./slices/leadsSlice'),
+      import('./slices/usersSlice'),
+      import('./slices/analyticsSlice'),
+      import('./slices/upgradeRequestsSlice'),
+      import('./slices/appointmentsSlice'),
+      import('./slices/addOnsSlice'),
+      import('./slices/bulkCallsSlice'),
+    ]);
 
-export function loadAdminSlices(): Promise<void> {
-  if (adminLoaded) return Promise.resolve();
-  if (adminLoading) return adminLoading;
-
-  adminLoading = (async () => {
-    const [agents, calls, leads, users, analytics, upgradeRequests, appointments, addOns, bulkCalls] =
-      await Promise.all([
-        import('./slices/agentsSlice'),
-        import('./slices/callsSlice'),
-        import('./slices/leadsSlice'),
-        import('./slices/usersSlice'),
-        import('./slices/analyticsSlice'),
-        import('./slices/upgradeRequestsSlice'),
-        import('./slices/appointmentsSlice'),
-        import('./slices/addOnsSlice'),
-        import('./slices/bulkCallsSlice'),
-      ]);
-
-    injectReducer('agents', agents.default);
-    injectReducer('calls', calls.default);
-    injectReducer('leads', leads.default);
-    injectReducer('users', users.default);
-    injectReducer('analytics', analytics.default);
-    injectReducer('upgradeRequests', upgradeRequests.default);
-    injectReducer('appointments', appointments.default);
-    injectReducer('addOns', addOns.default);
-    injectReducer('bulkCalls', bulkCalls.default);
-    adminLoaded = true;
-  })();
-
-  return adminLoading;
+  injectReducer('agents', agents.default);
+  injectReducer('calls', calls.default);
+  injectReducer('leads', leads.default);
+  injectReducer('users', users.default);
+  injectReducer('analytics', analytics.default);
+  injectReducer('upgradeRequests', upgradeRequests.default);
+  injectReducer('appointments', appointments.default);
+  injectReducer('addOns', addOns.default);
+  injectReducer('bulkCalls', bulkCalls.default);
 }
 
 // ── Full RootState type (all slices, even dynamically loaded) ────────────────
