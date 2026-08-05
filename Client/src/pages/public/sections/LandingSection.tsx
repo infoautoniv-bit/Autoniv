@@ -1,10 +1,10 @@
 import { useState, lazy, Suspense, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { PublicNavbar } from "../../../components/PublicNavbar";
-import { USPSlider } from "./USPSlider";
 import { DeferRender } from "../../../components/DeferRender";
 import { Hero } from "./Hero/Hero";
 
+const PublicNavbar = lazy(() => import("../../../components/PublicNavbar").then(m => ({ default: m.PublicNavbar })));
+const USPSlider = lazy(() => import("./USPSlider").then(m => ({ default: m.USPSlider })));
 const Footer = lazy(() => import("../Footer"));
 
 const Features = lazy(() => import("./Features").then(m => ({ default: m.Features })));
@@ -61,11 +61,15 @@ export function LandingSection() {
 
   return (
     <div className="landing-page" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      <PublicNavbar />
+      <Suspense fallback={null}>
+        <PublicNavbar />
+      </Suspense>
       <main>
         <div className="page-bg" style={{ paddingTop: 120, paddingBottom: 8 }}>
           <div className="box-wrap">
-            <USPSlider />
+            <Suspense fallback={null}>
+              <USPSlider />
+            </Suspense>
             <Hero openAuth={openAuth} />
             <DeferRender height={600} forceRender={forceRender}>
               <Suspense fallback={<div style={{ minHeight: 600 }} />}>

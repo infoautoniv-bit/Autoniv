@@ -47,7 +47,6 @@ function loadFonts() {
     '@fontsource/plus-jakarta-sans/latin-400.css',
     '@fontsource/plus-jakarta-sans/latin-600.css',
     '@fontsource/plus-jakarta-sans/latin-700.css',
-    '@fontsource/jetbrains-mono/latin-400.css',
   ];
   sheets.forEach((href) => {
     const link = document.createElement('link');

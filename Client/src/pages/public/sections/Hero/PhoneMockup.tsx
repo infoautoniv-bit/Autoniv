@@ -1,5 +1,4 @@
-import React, { useCallback } from "react";
-import { motion, useMotionValue, useSpring, useTransform, MotionValue } from "framer-motion";
+import React, { useCallback, useState } from "react";
 import { MicrophoneIcon, PhoneIcon, SpeakerWaveIcon, Squares2X2Icon } from "@heroicons/react/24/outline";
 import { WAVE_HEIGHTS } from "../data";
 
@@ -21,8 +20,6 @@ interface PhoneMockupProps {
   isMobile: boolean;
   lowPower: boolean;
   documentLoaded: boolean;
-  phoneRotate: MotionValue<number>;
-  yGlow: MotionValue<number>;
 }
 
 const PhoneMockup = React.memo(function PhoneMockup({
@@ -30,47 +27,39 @@ const PhoneMockup = React.memo(function PhoneMockup({
   isMobile,
   lowPower,
   documentLoaded,
-  phoneRotate,
-  yGlow,
 }: PhoneMockupProps) {
-  // Mouse-driven tilt on the phone mockup for a premium 3D feel.
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const tiltX = useSpring(useTransform(my, [-0.5, 0.5], [8, -8]), { stiffness: 150, damping: 18 });
-  const tiltY = useSpring(useTransform(mx, [-0.5, 0.5], [-14, -22]), { stiffness: 150, damping: 18 });
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
   const handlePhoneMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (reduced) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    mx.set((e.clientX - rect.left) / rect.width - 0.5);
-    my.set((e.clientY - rect.top) / rect.height - 0.5);
-  }, [reduced, mx, my]);
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setTilt({ x: y * 16, y: x * -36 });
+  }, [reduced]);
 
   const handlePhoneMouseLeave = useCallback(() => {
-    mx.set(0);
-    my.set(0);
-  }, [mx, my]);
+    setTilt({ x: 0, y: 0 });
+  }, []);
 
   return (
     <div className="mt-4 lg:col-span-5 flex justify-center items-center relative min-h-[380px] sm:min-h-[450px] lg:min-h-[580px] z-10 w-full order-2 lg:order-2 pt-4 lg:pt-0">
       {/* Glow orbs: blur + scale animation via CSS classes */}
-      <motion.div
-        style={{ y: yGlow, willChange: "transform" }}
+      <div
         className={`absolute top-[20%] left-[20%] w-[200px] h-[200px] sm:w-[260px] sm:h-[260px] lg:w-[320px] lg:h-[320px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.16)_0%,transparent_70%)] filter blur-3xl pointer-events-none ${
-          lowPower ? "" : "animate-[orbPulse_6s_ease-in-out_infinite]"
+          lowPower ? "" : "orb-pulse"
         }`}
       />
-      <motion.div
-        style={{ y: yGlow, willChange: "transform" }}
+      <div
         className={`absolute bottom-[20%] right-[10%] w-[160px] h-[160px] sm:w-[210px] sm:h-[210px] lg:w-[260px] lg:h-[260px] rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.12)_0%,transparent_70%)] filter blur-3xl pointer-events-none ${
-          lowPower ? "" : "animate-[orbPulse_7s_ease-in-out_infinite_1s]"
+          lowPower ? "" : "orb-pulse"
         }`}
+        style={{ animationDelay: '1s' }}
       />
 
       {/* Phone Mockup */}
-      <motion.div
+      <div
         className={reduced || isMobile ? "" : "phone-float"}
-        style={{ rotate: phoneRotate, willChange: "transform" }}
         onMouseMove={handlePhoneMouseMove}
         onMouseLeave={handlePhoneMouseLeave}
       >
@@ -79,12 +68,11 @@ const PhoneMockup = React.memo(function PhoneMockup({
           className="w-[150px] h-[310px] sm:w-[200px] sm:h-[410px] lg:w-[245px] lg:h-[490px] rounded-[28px] sm:rounded-[36px] lg:rounded-[42px] shadow-2xl overflow-hidden"
           style={{ transform: "rotate(6deg)" }}
         >
-          <motion.div
+          <div
             className="w-full h-full bg-[#0a0a0a] border-[4px] sm:border-[6px] lg:border-[7px] border-[#1a1a1a] relative flex flex-col items-center p-2 sm:p-3 select-none"
             style={{
-              rotateX: isMobile ? 0 : tiltX,
-              rotateY: isMobile ? -18 : tiltY,
-              transformPerspective: 1000,
+              transform: isMobile ? 'none' : `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${-18 + tilt.y}deg)`,
+              transition: 'transform 0.1s ease-out',
             }}
           >
             {/* Notch */}
@@ -259,15 +247,15 @@ const PhoneMockup = React.memo(function PhoneMockup({
                 <div className="flex justify-center">
                   <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20 cursor-pointer hover:bg-red-600 transition-colors">
                     {/* compositor-friendly pulse instead of animated box-shadow */}
-                    {!lowPower && <span aria-hidden className="absolute inset-0 rounded-[inherit] pointer-events-none bg-red-500/50 animate-[ringsPulse1_2s_ease-out_infinite]" />}
+                    {!lowPower && <span aria-hidden className="absolute inset-0 rounded-[inherit] pointer-events-none bg-red-500/50 rings-pulse-1" />}
                     <PhoneIcon className="relative w-4 h-4 sm:w-5 sm:h-5 text-white transform rotate-[135deg]" />
                   </div>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 });
