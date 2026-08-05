@@ -1,4 +1,5 @@
-import api from './api.base';
+import axios from 'axios';
+import api, { BASE_URL } from './api.base';
 import type { WhiteLabelSettings } from '../types';
 
 export interface TeamMember {
@@ -80,11 +81,7 @@ export const chatHistoryService = {
 
 export const publicDemoService = {
   getAgent: () =>
-    import('./api.base').then(({ BASE_URL }) =>
-      import('axios').then(({ default: axios }) =>
-        axios.get(`${BASE_URL}/agents/public/demo`)
-      )
-    ),
+    axios.get(`${BASE_URL}/agents/public/demo`),
 };
 
 export const apiKeyService = {

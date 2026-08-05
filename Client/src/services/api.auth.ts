@@ -1,4 +1,5 @@
-import api from './api.base';
+import api, { resetCsrfToken } from './api.base';
+import { getCookie, deleteCookie } from './cookies';
 
 export const authService = {
   login: (email: string, password: string) =>
@@ -20,7 +21,6 @@ export const authService = {
   planStatus: () => api.get('/auth/plan-status'),
 
   logout: async () => {
-    const { getCookie, deleteCookie } = await import('./cookies');
     const refreshToken = getCookie('refreshToken');
     try {
       await api.post('/auth/logout', { refreshToken });
@@ -30,7 +30,6 @@ export const authService = {
       deleteCookie('accessToken');
       deleteCookie('refreshToken');
       sessionStorage.removeItem('user');
-      const { resetCsrfToken } = await import('./api.base');
       resetCsrfToken();
     }
   },

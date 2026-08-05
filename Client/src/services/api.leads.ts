@@ -1,4 +1,5 @@
-import api, { type PaginationParams } from './api.base';
+import axios from 'axios';
+import api, { BASE_URL, type PaginationParams } from './api.base';
 
 export const leadService = {
   /** Admin: all real-user / call leads (excludes AI-assistant public leads) */
@@ -41,13 +42,9 @@ export const publicLeadService = {
     purpose: string;
     notes?: string;
   }) =>
-    import('./api.base').then(({ BASE_URL }) =>
-      import('axios').then(({ default: axios }) =>
-        axios.post(
-          `${BASE_URL}/leads/public`,
-          data,
-          { headers: { 'Content-Type': 'application/json' } },
-        )
-      )
+    axios.post(
+      `${BASE_URL}/leads/public`,
+      data,
+      { headers: { 'Content-Type': 'application/json' } },
     ),
 };
