@@ -226,43 +226,29 @@ function swapMeta(html, routePath, meta) {
     result = result.replace(cssMatch[0], optimizedCssTags);
   }
 
+  // Strip admin/dashboard modulepreload hints on public pages — they waste mobile bandwidth
+  // Admin chunks (450KB+) are never needed for public visitors and block FCP/LCP
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/admin-[^"]*\.js"\s*\/?>\n?/g, '');
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/vapi-[^"]*\.js"\s*\/?>\n?/g, '');
+  // Also strip non-critical public page chunks (cases, news) — lazy-loaded on navigation, not needed for FCP
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/public-cases-[^"]*\.js"\s*\/?>\n?/g, '');
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/public-news-[^"]*\.js"\s*\/?>\n?/g, '');
+
   // Inject route-specific JSON-LD Schema
   if (meta.schema) {
     const schemaScript = `  <script type="application/ld+json">\n${JSON.stringify(meta.schema, null, 2)}\n  </script>`;
     result = result.replace('</head>', `${schemaScript}\n</head>`);
   }
 
-  // Preload primary woff2 fonts to eliminate critical request chain delay
+  // Preload the navbar brand logo (LCP image) so it's discoverable in the initial HTML document
   try {
     const assetsDir = path.join(distDir, 'assets');
     const assetsFiles = fs.readdirSync(assetsDir);
-    const primaryFonts = assetsFiles.filter((f) =>
-      f.endsWith('.woff2') && (f.includes('inter-latin-400') || f.includes('inter-latin-700') || f.includes('plus-jakarta-sans-latin-600'))
-    );
-    if (primaryFonts.length > 0) {
-      const fontPreloadTags = primaryFonts
-        .map((f) => `  <link rel="preload" href="/assets/${f}" as="font" type="font/woff2" crossorigin />`)
-        .join('\n');
-      result = result.replace('</head>', `${fontPreloadTags}\n</head>`);
-    }
-
-    // Preload the navbar brand logo (LCP image) so it's discoverable in the initial HTML document
-    // This prevents the browser from waiting for JS to execute before discovering the image.
     const brandLogo = assetsFiles.find((f) => f.startsWith('autoniv-brand-logo') && f.endsWith('.webp'));
     if (brandLogo) {
       const logoPreload = `  <link rel="preload" href="/assets/${brandLogo}" as="image" type="image/webp" fetchpriority="high" />`;
       result = result.replace('</head>', `${logoPreload}\n</head>`);
     }
-    // Inject font-display:swap override so deferred fonts never cause FOIT
-    const fontDisplayStyle = `  <style id="font-display-swap">
-    /* Deferred @fontsource sheets inherit font-display:auto which can block paint.
-       Override to swap so system fonts show immediately, webfonts swap in. */
-    @font-face { font-family: 'Inter'; font-display: swap; src: local('Inter'); }
-    @font-face { font-family: 'Plus Jakarta Sans'; font-display: swap; src: local('Plus Jakarta Sans'); }
-    @font-face { font-family: 'JetBrains Mono'; font-display: swap; src: local('Courier New'); }
-  </style>`;
-    result = result.replace('</head>', `${fontDisplayStyle}\n</head>`);
-
   } catch (_) {
     /* ignore */
   }

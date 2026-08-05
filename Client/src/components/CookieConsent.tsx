@@ -49,7 +49,7 @@ export function CookieConsent() {
           <div className="max-w-4xl mx-auto bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-5 sm:p-6 shadow-2xl">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="flex-1">
-                <h3 className="text-white font-semibold text-sm mb-1">We value your privacy</h3>
+                <p className="text-white font-semibold text-sm mb-1">We value your privacy</p>
                 <p className="text-slate-400 text-xs leading-relaxed">
                   We use cookies and analytics to improve your experience and analyze site traffic.
                   By clicking &quot;Accept&quot;, you consent to the use of cookies for analytics purposes.

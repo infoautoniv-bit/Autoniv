@@ -52,40 +52,31 @@
 
   <!-- Preconnect to font CDN -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preconnect" href="https://i.pravatar.cc" />
 
-  <!-- Preload only the 2 critical above-the-fold font files (Inter 400 + Plus Jakarta Sans 400) -->
-  <link rel="preload" href="https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="https://fonts.gstatic.com/s/plusjakartasans/v12/LDIbaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA_qU79TR_V.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- Preload only the 2 critical above-the-fold font files (Inter + Plus Jakarta Sans variable) -->
+  <link rel="preload" href="https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yw.woff2" as="font" type="font/woff2" crossorigin />
 
-  <!-- Inline @font-face: all weights, font-display:swap, size-adjust to match fallback metrics -->
+  <!-- Inline @font-face: variable fonts with font-display:swap -->
   <style>
-    /* Inter — Latin subset, size-adjust to match system-ui metrics */
+    /* Inter — variable font (all weights), Latin subset */
     @font-face {
       font-family: 'Inter';
       font-style: normal;
       font-weight: 100 900;
       font-display: swap;
-      src: url('https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2') format('woff2');
+      src: url('https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2') format('woff2');
       unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      size-adjust: 107%;
-      ascent-override: 90%;
-      descent-override: 20%;
-      line-gap-override: 0%;
     }
 
-    /* Plus Jakarta Sans — Latin subset, size-adjust to match system-ui metrics */
+    /* Plus Jakarta Sans — variable font (all weights), Latin subset */
     @font-face {
       font-family: 'Plus Jakarta Sans';
       font-style: normal;
       font-weight: 200 800;
       font-display: swap;
-      src: url('https://fonts.gstatic.com/s/plusjakartasans/v12/LDIbaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA_qU79TR_V.woff2') format('woff2');
+      src: url('https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yw.woff2') format('woff2');
       unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      size-adjust: 108%;
-      ascent-override: 88%;
-      descent-override: 22%;
-      line-gap-override: 0%;
     }
 
     /* JetBrains Mono — fallback to system monospace */
@@ -96,96 +87,75 @@
     }
   </style>
 
-  <!-- Schema.org JSON-LD -->
-  <script id="organization-jsonld" type="application/ld+json">
+  <!-- Schema.org JSON-LD (consolidated into single script) -->
+  <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "Autoniv",
-      "alternateName": "Autoniv AI",
-      "url": "https://autoniv.com/",
-      "logo": "https://autoniv.com/logo.webp",
-      "image": "https://autoniv.com/og-image.webp",
-      "description": "AI-powered voice agents, chatbots, and phone answering services for businesses.",
-      "email": "hello@autoniv.com",
-      "telephone": "+91-7065990307",
-      "founder": {
-        "@type": "Person",
-        "name": "Rajnesh Yadav"
-      },
-      "sameAs": [
-        "https://www.linkedin.com/company/autoniv",
-        "https://www.instagram.com/autoniv_",
-        "https://www.facebook.com/profile.php?id=61577457813652",
-        "https://x.com/Autoniv_"
-      ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "customer support",
-        "email": "hello@autoniv.com",
-        "telephone": "+91-7065990307",
-        "availableLanguage": ["English", "Hindi", "Spanish", "French"]
-      },
-      "areaServed": "Global",
-      "knowsLanguage": ["en", "es", "fr", "de", "it", "pt", "hi", "ar", "ja", "ko"]
-    }
-    </script>
-  <script id="website-jsonld" type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Autoniv",
-      "alternateName": ["Autoniv", "autoniv", "Autoniv AI", "Autoniv.com"],
-      "url": "https://autoniv.com/",
-      "inLanguage": "en",
-      "description": "Deploy intelligent AI voice agents that handle calls 24/7 in 20+ languages."
-    }
-    </script>
-  <script id="software-app-jsonld" type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Autoniv AI Platform",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web",
-      "description": "AI voice agents platform for automating business calls, lead qualification, and appointment scheduling.",
-      "url": "https://autoniv.com/",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock",
-        "description": "Free trial available"
-      }
-    }
-    </script>
-  <script id="webpage-jsonld" type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Autoniv",
-      "url": "https://autoniv.com/",
-      "description": "AI Voice Agents for Business",
-      "isPartOf": {
-        "@type": "WebSite",
-        "url": "https://autoniv.com/"
-      }
-    }
-    </script>
-  <script id="breadcrumb-jsonld" type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
+      "@graph": [
         {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://autoniv.com/"
+          "@type": "Organization",
+          "name": "Autoniv",
+          "alternateName": "Autoniv AI",
+          "url": "https://autoniv.com/",
+          "logo": "https://autoniv.com/logo.webp",
+          "image": "https://autoniv.com/og-image.webp",
+          "description": "AI-powered voice agents, chatbots, and phone answering services for businesses.",
+          "email": "hello@autoniv.com",
+          "telephone": "+91-7065990307",
+          "founder": { "@type": "Person", "name": "Rajnesh Yadav" },
+          "sameAs": [
+            "https://www.linkedin.com/company/autoniv",
+            "https://www.instagram.com/autoniv_",
+            "https://www.facebook.com/profile.php?id=61577457813652",
+            "https://x.com/Autoniv_"
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "email": "hello@autoniv.com",
+            "telephone": "+91-7065990307",
+            "availableLanguage": ["English", "Hindi", "Spanish", "French"]
+          },
+          "areaServed": "Global",
+          "knowsLanguage": ["en", "es", "fr", "de", "it", "pt", "hi", "ar", "ja", "ko"]
+        },
+        {
+          "@type": "WebSite",
+          "name": "Autoniv",
+          "alternateName": ["Autoniv", "autoniv", "Autoniv AI", "Autoniv.com"],
+          "url": "https://autoniv.com/",
+          "inLanguage": "en",
+          "description": "Deploy intelligent AI voice agents that handle calls 24/7 in 20+ languages."
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Autoniv AI Platform",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "description": "AI voice agents platform for automating business calls, lead qualification, and appointment scheduling.",
+          "url": "https://autoniv.com/",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock",
+            "description": "Free trial available"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "name": "Autoniv",
+          "url": "https://autoniv.com/",
+          "description": "AI Voice Agents for Business",
+          "isPartOf": { "@type": "WebSite", "url": "https://autoniv.com/" }
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": "https://autoniv.com/" }]
         }
       ]
     }
-    </script>
+  </script>
 
   <!-- Google tag (gtag.js) — deferred to after page load so it doesn't compete with FCP/LCP -->
   <script>
