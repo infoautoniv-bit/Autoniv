@@ -8,9 +8,9 @@
       "type": "image/webp"
     },
     {
-      "src": "/logo.webp",
+      "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/webp"
+      "type": "image/png"
     }
   ],
   "start_url": "/",
