@@ -17,7 +17,7 @@ import { injectSchema, ORGANIZATION_SCHEMA, WEBSITE_SCHEMA, SOFTWARE_APPLICATION
 const UnifiedAssistantWidget = lazy(() => import('./components/UnifiedAssistantWidget'));
 const CommandPalette = lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
 
-import { LandingSection as Landing } from './pages/public/sections/LandingSection';
+const Landing = lazy(() => import('./pages/public/sections/LandingSection').then(m => ({ default: m.LandingSection })));
 const Login = lazy(() => import('./pages/public/Login').then(m => ({ default: m.Login })));
 const Register = lazy(() => import('./pages/public/Register').then(m => ({ default: m.Register })));
 const UserDashboard = lazy(() => import('./pages/user/UserDashboard').then(m => ({ default: m.UserDashboard })));

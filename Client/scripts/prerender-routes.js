@@ -233,6 +233,9 @@ function swapMeta(html, routePath, meta) {
   // Also strip non-critical public page chunks (cases, news) — lazy-loaded on navigation, not needed for FCP
   result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/public-cases-[^"]*\.js"\s*\/?>\n?/g, '');
   result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/public-news-[^"]*\.js"\s*\/?>\n?/g, '');
+  // Strip shared-components modulepreload — 244KB chunk loaded via modulepreload creates
+  // long critical chains; the main bundle imports it at runtime anyway
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/shared-components-[^"]*\.js"\s*\/?>\n?/g, '');
 
   // Inject route-specific JSON-LD Schema
   if (meta.schema) {

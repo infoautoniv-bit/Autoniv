@@ -38,13 +38,13 @@ function renderEmailTemplate({ title, subtitle, contentHtml, footerNote }) {
                   <td style="background: linear-gradient(135deg, #1d4ed8, #059669); padding: 28px 32px; text-align: center;">
                     <table role="presentation" align="center" border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto 12px auto;">
                       <tr>
-                        <td align="center" valign="middle" width="44" height="44" style="width: 44px; height: 44px; background-color: rgba(255, 255, 255, 0.2); border-radius: 12px; text-align: center; vertical-align: middle; line-height: 44px;">
-                          <span style="color: #ffffff; font-size: 22px; font-weight: 900; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 44px; display: inline-block;">A</span>
+                        <td align="center" valign="middle">
+                          <img src="https://autoniv.com/apple-touch-icon.webp" alt="Autoniv Logo" width="48" height="48" style="width: 48px; height: 48px; border-radius: 12px; display: block; border: 0; outline: none; text-decoration: none;" />
                         </td>
                       </tr>
                     </table>
                     <h1 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0; tracking: -0.5px;">Autoniv</h1>
-                    <p style="color: rgba(255, 255, 255, 0.85); font-size: 13px; font-weight: 500; margin: 4px 0 0 0;">AI Vocal & Chat Automation Platform</p>
+                    <p style="color: rgba(255, 255, 255, 0.85); font-size: 13px; font-weight: 500; margin: 4px 0 0 0;">AI Voice & Chat Automation Platform</p>
                   </td>
                 </tr>
                 <tr>

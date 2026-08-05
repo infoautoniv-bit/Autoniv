@@ -9,9 +9,7 @@ const GoogleTranslate = lazy(() =>
   import('./GoogleTranslate').then((m) => ({ default: m.GoogleTranslate }))
 );
 
-import logoBrand from '../assets/autoniv-brand-logo.webp';
-
-const LOGO_SRC = logoBrand;
+const LOGO_SRC = '/logo.webp';
 
 function MagBtn({
   children,

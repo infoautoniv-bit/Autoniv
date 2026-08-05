@@ -687,10 +687,7 @@ textarea::placeholder {
   -webkit-tap-highlight-color: transparent;
 }
 
-.landing-page img {
-  content-visibility: auto;
-  contain-intrinsic-size: auto;
-}
+/* Removed content-visibility:auto from .landing-page img — it hides LCP candidates from the rendering pipeline, preventing early discovery. */
 .tag{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;}
 
 @keyframes marquee{0%{transform:translateX(0%)}100%{transform:translateX(-50%)}}
