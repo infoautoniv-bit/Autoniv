@@ -24,8 +24,8 @@ export const ORGANIZATION_SCHEMA: SchemaBase = {
   '@type': 'Organization',
   name: 'Autoniv',
   url: 'https://autoniv.com/',
-  logo: 'https://autoniv.com/logo.png',
-  image: 'https://autoniv.com/og-image.png',
+  logo: 'https://autoniv.com/logo.webp',
+  image: 'https://autoniv.com/og-image.webp',
   description: 'AI-powered voice agents, chatbots, and phone answering services for businesses.',
   email: 'hello@autoniv.com',
   telephone: '+91-7065990307',
@@ -166,7 +166,7 @@ export const ARTICLE_SCHEMA = (article: {
     name: 'Autoniv',
     logo: {
       '@type': 'ImageObject',
-      url: 'https://autoniv.com/logo.png',
+      url: 'https://autoniv.com/logo.webp',
     },
   },
 });
@@ -195,7 +195,7 @@ export const BLOG_POSTING_SCHEMA = (post: {
     name: 'Autoniv',
     logo: {
       '@type': 'ImageObject',
-      url: 'https://autoniv.com/logo.png',
+      url: 'https://autoniv.com/logo.webp',
     },
   },
 });

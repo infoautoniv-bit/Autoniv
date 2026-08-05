@@ -396,7 +396,7 @@ function AppRoutes() {
       const m = document.createElement('meta');
       m.setAttribute('property', 'og:image');
       return m;
-    }, 'content', 'https://autoniv.com/og-image.png');
+    }, 'content', 'https://autoniv.com/og-image.webp');
 
     setMetaTag('meta[property="og:type"]', () => {
       const m = document.createElement('meta');
@@ -433,7 +433,7 @@ function AppRoutes() {
       const m = document.createElement('meta');
       m.setAttribute('name', 'twitter:image');
       return m;
-    }, 'content', 'https://autoniv.com/og-image.png');
+    }, 'content', 'https://autoniv.com/og-image.webp');
 
     // Canonical link
     setMetaTag('link[rel="canonical"]', () => {
