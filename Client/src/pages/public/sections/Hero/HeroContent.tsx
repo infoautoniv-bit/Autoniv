@@ -1,5 +1,4 @@
 import React from "react";
-import { WordReveal } from "../anim";
 import { AVATARS } from "./constants";
 
 interface HeroContentProps {
