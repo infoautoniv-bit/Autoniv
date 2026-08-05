@@ -219,11 +219,12 @@ function swapMeta(html, routePath, meta) {
   );
 
   // Optimize CSS loading for non-blocking initial paint (LCP & FCP)
+  // Use media="print" onload trick to load CSS asynchronously — prevents render-blocking
   const cssMatch = result.match(/<link\s+rel="stylesheet"\s+crossorigin\s+href="(\/assets\/[^"]+\.css)"\s*\/?>/);
   if (cssMatch) {
     const cssPath = cssMatch[1];
-    const optimizedCssTags = `<link rel="preload" href="${cssPath}" as="style" crossorigin />\n  <link rel="stylesheet" href="${cssPath}" fetchpriority="high" crossorigin />`;
-    result = result.replace(cssMatch[0], optimizedCssTags);
+    const asyncCssTags = `<link rel="preload" href="${cssPath}" as="style" onload="this.onload=null;this.media='all'" />\n  <noscript><link rel="stylesheet" href="${cssPath}" crossorigin /></noscript>`;
+    result = result.replace(cssMatch[0], asyncCssTags);
   }
 
   // Strip admin/dashboard modulepreload hints on public pages — they waste mobile bandwidth
@@ -244,17 +245,9 @@ function swapMeta(html, routePath, meta) {
   }
 
   // Preload the navbar brand logo (LCP image) so it's discoverable in the initial HTML document
-  try {
-    const assetsDir = path.join(distDir, 'assets');
-    const assetsFiles = fs.readdirSync(assetsDir);
-    const brandLogo = assetsFiles.find((f) => f.startsWith('autoniv-brand-logo') && f.endsWith('.webp'));
-    if (brandLogo) {
-      const logoPreload = `  <link rel="preload" href="/assets/${brandLogo}" as="image" type="image/webp" fetchpriority="high" />`;
-      result = result.replace('</head>', `${logoPreload}\n</head>`);
-    }
-  } catch (_) {
-    /* ignore */
-  }
+  // Uses /logo.webp from public/ — matches the actual <img> src used in PublicNavbar
+  const logoPreload = `  <link rel="preload" href="/logo.webp" as="image" type="image/webp" fetchpriority="high" />`;
+  result = result.replace('</head>', `${logoPreload}\n</head>`);
 
   return result;
 }
