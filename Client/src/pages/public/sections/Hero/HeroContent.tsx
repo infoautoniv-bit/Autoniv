@@ -10,7 +10,6 @@ interface HeroContentProps {
 
 export const HeroContent = React.memo(function HeroContent({
   openAuth,
-  reduced,
   lowPower,
 }: HeroContentProps) {
   return (
