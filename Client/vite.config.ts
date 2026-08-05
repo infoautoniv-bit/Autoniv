@@ -34,6 +34,11 @@ export default defineConfig({
             return 'charts';
           }
 
+                    // Shared UI components — separate from admin pages
+          if (id.includes('src/components/')) {
+            return 'shared-components';
+          }
+
           // Feature product pages
           if (
             id.includes('pages/public/AiVoiceAgent') ||

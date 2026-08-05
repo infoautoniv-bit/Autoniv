@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import VapiModule from '@vapi-ai/web';
-import { publicDemoService } from '../services/api';
+import { publicDemoService } from '../services/api.misc';
 import { logger } from '../utils/logger';
 
 const Vapi = (typeof VapiModule === 'function' ? VapiModule : (VapiModule as any).default) as new (key: string) => any;

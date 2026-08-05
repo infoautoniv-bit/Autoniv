@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { publicLeadService } from '../services/api';
+import { publicLeadService } from '../services/api.leads';
 import { trackLeadFormConversion } from '../utils/analytics';
 import { logger } from '../utils/logger';
 

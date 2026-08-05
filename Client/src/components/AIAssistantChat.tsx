@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { publicLeadService } from '../services/api';
+import { publicLeadService } from '../services/api.leads';
 import { trackLeadFormConversion } from '../utils/analytics';
 
 const T = {
