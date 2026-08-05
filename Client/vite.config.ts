@@ -11,9 +11,12 @@ export default defineConfig({
     target: 'es2020',
     minify: 'esbuild',
     cssMinify: true,
+    cssCodeSplit: false,
     chunkSizeWarningLimit: 1000,
     sourcemap: 'hidden',
-    modulePreload: false,
+    modulePreload: {
+      polyfill: true,
+    },
     rollupOptions: {
       output: {
         manualChunks(id: string) {
