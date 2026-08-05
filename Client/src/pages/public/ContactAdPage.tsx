@@ -5,7 +5,7 @@ import { MetaRobots, PRIVATE_ROBOTS } from '../../components/MetaRobots';
 import PublicNavbar from '../../components/PublicNavbar';
 import Footer from './Footer';
 import { USPSlider } from './sections/USPSlider';
-import { contactService } from '../../services/api';
+import { contactService } from '../../services/api.public';
 import { trackLeadFormConversion } from '../../utils/analytics';
 
 

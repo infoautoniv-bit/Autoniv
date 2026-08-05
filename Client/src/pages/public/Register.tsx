@@ -3,7 +3,7 @@ import type React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
-import { authService } from '../../services/api';
+import { authService } from '../../services/api.public';
 import logoAutonivFull from '../../assets/autoniv-full-logo.webp';
 import logoAutonivBrand from '../../assets/autoniv-brand-logo.webp';
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authService } from '../../services/api';
+import { authService } from '../../services/api.public';
 import axios from 'axios';
 
 export function ForgotPassword() {

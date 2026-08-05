@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { contactService } from "../../../services/api";
+import { contactService } from "../../../services/api.public";
 import { trackLeadFormConversion } from "../../../utils/analytics";
 
 export function ContactForm() {
