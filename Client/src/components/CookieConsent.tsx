@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CONSENT_KEY = 'autoniv_cookie_consent';
@@ -14,6 +14,13 @@ function getInitialConsent(): ConsentState {
 
 export function CookieConsent() {
   const [consent, setConsent] = useState<ConsentState>(getInitialConsent);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Defer cookie banner mount until after critical path LCP render completes
+    const timer = setTimeout(() => setMounted(true), 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleAccept = () => {
     localStorage.setItem(CONSENT_KEY, 'accepted');
@@ -26,10 +33,11 @@ export function CookieConsent() {
     setConsent('rejected');
   };
 
+  if (!mounted || consent !== 'pending') return null;
+
   return (
     <AnimatePresence>
-      {consent === 'pending' && (
-        <motion.div
+      <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
@@ -67,7 +75,6 @@ export function CookieConsent() {
             </div>
           </div>
         </motion.div>
-      )}
     </AnimatePresence>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { publicLeadService } from '../services/api';
+import { trackLeadFormConversion } from '../utils/analytics';
 
 const T = {
   cyan: '#2563EB',
@@ -357,6 +358,8 @@ export default function AIAssistantChat() {
           email: finalLead.email,
           purpose: finalLead.purpose,
         });
+
+        trackLeadFormConversion();
 
         addMessage('assistant', `✅ **${res.data.message}**\n\n**Your Details:**\n- Name: ${finalLead.name}\n- Phone: ${finalLead.phone}\n- Email: ${finalLead.email}\n- Purpose: ${finalLead.purpose}\n\nOur team will reach out within 24 hours. Is there anything else I can help with?`);
         setLeadStep('done');

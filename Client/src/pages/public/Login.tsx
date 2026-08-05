@@ -245,7 +245,7 @@ export function Login() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[350px] h-[350px] rounded-full bg-[var(--secondary)]/[0.06] blur-[100px] pointer-events-none" />
 
         <Link to="/" className="z-10 -ml-5 relative inline-block">
-          <img src={logoAutonivFull} alt="Autoniv" className="h-32 w-auto object-contain -mb-20" />
+          <img src={logoAutonivFull} alt="Autoniv" width={315} height={210} decoding="async" className="h-32 w-auto object-contain -mb-20" />
         </Link>
 
         <div className="my-auto space-y-8 z-10 relative">

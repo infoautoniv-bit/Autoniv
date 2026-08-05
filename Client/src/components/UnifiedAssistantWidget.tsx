@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { publicLeadService } from '../services/api';
+import { trackLeadFormConversion } from '../utils/analytics';
 import { logger } from '../utils/logger';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
@@ -805,6 +806,8 @@ export default function UnifiedAssistantWidget() {
           email: finalLead.email,
           purpose: finalLead.purpose,
         });
+
+        trackLeadFormConversion();
 
         addMessage('assistant', `✅ **${res.data.message}**\n\n**Your Details:**\n- Name: ${finalLead.name}\n- Phone: ${finalLead.phone}\n- Email: ${finalLead.email}\n- Purpose: ${finalLead.purpose}\n\nOur team will reach out within 24 hours. Is there anything else I can help with?`);
         setLeadStep('done');
