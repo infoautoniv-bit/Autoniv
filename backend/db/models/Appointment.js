@@ -1,7 +1,15 @@
 import mongoose from 'mongoose';
+import crypto from 'node:crypto';
 import { syncAppointmentToCRM } from '../../services/crmService.js';
 
+export function generateReferenceNo() {
+  const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+  const rand = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `APT-${dateStr}-${rand}`;
+}
+
 const appointmentSchema = new mongoose.Schema({
+  referenceNo: { type: String, unique: true, index: true },
   agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', default: null },
   callId: { type: mongoose.Schema.Types.ObjectId, ref: 'Call', default: null },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -15,6 +23,13 @@ const appointmentSchema = new mongoose.Schema({
   preferredTime: { type: String, default: null },
   status: { type: String, default: 'pending' },
 }, { timestamps: { createdAt: 'createdAt', updatedAt: false } });
+
+appointmentSchema.pre('save', function (next) {
+  if (!this.referenceNo) {
+    this.referenceNo = generateReferenceNo();
+  }
+  next();
+});
 
 appointmentSchema.index({ userId: 1 });
 appointmentSchema.index({ agentId: 1 });

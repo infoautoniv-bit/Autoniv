@@ -121,12 +121,14 @@ function buildConfirmationMessage(appointment) {
   const service = appointment.service || 'your appointment';
   const date    = appointment.preferredDate || 'the scheduled date';
   const time    = appointment.preferredTime || 'the scheduled time';
+  const refNo   = appointment.referenceNo || 'N/A';
 
   return [
     `Hi ${name},`,
     '',
     `Your appointment with ${BUSINESS_NAME} has been confirmed.`,
     '',
+    `Reference No: ${refNo}`,
     `Service: ${service}`,
     `Date: ${date}`,
     `Time: ${time}`,
