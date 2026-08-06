@@ -369,8 +369,6 @@ const ProtectedRoute = memo(function ProtectedRoute({
 
 function AppRoutes() {
   const { user } = useAuth();
-  const initialized = useAppSelector((s) => s.auth.initialized);
-  const token = useAppSelector((s) => s.auth.token);
   const location = useLocation();
 
   useEffect(() => {
@@ -499,16 +497,12 @@ function AppRoutes() {
     [user]
   );
 
-  const isProtectedRoute = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname === '/onboarding';
-
-  // Only block rendering for protected routes that actually need auth.
-  // Public pages (landing, pricing, blog, etc.) render immediately.
-  if (token && !initialized && isProtectedRoute) return <LoadingScreen />;
-
   return (
     <Suspense fallback={<LoadingScreen />}>
       <ScrollToTop />
-      <CommandPalette />
+      <Suspense fallback={null}>
+        <CommandPalette />
+      </Suspense>
       <MetaRobots content={
         (location.pathname.startsWith('/dashboard/support')) ? PUBLIC_ROBOTS :
         (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/onboarding') || location.pathname === '/connect' || location.pathname === '/contact' || location.pathname === '/contact-ad') ? PRIVATE_ROBOTS :
@@ -567,18 +561,18 @@ function AppRoutes() {
         <Route path="/dashboard/add-ons" element={<ProtectedRoute><RouteErrorBoundary><MyAddOns /></RouteErrorBoundary></ProtectedRoute>} />
         <Route path="/dashboard/support" element={<ProtectedRoute><RouteErrorBoundary><CustomerSupport /></RouteErrorBoundary></ProtectedRoute>} />
 
-        {/* Admin routes — isolated Suspense so admin.js chunk is never fetched on public pages */}
-        <Route path="/admin" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/users" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/users/new" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><CreateUser /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/agents" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAgents /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/calls" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminCalls /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/leads" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminLeads /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/appointments" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAppointments /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/billing" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminBilling /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/upgrade-requests" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminUpgradeRequests /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/add-ons" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAddOns /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/chat" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminChat /></ProtectedRoute></Suspense>} />
+        {/* Admin routes */}
+        <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
+        <Route path="/admin/users/new" element={<ProtectedRoute adminOnly><CreateUser /></ProtectedRoute>} />
+        <Route path="/admin/agents" element={<ProtectedRoute adminOnly><AdminAgents /></ProtectedRoute>} />
+        <Route path="/admin/calls" element={<ProtectedRoute adminOnly><AdminCalls /></ProtectedRoute>} />
+        <Route path="/admin/leads" element={<ProtectedRoute adminOnly><AdminLeads /></ProtectedRoute>} />
+        <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><AdminAppointments /></ProtectedRoute>} />
+        <Route path="/admin/billing" element={<ProtectedRoute adminOnly><AdminBilling /></ProtectedRoute>} />
+        <Route path="/admin/upgrade-requests" element={<ProtectedRoute adminOnly><AdminUpgradeRequests /></ProtectedRoute>} />
+        <Route path="/admin/add-ons" element={<ProtectedRoute adminOnly><AdminAddOns /></ProtectedRoute>} />
+        <Route path="/admin/chat" element={<ProtectedRoute adminOnly><AdminChat /></ProtectedRoute>} />
 
         {/* Route Aliases & Redirects */}
         <Route path="/agents" element={<Navigate to="/dashboard/ai-voice-agent" replace />} />
@@ -588,7 +582,9 @@ function AppRoutes() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {!user && <DeferredAssistantWidget />}
+      <Suspense fallback={null}>
+        {!user && <DeferredAssistantWidget />}
+      </Suspense>
       <MobileBottomNav />
     </Suspense>
   );

@@ -34,7 +34,7 @@ const initialState: AuthState = {
   token: accessToken,
   refreshToken: getCookie('refreshToken'),
   loading: false,
-  initialized: !!(cachedUser && accessToken),
+  initialized: !accessToken || !!(cachedUser && accessToken),
   dashboardStats: loadFromSession<DashboardStats>('cache:dashboardStats'),
   error: null,
 };
