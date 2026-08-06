@@ -1,8 +1,8 @@
 export const AVATARS = [
-  { img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80", alt: "Sarah C." },
-  { img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80", alt: "Michael J." },
-  { img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80", alt: "Emma R." },
-  { img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80", alt: "Alex K." },
+  { img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&auto=format&fit=crop&q=70", alt: "Sarah C." },
+  { img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&auto=format&fit=crop&q=70", alt: "Michael J." },
+  { img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&auto=format&fit=crop&q=70", alt: "Emma R." },
+  { img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=64&h=64&auto=format&fit=crop&q=70", alt: "Alex K." },
 ] as const;
 
 export const COMPANIES = [
