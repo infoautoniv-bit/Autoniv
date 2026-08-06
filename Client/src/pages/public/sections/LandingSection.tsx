@@ -4,7 +4,7 @@ import { DeferRender } from "../../../components/DeferRender";
 import { Hero } from "./Hero/Hero";
 
 import { PublicNavbar } from "../../../components/PublicNavbar";
-const USPSlider = lazy(() => import("./USPSlider").then(m => ({ default: m.USPSlider })));
+import { USPSlider } from "./USPSlider";
 const Footer = lazy(() => import("../Footer"));
 
 const Features = lazy(() => import("./Features").then(m => ({ default: m.Features })));
