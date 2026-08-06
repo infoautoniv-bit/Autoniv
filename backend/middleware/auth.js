@@ -12,7 +12,7 @@ function extractToken(req) {
   return extractTokenFromCookie(req);
 }
 
-export function authenticate(req, res, next) {
+export async function authenticate(req, res, next) {
   const token = extractToken(req);
   if (!token) {
     return res.status(401).json({ message: 'Authentication required' });
@@ -29,6 +29,21 @@ export function authenticate(req, res, next) {
     if (!decoded.userId || !decoded.role) {
       authSecurityEvent('jwt_invalid_payload', { ip: req.ip });
       return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Verify token has not been invalidated by logout or password change
+    const user = await User.findById(decoded.userId).select('tokenInvalidBefore passwordChangedAt isActive role').lean();
+    if (!user || user.isActive === false) {
+      return res.status(401).json({ message: 'Account is inactive or user not found' });
+    }
+
+    const tokenIssuedAtMs = (decoded.iat || 0) * 1000;
+    if (user.tokenInvalidBefore && tokenIssuedAtMs < user.tokenInvalidBefore.getTime()) {
+      return res.status(401).json({ message: 'Token has been invalidated by logout', code: 'TOKEN_INVALIDATED' });
+    }
+
+    if (user.passwordChangedAt && tokenIssuedAtMs < user.passwordChangedAt.getTime()) {
+      return res.status(401).json({ message: 'Token has been invalidated by password change', code: 'TOKEN_INVALIDATED' });
     }
 
     req.user = {

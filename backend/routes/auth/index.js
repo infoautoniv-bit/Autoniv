@@ -31,6 +31,7 @@ import { auditLog } from '../../db/models/AuditLog.js';
 import {
   signAccessToken,
   signRefreshToken,
+  verifyAccessToken,
   verifyRefreshToken,
   hashRefreshToken,
   REFRESH_TOKEN_TTL_MS,
@@ -350,11 +351,35 @@ router.post('/resend-otp', authLimiter, async (req, res) => {
 
 router.post('/logout', authLimiter, async (req, res) => {
   try {
-    const token = extractRefreshFromCookie(req) || req.body?.refreshToken;
-    if (token) {
-      const tokenHash = hashRefreshToken(token);
+    const refreshToken = extractRefreshFromCookie(req) || req.body?.refreshToken;
+    let userId = null;
+
+    if (refreshToken) {
+      const tokenHash = hashRefreshToken(refreshToken);
       await RefreshToken.deleteOne({ tokenHash }).catch(() => {});
+      try {
+        const decoded = verifyRefreshToken(refreshToken);
+        if (decoded?.userId) userId = decoded.userId;
+      } catch {}
     }
+
+    if (!userId) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const accessToken = authHeader.split(' ')[1]?.trim();
+        if (accessToken) {
+          try {
+            const decoded = verifyAccessToken(accessToken);
+            if (decoded?.userId) userId = decoded.userId;
+          } catch {}
+        }
+      }
+    }
+
+    if (userId) {
+      await User.findByIdAndUpdate(userId, { tokenInvalidBefore: new Date() }).catch(() => {});
+    }
+
     clearTokenCookies(res);
     return res.json({ message: 'Logged out successfully' });
   } catch (error) {

@@ -338,26 +338,10 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     if (voiceModelOrId) {
       if (voiceModelOrId.includes(':')) {
         const subparts = voiceModelOrId.split(':');
-        if (subparts.length >= 3) {
-          sarvamModel = `${subparts[0]}:${subparts[1]}`;
-          speaker = subparts[2];
-        } else if (subparts.length === 2) {
-          sarvamModel = `${subparts[0]}:${subparts[1]}`;
-          speaker = 'shreya';
-        }
-      } else if (voiceModelOrId === 'bulbul') {
-        sarvamModel = 'bulbul:v3';
-        speaker = 'shreya';
-      } else {
-        sarvamModel = 'bulbul:v3';
+        speaker = subparts[subparts.length - 1];
+      } else if (voiceModelOrId !== 'bulbul') {
         speaker = voiceModelOrId;
       }
-    }
-
-    if (sarvamModel === 'bulbul:v2' && language !== 'hi') {
-      sarvamModel = 'bulbul:v3';
-      const isMale = isSarvamMaleSpeaker(speaker);
-      speaker = isMale ? 'shubh' : 'shreya';
     }
 
     const V3_SPEAKERS = ['aditya', 'ritu', 'ashutosh', 'priya', 'neha', 'rahul', 'pooja', 'rohan', 'simran', 'kavya', 'amit', 'dev', 'ishita', 'shreya', 'ratan', 'varun', 'manan', 'sumit', 'roopa', 'kabir', 'aayan', 'shubh', 'advait', 'anand', 'tanya', 'tarun', 'sunny', 'mani', 'gokul', 'vijay', 'shruti', 'suhani', 'mohit', 'kavitha', 'rehan', 'soham', 'rupali'];

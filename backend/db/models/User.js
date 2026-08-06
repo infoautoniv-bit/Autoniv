@@ -278,6 +278,7 @@ const userSchema = new mongoose.Schema(
     otpExpiresAt:    { type: Date,   default: null, select: false },
     otpPurpose:      { type: String, default: null, select: false },
     passwordChangedAt: { type: Date,   default: null },
+    tokenInvalidBefore: { type: Date,  default: null },
     lastLoginAt:     { type: Date,   default: null },
     teamLimit: { type: Number, default: 5 },
     teamMembers: [

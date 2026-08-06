@@ -80,17 +80,7 @@ export const VOICE_OPTIONS: VoiceOption[] = [
   { value: 'sarvam:bulbul:v3:kavitha', label: 'Sarvam Kavitha (V3 - Female)' },
   { value: 'sarvam:bulbul:v3:rehan', label: 'Sarvam Rehan (V3 - Male)' },
   { value: 'sarvam:bulbul:v3:soham', label: 'Sarvam Soham (V3 - Male)' },
-  { value: 'sarvam:bulbul:v3:rupali', label: 'Sarvam Rupali (V3 - Female)' },
-
-  // --- Sarvam AI Indian-Native Voices (Indic-native) - Bulbul V2 (Hindi-only) ---
-  { value: 'sarvam:bulbul:v2:anushka', label: 'Sarvam Anushka (V2 - Female)' },
-  { value: 'sarvam:bulbul:v2:abhilash', label: 'Sarvam Abhilash (V2 - Male)' },
-  { value: 'sarvam:bulbul:v2:manisha', label: 'Sarvam Manisha (V2 - Female)' },
-  { value: 'sarvam:bulbul:v2:vidya', label: 'Sarvam Vidya (V2 - Female)' },
-  { value: 'sarvam:bulbul:v2:arya', label: 'Sarvam Arya (V2 - Female)' },
-  { value: 'sarvam:bulbul:v2:karun', label: 'Sarvam Karun (V2 - Male)' },
-  { value: 'sarvam:bulbul:v2:hitesh', label: 'Sarvam Hitesh (V2 - Male)' },
-
+  { value: 'sarvam:bulbul:v3:rupali', label: 'Sarvam Rupali (V3 - Female)' }
 ];
 
 export const INDIC_LANGUAGES = ['hi', 'ta', 'te', 'mr', 'bn', 'gu', 'kn', 'ml', 'pa', 'or'];
