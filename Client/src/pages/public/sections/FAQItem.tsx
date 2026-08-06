@@ -14,7 +14,9 @@ export function FAQItem({ question, answer, index }: FAQItemProps) {
 
   useEffect(() => {
     if (contentRef.current) {
-      setHeight(open ? contentRef.current.scrollHeight : 0);
+      requestAnimationFrame(() => {
+        setHeight(open ? contentRef.current!.scrollHeight : 0);
+      });
     }
   }, [open]);
 

@@ -15,11 +15,13 @@ export const ChatWindow = React.memo(function ChatWindow({
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll when messages update
+  // Auto-scroll when messages update — deferred to avoid forced reflow
   useEffect(() => {
     const c = chatContainerRef.current;
     if (c) {
-      c.scrollTo({ top: c.scrollHeight, behavior: "smooth" });
+      requestAnimationFrame(() => {
+        c.scrollTo({ top: c.scrollHeight, behavior: "smooth" });
+      });
     }
   }, [msgs]);
 

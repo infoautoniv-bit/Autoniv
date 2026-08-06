@@ -114,7 +114,9 @@ export function FAQItem({ question, answer }: { question: string; answer: string
 
   useEffect(() => {
     if (contentRef.current) {
-      setContentHeight(contentRef.current.scrollHeight);
+      requestAnimationFrame(() => {
+        setContentHeight(contentRef.current!.scrollHeight);
+      });
     }
   }, [answer]);
 
