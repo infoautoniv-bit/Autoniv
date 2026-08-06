@@ -45,11 +45,6 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
     <section
       ref={ref}
       className="section-box tint"
-      style={{
-        contain: "layout style",
-        contentVisibility: "auto",
-        containIntrinsicSize: "auto 700px",
-      } as React.CSSProperties}
     >
       <div
         className="section-pad relative overflow-hidden"

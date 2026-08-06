@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { DeferRender } from "../../../components/DeferRender";
 import { Hero } from "./Hero/Hero";
 
-const PublicNavbar = lazy(() => import("../../../components/PublicNavbar").then(m => ({ default: m.PublicNavbar })));
+import { PublicNavbar } from "../../../components/PublicNavbar";
 const USPSlider = lazy(() => import("./USPSlider").then(m => ({ default: m.USPSlider })));
 const Footer = lazy(() => import("../Footer"));
 
