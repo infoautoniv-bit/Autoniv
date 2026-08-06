@@ -218,18 +218,7 @@ function swapMeta(html, routePath, meta) {
     `<meta name="twitter:description" content="${escapedDesc}" />`
   );
 
-  // Optimize CSS loading for non-blocking initial paint (LCP & FCP)
-  // Use media="print" onload trick to load CSS asynchronously — prevents render-blocking
-  // Only apply to prerendered public pages, NOT to dist/index.html (SPA fallback)
-  // index.html needs synchronous CSS so protected routes get styles on refresh
-  if (routePath !== '/') {
-    const cssMatch = result.match(/<link\s+rel="stylesheet"\s+crossorigin\s+href="(\/assets\/[^"]+\.css)"\s*\/?>/);
-    if (cssMatch) {
-      const cssPath = cssMatch[1];
-      const asyncCssTags = `<link rel="preload" href="${cssPath}" as="style" onload="this.onload=null;this.media='all'" />\n  <noscript><link rel="stylesheet" href="${cssPath}" crossorigin /></noscript>`;
-      result = result.replace(cssMatch[0], asyncCssTags);
-    }
-  }
+  // Keep standard CSS stylesheet link in prerendered HTML for Googlebot compliance
 
   // Strip admin/dashboard modulepreload hints on public pages — they waste mobile bandwidth
   // Admin chunks (450KB+) are never needed for public visitors and block FCP/LCP
