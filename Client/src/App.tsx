@@ -11,6 +11,7 @@ import { MetaRobots, PUBLIC_ROBOTS, PRIVATE_ROBOTS } from './components/MetaRobo
 import { isChatPlan, isVoicePlan } from './utils/plan';
 import { STUDIES } from './pages/public/caseStudiesData';
 import { injectSchema, ORGANIZATION_SCHEMA, WEBSITE_SCHEMA, SOFTWARE_APPLICATION_SCHEMA } from './utils/schema';
+import { LandingSection as Landing } from './pages/public/sections/LandingSection';
 
 const UnifiedAssistantWidget = lazy(() => import('./components/UnifiedAssistantWidget'));
 
@@ -36,7 +37,7 @@ const CommandPalette = lazy(() => import('./components/CommandPalette').then(m =
 const Sidebar = lazy(() => import('./components/Sidebar').then(m => ({ default: m.Sidebar })));
 const Breadcrumbs = lazy(() => import('./components/Breadcrumbs').then(m => ({ default: m.Breadcrumbs })));
 
-const Landing = lazy(() => import('./pages/public/sections/LandingSection').then(m => ({ default: m.LandingSection })));
+// Landing is eagerly imported above to eliminate LCP waterfall chain on mobile
 const Login = lazy(() => import('./pages/public/Login').then(m => ({ default: m.Login })));
 const Register = lazy(() => import('./pages/public/Register').then(m => ({ default: m.Register })));
 const UserDashboard = lazy(() => import('./pages/user/UserDashboard').then(m => ({ default: m.UserDashboard })));

@@ -20,24 +20,41 @@ export default defineConfig({
           if (id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
             return 'vendor';
           }
-          // Redux — only needed after login
-          if (id.includes('node_modules/@reduxjs') || id.includes('node_modules/react-redux')) {
-            return 'redux';
-          }
           // Framer Motion — only needed in dashboard/landing animations
           if (id.includes('node_modules/framer-motion')) {
             return 'motion';
           }
-          // Charts — only needed in dashboard
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
-            return 'charts';
+          // Vapi Web SDK
+          if (id.includes('node_modules/@vapi-ai')) {
+            return 'vapi';
           }
 
-                    // Shared UI components — separate from admin pages
-          if (id.includes('src/components/')) {
+          // ── Admin pages — MUST be before shared-components to prevent leaking into public bundles ──
+          if (id.includes('src/pages/admin/AdminUsers') || id.includes('src/pages/admin/CreateUser')) {
+            return 'admin-users';
+          }
+          if (id.includes('src/pages/admin/AdminAgents')) {
+            return 'admin-agents';
+          }
+          if (id.includes('src/pages/admin/AdminCalls')) {
+            return 'admin-calls';
+          }
+          if (id.includes('src/pages/admin/')) {
+            return 'admin-core';
+          }
+
+          // ── User dashboard pages — never loaded on public pages ──
+          if (id.includes('src/pages/user/')) {
+            return undefined; // let Vite split these naturally per lazy() import
+          }
+
+          // Shared UI components — separate from page bundles
+          // Exclude BulkCallDashboard which is a user-facing page component
+          if (id.includes('src/components/') && !id.includes('BulkCallDashboard')) {
             return 'shared-components';
           }
 
+          // ── Public page groups ──
           // Feature product pages
           if (
             id.includes('pages/public/AiVoiceAgent') ||
@@ -62,22 +79,9 @@ export default defineConfig({
           if (id.includes('pages/public/CaseStudies') || id.includes('pages/public/CaseStudyDetail')) {
             return 'public-cases';
           }
-          // Vapi Web SDK
-          if (id.includes('node_modules/@vapi-ai')) {
-            return 'vapi';
-          }
-          // Admin pages — split individually so admin modules are never fetched on public pages
-          if (id.includes('src/pages/admin/AdminUsers')) {
-            return 'admin-users';
-          }
-          if (id.includes('src/pages/admin/AdminAgents')) {
-            return 'admin-agents';
-          }
-          if (id.includes('src/pages/admin/AdminCalls')) {
-            return 'admin-calls';
-          }
-          if (id.includes('src/pages/admin/')) {
-            return 'admin-core';
+          // JSON-LD schemas
+          if (id.includes('src/utils/schema')) {
+            return 'schemas';
           }
         },
       },
