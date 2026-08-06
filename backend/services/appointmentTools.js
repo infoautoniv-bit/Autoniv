@@ -497,13 +497,14 @@ export async function executeTool(name, args, ctx) {
           toolState.saveAppointment = true;
           return {
             success: true,
-            appointmentId: shortRef(existing._id),
+            appointmentId: existing.referenceNo || shortRef(existing._id),
+            referenceNo: existing.referenceNo || shortRef(existing._id),
             name: existing.name,
             provider: existing.provider,
             date: existing.preferredDate,
             time: existing.preferredTime,
             reason: existing.service,
-            message: 'Existing booking reused',
+            message: `Existing booking reused. Reference number is ${existing.referenceNo || shortRef(existing._id)}.`,
           };
         }
 
@@ -553,15 +554,17 @@ export async function executeTool(name, args, ctx) {
           return { success: false, error: 'Failed to save appointment. A lead has been saved instead.' };
         }
 
+        const refNo = appt.referenceNo || shortRef(appt._id);
         return {
           success: true,
-          appointmentId: shortRef(appt._id),
+          appointmentId: refNo,
+          referenceNo: refNo,
           name: appt.name,
           provider: appt.provider,
           date: appt.preferredDate,
           time: appt.preferredTime,
           reason: appt.service,
-          message: 'Appointment booked successfully. Read back reference number, thank the caller warmly for calling, and end the call now.',
+          message: `Appointment booked successfully. The reference number is ${refNo}. Read back this reference number (${refNo}) clearly to the caller, thank them warmly, and end the call now.`,
         };
       }
 
