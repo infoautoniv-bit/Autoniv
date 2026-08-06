@@ -450,10 +450,13 @@ export async function executeTool(name, args, ctx) {
           return { success: false, error: 'Cannot book appointment with unknown contact details. Please ask the caller for their name and phone number first.' };
         }
 
-        // Email is mandatory for booking. Reject missing/placeholder/malformed
-        // addresses so the agent asks for (and confirms) a real one.
-        const email = pick(args, 'email');
-        const isValidEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val).trim());
+        // Email is mandatory for booking. Normalize spoken emails (e.g. 'at' -> '@', 'dot' -> '.')
+        const rawEmail = pick(args, 'email');
+        const email = rawEmail ? String(rawEmail).trim().toLowerCase()
+          .replace(/\s+at\s+/gi, '@')
+          .replace(/\s+dot\s+/gi, '.')
+          .replace(/\s+/g, '') : '';
+        const isValidEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
         if (isUnknown(email) || !isValidEmail(email)) {
           return { success: false, error: 'An email address is required to book. Please ask the caller for their email, confirm the spelling, then book.' };
         }
