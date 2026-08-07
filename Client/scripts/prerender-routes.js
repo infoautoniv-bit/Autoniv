@@ -182,6 +182,16 @@ function swapMeta(html, routePath, meta) {
     `<link rel="canonical" href="${url}" />`
   );
 
+  // Replace hreflang tags — critical for indexing
+  result = result.replace(
+    /<link\s+rel="alternate"\s+hreflang="en"\s+href="[^"]*"\s*\/?>/,
+    `<link rel="alternate" hreflang="en" href="${url}" />`
+  );
+  result = result.replace(
+    /<link\s+rel="alternate"\s+hreflang="x-default"\s+href="[^"]*"\s*\/?>/,
+    `<link rel="alternate" hreflang="x-default" href="${url}" />`
+  );
+
   // Replace og:url
   result = result.replace(
     /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/,
@@ -229,7 +239,41 @@ function swapMeta(html, routePath, meta) {
   result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/public-news-[^"]*\.js"\s*\/?>\n?/g, '');
   result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/shared-components-[^"]*\.js"\s*\/?>\n?/g, '');
 
-  // Inject route-specific JSON-LD Schema
+  // Update WebPage schema URL in the consolidated JSON-LD graph
+  result = result.replace(
+    /"@type"\s*:\s*"WebPage"[\s\S]*?"url"\s*:\s*"https:\/\/autoniv\.com\/"/,
+    `"@type": "WebPage",\n          "name": "${escapedTitle.split('|')[0].trim()}",\n          "url": "${url}"`
+  );
+
+  // Update WebPage schema isPartOf URL
+  result = result.replace(
+    /"@type"\s*:\s*"WebSite",\s*"url"\s*:\s*"https:\/\/autoniv\.com\/"\s*\}/,
+    `"@type": "WebSite",\n            "url": "https://autoniv.com/"\n          }`
+  );
+
+  // Update BreadcrumbList in the consolidated JSON-LD graph
+  const pathParts = routePath.split('/').filter(Boolean);
+  let currentPath = '';
+  const breadcrumbItems = [{ position: 1, name: 'Home' }];
+  pathParts.forEach((part, index) => {
+    currentPath += '/' + part;
+    const name = part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
+    breadcrumbItems.push({ position: index + 2, name });
+  });
+  const breadcrumbJson = JSON.stringify({
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbItems.map(item => ({
+      '@type': 'ListItem',
+      position: item.position,
+      name: item.name,
+    })),
+  });
+  result = result.replace(
+    /\{"@type"\s*:\s*"BreadcrumbList"[^}]*"itemListElement"\s*:\s*\[[^\]]*\]\}/,
+    breadcrumbJson
+  );
+
+  // Inject route-specific JSON-LD Schema (for page-specific schemas like Service, FAQPage)
   if (meta.schema) {
     const schemaScript = `  <script type="application/ld+json">\n${JSON.stringify(meta.schema, null, 2)}\n  </script>`;
     result = result.replace('</head>', `${schemaScript}\n</head>`);
