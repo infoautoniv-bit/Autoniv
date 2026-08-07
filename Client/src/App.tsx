@@ -80,17 +80,7 @@ const MyChat = lazy(() => import('./pages/user/MyChat').then(m => ({ default: m.
 const MyChatbots = lazy(() => import('./pages/user/MyChatbots').then(m => ({ default: m.MyChatbots })));
 const CreateChatbot = lazy(() => import('./pages/user/CreateChatbot').then(m => ({ default: m.CreateChatbot })));
 const CustomerSupport = lazy(() => import('./pages/user/CustomerSupport').then(m => ({ default: m.CustomerSupport })));
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const AdminUsers = lazy(() => import('./pages/admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
-const CreateUser = lazy(() => import('./pages/admin/CreateUser').then(m => ({ default: m.CreateUser })));
-const AdminAgents = lazy(() => import('./pages/admin/AdminAgents').then(m => ({ default: m.AdminAgents })));
-const AdminCalls = lazy(() => import('./pages/admin/AdminCalls').then(m => ({ default: m.AdminCalls })));
-const AdminBilling = lazy(() => import('./pages/admin/AdminBilling').then(m => ({ default: m.AdminBilling })));
-const AdminLeads = lazy(() => import('./pages/admin/AdminLeads').then(m => ({ default: m.AdminLeads })));
-const AdminUpgradeRequests = lazy(() => import('./pages/admin/AdminUpgradeRequests').then(m => ({ default: m.AdminUpgradeRequests })));
-const AdminAddOns = lazy(() => import('./pages/admin/AdminAddOns').then(m => ({ default: m.AdminAddOns })));
-const AdminAppointments = lazy(() => import('./pages/admin/AdminAppointments').then(m => ({ default: m.AdminAppointments })));
-const AdminChat = lazy(() => import('./pages/admin/AdminChat').then(m => ({ default: m.AdminChat })));
+const AdminRoutes = lazy(() => import('./routes/AdminRoutes').then(m => ({ default: m.AdminRoutes })));
 const WelcomeOnboarding = lazy(() => import('./components/WelcomeOnboarding').then(m => ({ default: m.default })));
 const NotFound = lazy(() => import('./pages/public/NotFound').then(m => ({ default: m.NotFound })));
 
@@ -308,7 +298,7 @@ function setMetaTag(selector: string, create: () => HTMLElement, attr: string, v
 
 
 
-const ProtectedRoute = memo(function ProtectedRoute({
+export const ProtectedRoute = memo(function ProtectedRoute({
   children,
   adminOnly = false,
   hideSidebar = false,
@@ -562,18 +552,14 @@ function AppRoutes() {
         <Route path="/dashboard/add-ons" element={<ProtectedRoute><RouteErrorBoundary><MyAddOns /></RouteErrorBoundary></ProtectedRoute>} />
         <Route path="/dashboard/support" element={<ProtectedRoute><RouteErrorBoundary><CustomerSupport /></RouteErrorBoundary></ProtectedRoute>} />
 
-        {/* Admin routes */}
-        <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
-        <Route path="/admin/users/new" element={<ProtectedRoute adminOnly><CreateUser /></ProtectedRoute>} />
-        <Route path="/admin/agents" element={<ProtectedRoute adminOnly><AdminAgents /></ProtectedRoute>} />
-        <Route path="/admin/calls" element={<ProtectedRoute adminOnly><AdminCalls /></ProtectedRoute>} />
-        <Route path="/admin/leads" element={<ProtectedRoute adminOnly><AdminLeads /></ProtectedRoute>} />
-        <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><AdminAppointments /></ProtectedRoute>} />
-        <Route path="/admin/billing" element={<ProtectedRoute adminOnly><AdminBilling /></ProtectedRoute>} />
-        <Route path="/admin/upgrade-requests" element={<ProtectedRoute adminOnly><AdminUpgradeRequests /></ProtectedRoute>} />
-        <Route path="/admin/add-ons" element={<ProtectedRoute adminOnly><AdminAddOns /></ProtectedRoute>} />
-        <Route path="/admin/chat" element={<ProtectedRoute adminOnly><AdminChat /></ProtectedRoute>} />
+        {/* Admin routes — lazy-loaded as a separate chunk to avoid preloading on public pages */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute adminOnly>
+            <Suspense fallback={<LoadingScreen />}>
+              <AdminRoutes />
+            </Suspense>
+          </ProtectedRoute>
+        } />
 
         {/* Route Aliases & Redirects */}
         <Route path="/agents" element={<Navigate to="/dashboard/ai-voice-agent" replace />} />

@@ -9,7 +9,8 @@ const GoogleTranslate = lazy(() =>
   import('./GoogleTranslate').then((m) => ({ default: m.GoogleTranslate }))
 );
 
-const LOGO_SRC = '/logo.webp';
+const LOGO_SRC = '/logo-180.webp';
+const LOGO_SRC_2X = '/logo-360.webp';
 
 function MagBtn({
   children,
@@ -236,6 +237,7 @@ export function PublicNavbar() {
           >
             <img
               src={LOGO_SRC}
+              srcSet={`${LOGO_SRC} 1x, ${LOGO_SRC_2X} 2x`}
               alt="Autoniv Brand Logo"
               width={180}
               height={120}
