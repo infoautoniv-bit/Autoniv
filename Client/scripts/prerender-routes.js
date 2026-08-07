@@ -238,6 +238,8 @@ function swapMeta(html, routePath, meta) {
   result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/public-cases-[^"]*\.js"\s*\/?>\n?/g, '');
   result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/public-news-[^"]*\.js"\s*\/?>\n?/g, '');
   result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/shared-components-[^"]*\.js"\s*\/?>\n?/g, '');
+  // Strip any data: URI modulepreload hints (Vite 8 bug — base64-encodes source paths instead of removing them)
+  result = result.replace(/<link\s+rel="modulepreload"\s+(?:crossorigin\s+)?href="data:[^"]*"\s*\/?>\n?/g, '');
 
   // Update WebPage schema URL in the consolidated JSON-LD graph
   result = result.replace(
