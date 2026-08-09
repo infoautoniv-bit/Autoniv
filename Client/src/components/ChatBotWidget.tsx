@@ -433,7 +433,7 @@ export function ChatBotWidget() {
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-40 rounded-2xl text-white flex items-center justify-center shadow-xl"
+        className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-[150] rounded-2xl text-white flex items-center justify-center shadow-xl"
         style={{
           width: 52, height: 52,
           background: 'linear-gradient(135deg, #0077ff 0%, #00c8b4 100%)',
