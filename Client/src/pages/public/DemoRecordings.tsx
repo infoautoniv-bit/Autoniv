@@ -1504,9 +1504,7 @@ export function DemoRecordings() {
           .m-pipeline-scroll { flex-wrap: nowrap !important; justify-content: flex-start !important; padding-bottom: 8px; }
           .m-workforce-scroll { grid-template-columns: repeat(6, 130px) !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
           .m-bottom-ctrl { display: flex !important; }
-          .m-hero-stat { flex-direction: column !important; gap: 8px !important; }
-          .m-hero-stat > div { width: 100% !important; justify-content: center !important; }
-          .m-hero-stat > div > span:first-child { display: none !important; }
+          .m-hero-stat { flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important; justify-content: center !important; }
         }
         @media (min-width: 769px) {
           .m-bottom-ctrl { display: none !important; }
@@ -1539,17 +1537,17 @@ export function DemoRecordings() {
           </Reveal>
 
           <Reveal delay={180}>
-            <div className="m-hero-stat" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, flexWrap: 'wrap' }}>
+            <div className="m-hero-stat" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'nowrap', overflowX: 'auto', padding: '4px 0' }}>
               {[
                 { value: '340ms', label: 'Latency' },
                 { value: '20+', label: 'Languages' },
                 { value: '24/7', label: 'Availability' },
                 { value: '99.9%', label: 'Uptime', color: '#059669' },
               ].map((s, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  {i > 0 && <span className="m-hide" style={{ width: 1, height: 18, background: '#E2E8F0' }} />}
-                  <span style={{ fontSize: 18, fontWeight: 900, color: s.color || '#0F172A', fontFamily: MONO }}>{s.value}</span>
-                  <span style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>{s.label}</span>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  {i > 0 && <span style={{ width: 1, height: 14, background: '#CBD5E1', flexShrink: 0, marginRight: 6 }} />}
+                  <span style={{ fontSize: 'clamp(12px, 3.2vw, 18px)', fontWeight: 900, color: s.color || '#0F172A', fontFamily: MONO, whiteSpace: 'nowrap' }}>{s.value}</span>
+                  <span style={{ fontSize: 'clamp(9px, 2.2vw, 11px)', color: '#64748B', fontWeight: 600, whiteSpace: 'nowrap' }}>{s.label}</span>
                 </div>
               ))}
             </div>
