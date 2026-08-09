@@ -119,6 +119,7 @@ const NAV_ITEMS: NavItem[] = [
       },
     ],
   },
+  { label: 'Demos', href: '/demos', badge: 'LIVE' },
   { label: 'News', href: '/news', badge: 'NEW' },
   { label: 'Contact', href: '#contact', isHash: true },
   { label: 'About Us', href: '/about' },

@@ -53,6 +53,7 @@ const NAV_COLS = [
   {
     heading: 'Product',
     links: [
+      { href: '/demos', label: 'Demo Recordings' },
       { href: '/#features', label: 'Features', scroll: true },
       { href: '/#contact', label: 'Contact Us', scroll: true },
       { href: '/#addons', label: 'Add-Ons', scroll: true },

@@ -58,6 +58,7 @@ const CustomerSupportPublic = lazy(() => import('./pages/public/CustomerSupportP
 const RealEstateIndustry = lazy(() => import('./pages/public/RealEstateIndustry').then(m => ({ default: m.RealEstateIndustry })));
 const HealthcareIndustry = lazy(() => import('./pages/public/HealthcareIndustry').then(m => ({ default: m.HealthcareIndustry })));
 const CaseStudies = lazy(() => import('./pages/public/CaseStudies').then(m => ({ default: m.CaseStudies })));
+const DemoRecordings = lazy(() => import('./pages/public/DemoRecordings').then(m => ({ default: m.DemoRecordings })));
 const CaseStudyDetail = lazy(() => import('./pages/public/CaseStudyDetail'));
 const Pricing = lazy(() => import('./pages/public/Pricing').then(m => ({ default: m.Pricing })));
 const VoiceAssistancePricing = lazy(() => import('./pages/public/VoiceAssistancePricing').then(m => ({ default: m.VoiceAssistancePricing })));
@@ -137,6 +138,11 @@ const EXACT_META: Record<string, Meta> = {
     title: 'HIPAA-Compliant AI Voice & Chat for Healthcare | Autoniv',
     description:
       'Automate patient intake, appointment scheduling, prescription refills, and follow-ups with secure, intelligent healthcare AI assistants.',
+  },
+  '/demos': {
+    title: 'AI Voice Agent Demo Recordings across Healthcare, Real Estate & Finance | Autoniv',
+    description:
+      'Listen to live AI voice agent demo recordings and test audio calls for Healthcare, Real Estate, Financial Services, E-Commerce, Education, and Travel.',
   },
   '/login': {
     title: 'Login - Autoniv',
@@ -531,6 +537,7 @@ function AppRoutes() {
         <Route path="/pricing/voice-assistance" element={<VoiceAssistancePricing />} />
         <Route path="/pricing/ai-chatbot" element={<AiChatbotPricing />} />
         <Route path="/news" element={<News />} />
+        <Route path="/demos" element={<DemoRecordings />} />
 
         <Route path="/dashboard" element={<ProtectedRoute><RouteErrorBoundary><UserDashboard /></RouteErrorBoundary></ProtectedRoute>} />
         <Route path="/dashboard/ai-voice-agent" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><MyAgents /></RouteErrorBoundary></ProtectedRoute>} />

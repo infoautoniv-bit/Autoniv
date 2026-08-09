@@ -72,7 +72,8 @@ router.get('/speak', async (req, res) => {
       }
     }
 
-    const base64Audio = await synthesizeSpeech(text, true, effectiveLang, effectiveVoiceId);
+    const isTelephony = req.query.isTelephony === 'true';
+    const base64Audio = await synthesizeSpeech(text, isTelephony, effectiveLang, effectiveVoiceId);
     const audioBuffer = Buffer.from(base64Audio, 'base64');
 
     res.set('Content-Type', 'audio/wav');
