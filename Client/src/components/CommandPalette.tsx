@@ -156,10 +156,6 @@ export function CommandPalette() {
       c.category.toLowerCase().includes(query.toLowerCase())
   );
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
   const handleKeyDownModal = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -231,7 +227,7 @@ export function CommandPalette() {
             </div>
 
             {/* Command Items List */}
-            <div className="max-h-80 overflow-y-auto p-2 space-y-1 scrollbar-thin">
+            <div key={query} className="max-h-80 overflow-y-auto p-2 space-y-1 scrollbar-thin">
               {filtered.length === 0 ? (
                 <div className="py-12 text-center text-xs text-slate-400 font-medium">
                   No matching commands found for <span className="text-blue-400 font-bold">"{query}"</span>

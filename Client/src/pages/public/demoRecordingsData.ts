@@ -776,8 +776,8 @@ Call calculateLoanRate({ amount: 25000, income: 8500 }) to compute instant inter
       agentName: 'Simran (Autoniv Order AI)',
       agentAvatar: '📦',
       industry: 'ecommerce',
-      duration: '00:52',
-      durationMs: 52000,
+      duration: '00:25',
+      durationMs: 25000,
       audioUrl: '',
       systemPrompt: `# 📦 AUTONIV VOICE AGENT SYSTEM PROMPT — E-COMMERCE COD DISPATCH
 

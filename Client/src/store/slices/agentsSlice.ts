@@ -25,11 +25,13 @@ const initialState: AgentsState = {
   error: null,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const normalize = (agent: any): Agent => ({
   ...agent,
   id: agent._id ?? agent.id,
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const normalizeList = (agents: any[]): Agent[] => agents.map(normalize);
 
 export const fetchAllAgents = createAsyncThunk(
@@ -115,6 +117,7 @@ export const updateAgentConfig = createAsyncThunk(
     id: string;
     data: { name?: string; prompt?: string; phoneNumberId?: string };
   }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await agentService.update(id, data as any);
     return normalize(res.data.agent);
   }
@@ -149,6 +152,7 @@ export const unlinkPhone = createAsyncThunk(
 );
 
 const matchId = (agent: Agent, id: string) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   agent.id === id || (agent as any)._id === id;
 
 const agentsSlice = createSlice({

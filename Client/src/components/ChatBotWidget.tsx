@@ -209,7 +209,7 @@ export function ChatBotWidget() {
         // Show agent selection buttons
         setShowAgentList(true);
       }
-    } catch (error) {
+    } catch {
       setMessages((prev) => [...prev, {
         id: `b-${Date.now()}`,
         role: 'bot',

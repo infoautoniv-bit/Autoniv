@@ -50,8 +50,10 @@ export function DemoRecordings() {
   const audioStartedAtRef = useRef<number>(0);
   const accumulatedMsRef = useRef<number>(0);
   const webCallTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const activeTranscriptIdxRef = useRef<number>(0);
+  const activeTranscriptIdxRef = useRef<ReturnType<typeof setInterval> | null | number>(0);
   const currentTimeMsRef = useRef<number>(0);
+  const playbackStartTimeRef = useRef<number>(0);
+  const progressTickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentTab = useMemo(() => INDUSTRIES.find((tab) => tab.id === activeTab)!, [activeTab]);
   const demos = useMemo(() => DEMO_RECORDINGS[activeTab] || [], [activeTab]);
@@ -62,6 +64,8 @@ export function DemoRecordings() {
     }, 4500);
     return () => clearInterval(sliderInterval);
   }, []);
+
+  const isPlayingRef = useRef<boolean>(false);
 
   const speakTurn = useCallback(async (item: TranscriptItem, agentVoiceId: string, userVoiceId: string = selectedUserVoice) => {
     let voiceIdToUse = item.speaker === 'user' ? userVoiceId : agentVoiceId;
@@ -80,37 +84,40 @@ export function DemoRecordings() {
       audioFileRef.current.pause();
       audioFileRef.current = null;
     }
-    isAudioPlayingRef.current = false;
-    pendingSpeakRef.current = null;
+
+    const fallbackWebSpeech = (speechText: string, targetVoiceId: string) => {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(speechText);
+      u.rate = playbackSpeed;
+      const isFemale = ['shreya', 'ritu', 'priya', 'simran'].some((v) => targetVoiceId.toLowerCase().includes(v));
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const hasHi = /[\u0900-\u097F]/.test(speechText);
+        const match = voices.find((v) =>
+          (hasHi ? v.lang.startsWith('hi') : v.lang.startsWith('en')) &&
+          (isFemale ? /female|zira|samantha|victoria|google/i.test(v.name) : /male|david|mark|george/i.test(v.name))
+        ) || voices.find((v) => hasHi ? v.lang.startsWith('hi') : v.lang.startsWith('en'));
+        if (match) u.voice = match;
+      }
+      window.speechSynthesis.speak(u);
+    };
 
     const wrapAndPlay = (src: string, revoke?: () => void) => {
       const audio = new Audio(src);
-      isAudioPlayingRef.current = true;
       audioFileRef.current = audio;
       audio.playbackRate = playbackSpeed;
       audio.volume = 1.0;
-      audio.onloadedmetadata = () => {
-        audioStartedAtRef.current = Date.now();
-      };
       audio.onended = () => {
-        if (!isNaN(audio.duration)) {
-          accumulatedMsRef.current += audio.duration * 1000 * playbackSpeed;
-        }
-        isAudioPlayingRef.current = false;
         audioFileRef.current = null;
-        currentTimeMsRef.current = accumulatedMsRef.current;
-        setCurrentTimeMs(accumulatedMsRef.current);
         if (revoke) revoke();
-        if (pendingSpeakRef.current) {
-          const next = pendingSpeakRef.current;
-          pendingSpeakRef.current = null;
-          const transcript = selectedDemo.transcript;
-          if (transcript[next.idx] && transcript[next.idx].speaker !== 'system') {
-            speakTurn(transcript[next.idx], selectedSarvamVoice, selectedUserVoice);
-          }
-        }
       };
-      audio.play().catch(() => { isAudioPlayingRef.current = false; });
+      audio.onerror = () => {
+        audioFileRef.current = null;
+        if (revoke) revoke();
+        fallbackWebSpeech(text, voiceIdToUse);
+      };
+      audio.play().catch(() => fallbackWebSpeech(text, voiceIdToUse));
     };
 
     if (sarvamApiKey) {
@@ -132,7 +139,7 @@ export function DemoRecordings() {
             return;
           }
         }
-      } catch {}
+      } catch { /* ignored */ }
     }
 
     const hasDevanagari = /[\u0900-\u097F]/.test(text);
@@ -143,25 +150,50 @@ export function DemoRecordings() {
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       wrapAndPlay(blobUrl, () => URL.revokeObjectURL(blobUrl));
-    } catch (err) {
-      console.error('[DemoRecordings] TTS playback failed:', err);
-      isAudioPlayingRef.current = false;
+    } catch {
+      fallbackWebSpeech(text, voiceIdToUse);
     }
-  }, [isMuted, playbackSpeed, selectedUserVoice, selectedDemo, selectedSarvamVoice]);
+  }, [isMuted, playbackSpeed, selectedUserVoice]);
+
+  useEffect(() => {
+    if (audioFileRef.current) {
+      audioFileRef.current.muted = isMuted;
+    }
+    if (isMuted && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause();
+    } else if (!isMuted && 'speechSynthesis' in window && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+  }, [isMuted]);
 
   const pausePlayback = useCallback(() => {
+    isPlayingRef.current = false;
+    if (progressTickerRef.current) {
+      clearInterval(progressTickerRef.current);
+      progressTickerRef.current = null;
+    }
     if (timerRef.current) {
+      clearTimeout(timerRef.current);
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    if (audioFileRef.current) {
+    if (audioFileRef.current && !audioFileRef.current.paused) {
       audioFileRef.current.pause();
+    }
+    if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause();
     }
     setIsPlaying(false);
   }, []);
 
   const stopPlayback = useCallback(() => {
+    isPlayingRef.current = false;
+    if (progressTickerRef.current) {
+      clearInterval(progressTickerRef.current);
+      progressTickerRef.current = null;
+    }
     if (timerRef.current) {
+      clearTimeout(timerRef.current);
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
@@ -169,16 +201,199 @@ export function DemoRecordings() {
       audioFileRef.current.pause();
       audioFileRef.current.currentTime = 0;
     }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     isAudioPlayingRef.current = false;
     pendingSpeakRef.current = null;
     audioStartedAtRef.current = 0;
     accumulatedMsRef.current = 0;
+    playbackStartTimeRef.current = 0;
     setIsPlaying(false);
     currentTimeMsRef.current = 0;
     activeTranscriptIdxRef.current = 0;
     setCurrentTimeMs(0);
     setActiveTranscriptIdx(0);
   }, []);
+
+  const playSequence = useCallback((startIdx: number) => {
+    const transcript = selectedDemo.transcript;
+    if (!transcript || transcript.length === 0 || startIdx >= transcript.length) {
+      stopPlayback();
+      return;
+    }
+
+    if (progressTickerRef.current) {
+      clearInterval(progressTickerRef.current);
+      progressTickerRef.current = null;
+    }
+
+    activeTranscriptIdxRef.current = startIdx;
+    setActiveTranscriptIdx(startIdx);
+
+    const item = transcript[startIdx];
+    const msForScrubber = item.delayMs || 0;
+    currentTimeMsRef.current = msForScrubber;
+    setCurrentTimeMs(msForScrubber);
+
+    const turnStartTime = Date.now();
+    const initialMs = item.delayMs || 0;
+
+    progressTickerRef.current = setInterval(() => {
+      if (!isPlayingRef.current) {
+        if (progressTickerRef.current) {
+          clearInterval(progressTickerRef.current);
+          progressTickerRef.current = null;
+        }
+        return;
+      }
+      const elapsedInTurn = (Date.now() - turnStartTime) * playbackSpeed;
+      const totalElapsed = Math.min(selectedDemo.durationMs, initialMs + elapsedInTurn);
+      currentTimeMsRef.current = totalElapsed;
+      setCurrentTimeMs(totalElapsed);
+    }, 50);
+
+    if (item.speaker === 'system') {
+      const timer = setTimeout(() => {
+        if (progressTickerRef.current) {
+          clearInterval(progressTickerRef.current);
+          progressTickerRef.current = null;
+        }
+        if (isPlayingRef.current) {
+          playSequence(startIdx + 1);
+        }
+      }, 1200 / playbackSpeed);
+      timerRef.current = timer as any;
+      return;
+    }
+
+    let voiceIdToUse = item.speaker === 'user' ? selectedUserVoice : selectedSarvamVoice;
+    if (item.speaker === 'user' && !voiceIdToUse) {
+      const isAgentFemale = ['shreya', 'ritu', 'priya', 'simran'].some((v) => selectedSarvamVoice.toLowerCase().includes(v));
+      voiceIdToUse = isAgentFemale ? 'sarvam:bulbul:v3:shubh' : 'sarvam:bulbul:v3:shreya';
+    }
+
+    let finished = false;
+    const onTurnEnded = () => {
+      if (finished) return;
+      finished = true;
+      if (progressTickerRef.current) {
+        clearInterval(progressTickerRef.current);
+        progressTickerRef.current = null;
+      }
+      if (!isPlayingRef.current) return;
+
+      const pauseTimer = setTimeout(() => {
+        if (isPlayingRef.current) {
+          playSequence(startIdx + 1);
+        }
+      }, 500 / playbackSpeed);
+      timerRef.current = pauseTimer as any;
+    };
+
+    if (isMuted) {
+      const wordCount = item.text.split(' ').length;
+      const ms = Math.max(1500, wordCount * 250);
+      const timer = setTimeout(() => {
+        if (isPlayingRef.current) onTurnEnded();
+      }, ms / playbackSpeed);
+      timerRef.current = timer as any;
+      return;
+    }
+
+    const text = item.text;
+    const speakerName = (voiceIdToUse.split(':').pop() || 'shreya').toLowerCase();
+    const sarvamApiKey = import.meta.env.VITE_SARVAM_API_KEY;
+
+    if (audioFileRef.current) {
+      audioFileRef.current.pause();
+      audioFileRef.current = null;
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    const hasDevanagari = /[\u0900-\u097F]/.test(text);
+
+    const playWebSpeech = () => {
+      if (!('speechSynthesis' in window)) {
+        setTimeout(onTurnEnded, 2000);
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = playbackSpeed;
+      const isFemale = ['shreya', 'ritu', 'priya', 'simran'].some((v) => voiceIdToUse.toLowerCase().includes(v));
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const match = voices.find((v) =>
+          (hasDevanagari ? v.lang.startsWith('hi') : v.lang.startsWith('en')) &&
+          (isFemale ? /female|zira|samantha|victoria|google/i.test(v.name) : /male|david|mark|george/i.test(v.name))
+        ) || voices.find((v) => hasDevanagari ? v.lang.startsWith('hi') : v.lang.startsWith('en'));
+        if (match) u.voice = match;
+      }
+      u.onend = onTurnEnded;
+      u.onerror = onTurnEnded;
+      window.speechSynthesis.speak(u);
+    };
+
+    const wrapAndPlay = (src: string, revoke?: () => void) => {
+      const audio = new Audio(src);
+      audio.muted = isMuted;
+      audioFileRef.current = audio;
+      audio.playbackRate = playbackSpeed;
+      audio.volume = 1.0;
+      audio.onended = () => {
+        audioFileRef.current = null;
+        if (revoke) revoke();
+        onTurnEnded();
+      };
+      audio.onerror = () => {
+        audioFileRef.current = null;
+        if (revoke) revoke();
+        playWebSpeech();
+      };
+      audio.play().catch(() => playWebSpeech());
+    };
+
+    if (sarvamApiKey) {
+      fetch('https://api.sarvam.ai/text-to-speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'api-subscription-key': sarvamApiKey },
+        body: JSON.stringify({
+          text, model: 'bulbul:v3', speaker: speakerName,
+          target_language_code: hasDevanagari ? 'hi-IN' : 'en-IN',
+          speech_sample_rate: 22050, output_audio_codec: 'wav',
+        }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('Sarvam API non-200');
+          return res.json();
+        })
+        .then((data) => {
+          if (data?.audios?.[0]) {
+            wrapAndPlay(`data:audio/wav;base64,${data.audios[0]}`);
+          } else {
+            playWebSpeech();
+          }
+        })
+        .catch(() => playWebSpeech());
+      return;
+    }
+
+    const ttsUrl = `/api/tts/speak?text=${encodeURIComponent(text)}&voiceId=${encodeURIComponent(voiceIdToUse)}&language=${hasDevanagari ? 'hi' : 'en'}`;
+    fetch(ttsUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error('TTS failed');
+        return res.blob();
+      })
+      .then((blob) => {
+        if (finished) return;
+        const blobUrl = URL.createObjectURL(blob);
+        wrapAndPlay(blobUrl, () => URL.revokeObjectURL(blobUrl));
+      })
+      .catch(() => playWebSpeech());
+  }, [selectedDemo, selectedSarvamVoice, selectedUserVoice, isMuted, playbackSpeed, stopPlayback]);
 
   const handleTabChange = (id: IndustryId) => {
     setActiveTab(id);
@@ -196,102 +411,28 @@ export function DemoRecordings() {
     stopPlayback();
   };
 
+  const resumePlayback = useCallback(() => {
+    isPlayingRef.current = true;
+    setIsPlaying(true);
+
+    if (audioFileRef.current && audioFileRef.current.paused && audioFileRef.current.currentTime > 0) {
+      audioFileRef.current.muted = isMuted;
+      audioFileRef.current.play().catch(() => { });
+    } else if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    } else {
+      const startIdx = typeof activeTranscriptIdxRef.current === 'number' ? activeTranscriptIdxRef.current : 0;
+      playSequence(startIdx);
+    }
+  }, [isMuted, playSequence]);
+
   const togglePlayPause = useCallback(() => {
     if (isPlaying) {
       pausePlayback();
-      return;
+    } else {
+      resumePlayback();
     }
-
-    if (selectedDemo.audioUrl) {
-      if (!audioFileRef.current || audioFileRef.current.src !== selectedDemo.audioUrl) {
-        audioFileRef.current = new Audio(selectedDemo.audioUrl);
-      }
-      audioFileRef.current.playbackRate = playbackSpeed;
-      audioFileRef.current.play().then(() => setIsPlaying(true)).catch(() => { });
-
-      const interval = 100;
-      timerRef.current = setInterval(() => {
-        if (!audioFileRef.current) return;
-        const elapsed = audioFileRef.current.currentTime * 1000;
-        currentTimeMsRef.current = elapsed;
-        setCurrentTimeMs(elapsed);
-
-        if (audioFileRef.current.ended) {
-          stopPlayback();
-          return;
-        }
-
-        const transcript = selectedDemo.transcript;
-        const currentIdx = transcript.findIndex((item, idx) => {
-          const nextItem = transcript[idx + 1];
-          if (!nextItem) return elapsed >= item.delayMs;
-          return elapsed >= item.delayMs && elapsed < nextItem.delayMs;
-        });
-
-        if (currentIdx !== -1 && currentIdx !== activeTranscriptIdxRef.current) {
-          activeTranscriptIdxRef.current = currentIdx;
-          setActiveTranscriptIdx(currentIdx);
-        }
-      }, interval);
-
-      return;
-    }
-
-    setIsPlaying(true);
-    accumulatedMsRef.current = currentTimeMsRef.current;
-
-    let elapsed = currentTimeMsRef.current;
-    const transcript = selectedDemo.transcript;
-
-    let startIdx = transcript.findIndex((item, idx) => {
-      const nextItem = transcript[idx + 1];
-      if (!nextItem) return elapsed >= item.delayMs;
-      return elapsed >= item.delayMs && elapsed < nextItem.delayMs;
-    });
-
-    if (startIdx === -1) startIdx = 0;
-
-    activeTranscriptIdxRef.current = startIdx;
-    setActiveTranscriptIdx(startIdx);
-
-    if (transcript[startIdx] && transcript[startIdx].speaker !== 'system') {
-      speakTurn(transcript[startIdx], selectedSarvamVoice, selectedUserVoice);
-    }
-
-    const interval = 100;
-    timerRef.current = setInterval(() => {
-      if (isAudioPlayingRef.current && audioFileRef.current && !isNaN(audioFileRef.current.currentTime)) {
-        elapsed = accumulatedMsRef.current + audioFileRef.current.currentTime * 1000 * playbackSpeed;
-      } else {
-        elapsed = accumulatedMsRef.current;
-      }
-      currentTimeMsRef.current = elapsed;
-      setCurrentTimeMs(elapsed);
-
-      if (elapsed >= selectedDemo.durationMs) {
-        stopPlayback();
-        return;
-      }
-
-      const currentIdx = transcript.findIndex((item, idx) => {
-        const nextItem = transcript[idx + 1];
-        if (!nextItem) return elapsed >= item.delayMs;
-        return elapsed >= item.delayMs && elapsed < nextItem.delayMs;
-      });
-
-      if (currentIdx !== -1 && currentIdx !== activeTranscriptIdxRef.current) {
-        activeTranscriptIdxRef.current = currentIdx;
-        setActiveTranscriptIdx(currentIdx);
-        if (transcript[currentIdx] && transcript[currentIdx].speaker !== 'system') {
-          if (isAudioPlayingRef.current) {
-            pendingSpeakRef.current = { idx: currentIdx };
-          } else {
-            speakTurn(transcript[currentIdx], selectedSarvamVoice, selectedUserVoice);
-          }
-        }
-      }
-    }, interval);
-  }, [isPlaying, selectedDemo, selectedSarvamVoice, selectedUserVoice, playbackSpeed, speakTurn, pausePlayback, stopPlayback]);
+  }, [isPlaying, pausePlayback, resumePlayback]);
 
   const startWebCall = () => {
     setShowWebCallModal(true);
@@ -730,10 +871,18 @@ export function DemoRecordings() {
                   return (
                     <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', fontFamily: MONO, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        {item.timestamp} · {isAgent ? 'DR. SARAH' : 'CALLER'}
+                        {item.timestamp} · {isAgent ? (selectedDemo.agentName.split('(')[0].trim().toUpperCase()) : 'CALLER'}
                       </div>
 
                       <div
+                        onClick={() => {
+                          stopPlayback();
+                          setTimeout(() => {
+                            isPlayingRef.current = true;
+                            setIsPlaying(true);
+                            playSequence(idx);
+                          }, 50);
+                        }}
                         style={{
                           background: isActiveTurn ? `${currentTab.accentColor}08` : isAgent ? '#F8FAFC' : '#FFFFFF',
                           border: isActiveTurn ? `2px solid ${currentTab.accentColor}` : isAgent ? '1px solid #E2E8F0' : '1px solid #CBD5E1',
@@ -742,6 +891,7 @@ export function DemoRecordings() {
                           fontSize: 13,
                           lineHeight: 1.55,
                           color: '#0F172A',
+                          cursor: 'pointer',
                           boxShadow: isActiveTurn ? `0 2px 8px ${currentTab.accentColor}15` : 'none',
                           transition: 'all 0.25s ease',
                         }}
@@ -1012,7 +1162,7 @@ export function DemoRecordings() {
               { name: 'Dr. Sarah', industry: 'Healthcare', icon: '🩺', voice: 'Shreya', duration: '00:48', tab: 'healthcare' as const },
               { name: 'Aditya', industry: 'Real Estate', icon: '🏠', voice: 'Aditya', duration: '00:54', tab: 'realestate' as const },
               { name: 'Shubh', industry: 'Finance', icon: '🏦', voice: 'Shubh', duration: '00:48', tab: 'finance' as const },
-              { name: 'Simran', industry: 'E-Commerce', icon: '🛒', voice: 'Simran', duration: '00:45', tab: 'ecommerce' as const },
+              { name: 'Simran', industry: 'E-Commerce', icon: '🛒', voice: 'Simran', duration: '00:25', tab: 'ecommerce' as const },
               { name: 'Rahul', industry: 'Education', icon: '🎓', voice: 'Rahul', duration: '00:50', tab: 'education' as const },
               { name: 'Priya', industry: 'Travel', icon: '🏨', voice: 'Priya', duration: '00:46', tab: 'travel' as const },
             ].map((agent, idx) => (

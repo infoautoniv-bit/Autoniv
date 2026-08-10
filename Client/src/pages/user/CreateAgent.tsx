@@ -108,11 +108,14 @@ function SelectInput({ value, onChange, options }: {
   options: { value: string; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, openUpward: false });
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const selected = options.find((o) => o.value === value) || options[0];
+  const selectedIndex = options.findIndex((o) => o.value === value);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -127,6 +130,8 @@ function SelectInput({ value, onChange, options }: {
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
     const updatePosition = () => {
       if (!triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
@@ -138,14 +143,66 @@ function SelectInput({ value, onChange, options }: {
     window.addEventListener('scroll', updatePosition, true);
     window.addEventListener('resize', updatePosition);
     return () => { window.removeEventListener('scroll', updatePosition, true); window.removeEventListener('resize', updatePosition); };
-  }, [open]);
+  }, [open, selectedIndex]);
+
+  const scrollToIndex = (idx: number) => {
+    const list = listRef.current;
+    if (!list) return;
+    const item = list.children[idx] as HTMLElement | undefined;
+    if (item) item.scrollIntoView({ block: 'nearest' });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setOpen(true);
+      }
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault();
+        const next = Math.min(activeIndex + 1, options.length - 1);
+        setActiveIndex(next);
+        scrollToIndex(next);
+        break;
+      }
+      case 'ArrowUp': {
+        e.preventDefault();
+        const prev = Math.max(activeIndex - 1, 0);
+        setActiveIndex(prev);
+        scrollToIndex(prev);
+        break;
+      }
+      case 'Enter': {
+        e.preventDefault();
+        if (activeIndex >= 0 && activeIndex < options.length) {
+          onChange(options[activeIndex].value);
+          setOpen(false);
+        }
+        break;
+      }
+      case 'Escape': {
+        e.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        break;
+      }
+    }
+  };
 
   return (
     <div className="relative" ref={ref}>
       <button
         ref={triggerRef}
         type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={selected?.label || 'Select option'}
         onClick={() => setOpen(p => !p)}
+        onKeyDown={handleKeyDown}
         className="w-full flex items-center justify-between gap-2 cursor-pointer transition-colors duration-150"
         style={inputBase}
         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary-blue)'; }}
@@ -183,20 +240,23 @@ function SelectInput({ value, onChange, options }: {
                 width: coords.width,
               }}
             >
-              <div className="max-h-52 overflow-y-auto py-1">
-                {options.map((opt) => (
+              <div ref={listRef} role="listbox" aria-label="Options" className="max-h-52 overflow-y-auto py-1">
+                {options.map((opt, idx) => (
                   <button
                     key={opt.value}
                     type="button"
+                    role="option"
+                    aria-selected={opt.value === value}
                     onClick={() => { onChange(opt.value); setOpen(false); }}
+                    onMouseEnter={() => setActiveIndex(idx)}
                     className="w-full text-left px-3.5 py-2.5 text-[12.5px] transition-colors cursor-pointer"
                     style={{
                       color: opt.value === value ? 'var(--primary-blue)' : 'var(--text-secondary)',
-                      background: opt.value === value ? 'var(--primary-blue-soft)' : 'transparent',
+                      background: idx === activeIndex
+                        ? 'var(--primary-blue-soft)'
+                        : opt.value === value ? 'var(--primary-blue-soft)' : 'transparent',
                       fontWeight: opt.value === value ? 600 : 400,
                     }}
-                    onMouseEnter={e => { if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'var(--s1)'; }}
-                    onMouseLeave={e => { if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
                     {opt.label}
                   </button>

@@ -376,7 +376,7 @@ const UserSection: React.FC<{
       return;
     }
 
-    if (!/[A-Z]/.test(passwordForm.newPassword) || !/[a-z]/.test(passwordForm.newPassword) || !/\d/.test(passwordForm.newPassword) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(passwordForm.newPassword)) {
+    if (!/[A-Z]/.test(passwordForm.newPassword) || !/[a-z]/.test(passwordForm.newPassword) || !/\d/.test(passwordForm.newPassword) || !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(passwordForm.newPassword)) {
       setPasswordError('Password must include uppercase, lowercase, number, and special character');
       return;
     }
@@ -665,7 +665,7 @@ const UserSection: React.FC<{
                       { label: 'Uppercase letter', met: /[A-Z]/.test(passwordForm.newPassword) },
                       { label: 'Lowercase letter', met: /[a-z]/.test(passwordForm.newPassword) },
                       { label: 'Number', met: /\d/.test(passwordForm.newPassword) },
-                      { label: 'Special character', met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(passwordForm.newPassword) },
+                      { label: 'Special character', met: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(passwordForm.newPassword) },
                     ].map((check, i) => (
                       <div key={i} className="flex items-center gap-1.5 text-xs">
                         <span className={check.met ? 'text-[var(--primary)]' : 'text-white/40'}>

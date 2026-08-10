@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatbotFormSchema } from '../../utils/schemas';
@@ -292,6 +292,14 @@ export function CreateChatbot() {
   const [error, setError] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [showConfetti, setShowConfetti] = useState(false);
+  const confettiValues = useMemo(() =>
+    Array.from({ length: 40 }, () => ({
+      scale: Math.random() * 0.8 + 0.4,
+      x: (Math.random() - 0.5) * 800,
+      y: (Math.random() - 0.5) * 600 - 100,
+      rotate: Math.random() * 360,
+    })),
+  []);
   const [previewMode, setPreviewMode] = useState<'widget' | 'mobile'>('widget');
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving'>('saved');
 
@@ -300,7 +308,14 @@ export function CreateChatbot() {
   const toastId = useRef(0);
 
   // Simulator State
-  const [simMessages, setSimMessages] = useState<ChatMessage[]>([]);
+  const [simMessages, setSimMessages] = useState<ChatMessage[]>(() => [
+    {
+      id: 'welcome',
+      sender: 'bot',
+      text: welcomeMessage || 'Hi! How can I help you today? 👋',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
+  ]);
   const [simInput, setSimInput] = useState('');
   const [simTyping, setSimTyping] = useState(false);
   const simEndRef = useRef<HTMLDivElement>(null);
@@ -310,17 +325,6 @@ export function CreateChatbot() {
     setToasts((t) => [...t, { id: tid, text, kind }]);
     timersRef.current.push(setTimeout(() => setToasts((t) => t.filter((x) => x.id !== tid)), 2800));
   }, []);
-
-  useEffect(() => {
-    setSimMessages([
-      {
-        id: 'welcome',
-        sender: 'bot',
-        text: welcomeMessage || 'Hi! How can I help you today? 👋',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
-  }, [welcomeMessage]);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -1511,7 +1515,7 @@ export function CreateChatbot() {
                 </div>
 
                 {/* Messages Body */}
-                <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                <div key={welcomeMessage} className="flex-1 p-4 overflow-y-auto space-y-3">
                   {simMessages.map((m) => (
                     <div key={m.id} className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}>
                       <div
@@ -1649,13 +1653,13 @@ export function CreateChatbot() {
                   initial={{
                     x: 0,
                     y: 0,
-                    scale: Math.random() * 0.8 + 0.4,
+                    scale: confettiValues[i].scale,
                     opacity: 1,
                   }}
                   animate={{
-                    x: (Math.random() - 0.5) * 800,
-                    y: (Math.random() - 0.5) * 600 - 100,
-                    rotate: Math.random() * 360,
+                    x: confettiValues[i].x,
+                    y: confettiValues[i].y,
+                    rotate: confettiValues[i].rotate,
                     opacity: 0,
                   }}
                   transition={{ duration: 1.5, ease: 'easeOut' }}

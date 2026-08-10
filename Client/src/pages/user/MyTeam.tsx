@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { teamService, type TeamData, type TeamMember } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -194,7 +194,7 @@ export const MyTeam: React.FC = () => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'member' | 'agent' | 'admin'>('member');
 
-  const fetchTeam = async () => {
+  const fetchTeam = useCallback(async () => {
     try {
       setLoading(true);
       const res = await teamService.getTeam();
@@ -205,14 +205,14 @@ export const MyTeam: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     const handle = setTimeout(() => {
       fetchTeam();
     }, 0);
     return () => clearTimeout(handle);
-  }, []);
+  }, [fetchTeam]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();

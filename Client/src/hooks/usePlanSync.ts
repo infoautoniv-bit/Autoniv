@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from './useStore';
 import { updatePlan } from '../store/slices/authSlice';
 import { authService } from '../services/api';
 
-const POLL_INTERVAL_MS = 10_000;
+const POLL_INTERVAL_MS = 60_000;
 
 export function usePlanSync() {
   const dispatch = useAppDispatch();

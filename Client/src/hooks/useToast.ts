@@ -10,19 +10,22 @@ export interface Toast {
   action?: { label: string; onClick: () => void };
 }
 
+let toastCounter = 0;
+
 export function useToast() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      timersRef.current.forEach(t => clearTimeout(t));
-      timersRef.current.clear();
+      timers.forEach(t => clearTimeout(t));
+      timers.clear();
     };
   }, []);
 
   const add = useCallback((message: string, type: ToastType = 'info', action?: { label: string; onClick: () => void }) => {
-    const id = Date.now();
+    const id = ++toastCounter;
     setToasts(p => [...p, { id, message, type, action }]);
     const timer = setTimeout(() => {
       setToasts(p => p.filter(t => t.id !== id));

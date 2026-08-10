@@ -8,7 +8,7 @@ export default defineConfig({
     drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
   },
   build: {
-    target: 'es2020',
+    target: 'es2023',
     minify: 'esbuild',
     cssMinify: true,
     chunkSizeWarningLimit: 1000,

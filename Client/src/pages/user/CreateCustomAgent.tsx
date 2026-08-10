@@ -304,9 +304,10 @@ export function CreateCustomAgent() {
 
   useEffect(() => {
     if (filteredVoices.length > 0 && !filteredVoices.some(v => v.value === formData.voiceId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData(prev => ({ ...prev, voiceId: filteredVoices[0].value }));
     }
-  }, [formData.language, filteredVoices]);
+  }, [formData.language, formData.voiceId, filteredVoices]);
 
   const [savedPhoneNumbers, setSavedPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [phoneMode, setPhoneMode] = useState<'saved' | 'direct'>('saved');

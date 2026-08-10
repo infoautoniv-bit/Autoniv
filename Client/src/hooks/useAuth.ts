@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from './useStore';
 import {
   logout as logoutAction,
@@ -42,14 +42,16 @@ export function useAuth() {
     return dispatch(logoutAction() as any);
   }, [dispatch]);
 
-  return {
+  const isAdmin = user?.role === 'admin';
+
+  return useMemo(() => ({
     user,
     loading,
-    isAdmin: user?.role === 'admin',
+    isAdmin,
     login,
     register,
     verifyOtp,
     googleLogin,
     logout,
-  };
+  }), [user, loading, isAdmin, login, register, verifyOtp, googleLogin, logout]);
 }

@@ -26,15 +26,6 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
   const unlocked = isGreaterThanStarter(user);
   const apiBase = API_BASE_URL.replace(/\/api\/?$/, '');
 
-  useEffect(() => {
-    if (unlocked) {
-      if (!user?.apiKey) {
-        fetchApiKey();
-      }
-      fetchAgents();
-    }
-  }, [unlocked, user]);
-
   const fetchApiKey = async () => {
     try {
       setLoadingKey(true);
@@ -42,7 +33,8 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
       if (res.data?.apiKey) {
         setApiKey(res.data.apiKey);
       }
-    } catch (_) {
+    } catch {
+      // ignored
     } finally {
       setLoadingKey(false);
     }
@@ -56,8 +48,21 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
         setAgents(list);
         setSelectedAgentId(list[0].id || list[0]._id || '');
       }
-    } catch (_) {}
+    } catch {
+      // ignored
+    }
   };
+
+  useEffect(() => {
+    if (unlocked) {
+      if (!user?.apiKey) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchApiKey();
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchAgents();
+    }
+  }, [unlocked, user]);
 
   const executeRegenerateKey = async () => {
     try {
@@ -68,7 +73,8 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
         setKeyGenerated(true);
         setTimeout(() => setKeyGenerated(false), 4000);
       }
-    } catch (_) {
+    } catch {
+      // ignored
     } finally {
       setLoadingKey(false);
     }

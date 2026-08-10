@@ -5,8 +5,8 @@ export function useKeyboardShortcut(
   handler: () => void,
   options?: { ctrl?: boolean; alt?: boolean; shift?: boolean; enabled?: boolean }
 ) {
+  const { ctrl = false, alt = false, shift = false, enabled = true } = options ?? {};
   useEffect(() => {
-    const { ctrl = false, alt = false, shift = false, enabled = true } = options ?? {};
     if (!enabled) return;
 
     const listener = (e: KeyboardEvent) => {
@@ -18,5 +18,5 @@ export function useKeyboardShortcut(
 
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [key, handler, options?.ctrl, options?.alt, options?.shift, options?.enabled]);
+  }, [key, handler, ctrl, alt, shift, enabled]);
 }

@@ -182,6 +182,7 @@ export function GoogleTranslate() {
         const rawLang = navigator.language || (navigator as any).userLanguage || 'en';
         const code = rawLang.split('-')[0].toLowerCase();
         if (code && code !== 'en') {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setCurrentLang(code);
           setLanguageCookie(code);
         }

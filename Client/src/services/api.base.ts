@@ -194,7 +194,7 @@ api.interceptors.response.use(
           }
           return api(originalRequest);
         }
-      } catch (csrfErr) {
+      } catch {
         return Promise.reject(error);
       }
     }
@@ -255,6 +255,7 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
+      // Process queue first, then clear session and redirect
       clearSession();
       window.location.href = '/login';
       return Promise.reject(refreshError);

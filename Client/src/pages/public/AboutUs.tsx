@@ -311,7 +311,7 @@ export function AboutUS() {
 
   useEffect(() => {
     return injectSchema('about-faq-jsonld', FAQ_SCHEMA(faqs));
-  }, []);
+  }, [faqs]);
 
   return (
     <div

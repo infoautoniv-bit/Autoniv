@@ -179,7 +179,7 @@ export function CustomWebCall() {
 
   /* ── Playback Buffer management ── */
   const clearBuf = useCallback(() => {
-    srcs.current.forEach(s => { try { s.stop(); } catch {} });
+    srcs.current.forEach(s => { try { s.stop(); } catch { /* ignored */ } });
     srcs.current = [];
     nextT.current = ctx.current ? ctx.current.currentTime : 0;
   }, []);
@@ -243,7 +243,7 @@ export function CustomWebCall() {
       let ac: AudioContext;
       try {
         ac = new AC({ sampleRate: 16000 });
-      } catch (_) {
+      } catch {
         ac = new AC();
       }
       ctx.current = ac;
@@ -327,7 +327,7 @@ export function CustomWebCall() {
             const r = d.role === 'assistant' ? 'agent' : d.role === 'user' ? 'caller' : d.role;
             setLogs(p => [...p, { role: r, text: d.text, time: getNowTimeString() }]);
           }
-        } catch {}
+        } catch { /* ignored */ }
       };
 
       socket.onerror = () => {

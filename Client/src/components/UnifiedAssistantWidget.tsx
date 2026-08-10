@@ -545,7 +545,7 @@ export default function UnifiedAssistantWidget() {
     if (proc.current) { proc.current.disconnect(); proc.current = null; }
     if (mic.current) { mic.current.getTracks().forEach(t => t.stop()); mic.current = null; }
 
-    srcs.current.forEach(s => { try { s.stop(); } catch {} });
+    srcs.current.forEach(s => { try { s.stop(); } catch { /* ignored */ } });
     srcs.current = [];
     nextT.current = 0;
 
@@ -694,7 +694,7 @@ export default function UnifiedAssistantWidget() {
             play(d.payload);
           } else if (d.event === 'clear') {
             setSpeaking('idle');
-            srcs.current.forEach(s => { try { s.stop(); } catch {} });
+            srcs.current.forEach(s => { try { s.stop(); } catch { /* ignored */ } });
             srcs.current = [];
             nextT.current = ctx.current ? ctx.current.currentTime : 0;
           } else if (d.event === 'transcript') {
@@ -702,7 +702,7 @@ export default function UnifiedAssistantWidget() {
               setSpeaking('user');
             }
           }
-        } catch {}
+        } catch { /* ignored */ }
       };
 
       socket.onerror = () => {

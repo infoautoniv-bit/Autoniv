@@ -1,7 +1,10 @@
 // ── Cookie helpers ─────────────────────────────────────────────────────────
 
+const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
 export function setCookie(name: string, value: string, days?: number) {
   let cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
+  if (isSecure) cookie += '; Secure';
   if (days) {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
     cookie += `; expires=${expires}`;
@@ -17,5 +20,7 @@ export function getCookie(name: string): string | null {
 }
 
 export function deleteCookie(name: string) {
-  document.cookie = `${encodeURIComponent(name)}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  let cookie = `${encodeURIComponent(name)}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  if (isSecure) cookie += '; Secure';
+  document.cookie = cookie;
 }

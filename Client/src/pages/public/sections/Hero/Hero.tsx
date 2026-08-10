@@ -8,11 +8,7 @@ export function Hero({ openAuth }: { openAuth: (m: "login" | "register") => void
   const ref = useRef<HTMLElement>(null);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
   const [documentLoaded, setDocumentLoaded] = useState(false);
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    setReduced(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  }, []);
+  const [reduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
