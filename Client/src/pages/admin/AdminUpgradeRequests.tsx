@@ -129,8 +129,12 @@ export function AdminUpgradeRequests() {
     return () => clearTimeout(handle);
   }, [filter, search]);
 
+  const [processedIds, setProcessedIds] = useState<Set<string>>(new Set());
+
   const handleProcess = async (id: string, status: 'approved' | 'rejected') => {
+    if (processedIds.has(id) || processing === id) return;
     setProcessing(id);
+    setProcessedIds((prev) => new Set(prev).add(id));
     try {
       await dispatch(processUpgradeRequest({ id, status })).unwrap();
     } catch (err: unknown) {
@@ -365,7 +369,7 @@ export function AdminUpgradeRequests() {
                 e.stopPropagation();
                 handleProcess(req.id, 'rejected');
               }}
-              disabled={processing === req.id}
+              disabled={processing === req.id || processedIds.has(req.id)}
               className="px-3 py-2 sm:py-1.5 bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-xs font-bold transition-all disabled:opacity-50 w-full sm:w-auto"
             >
               Reject
@@ -377,7 +381,7 @@ export function AdminUpgradeRequests() {
                 e.stopPropagation();
                 handleProcess(req.id, 'approved');
               }}
-              disabled={processing === req.id}
+              disabled={processing === req.id || processedIds.has(req.id)}
               className="px-4 py-2 sm:py-1.5 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm w-full sm:w-auto"
               style={{ background: 'var(--gg)' }}
             >
@@ -425,7 +429,7 @@ export function AdminUpgradeRequests() {
                   e.stopPropagation();
                   handleProcess(req.id, 'rejected');
                 }}
-                disabled={processing === req.id}
+                disabled={processing === req.id || processedIds.has(req.id)}
                 className="flex-1 py-2 bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold transition-all disabled:opacity-50 text-center cursor-pointer"
               >
                 Reject
@@ -437,7 +441,7 @@ export function AdminUpgradeRequests() {
                   e.stopPropagation();
                   handleProcess(req.id, 'approved');
                 }}
-                disabled={processing === req.id}
+                disabled={processing === req.id || processedIds.has(req.id)}
                 className="flex-1 py-2 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-none"
                 style={{ background: 'var(--gg)' }}
               >
