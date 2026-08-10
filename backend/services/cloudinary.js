@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
+import { log } from './logger.js';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -7,7 +8,7 @@ cloudinary.config({
 });
 
 export async function uploadRecording(buffer, filename) {
-  console.log(`[Cloudinary] Starting upload: ${filename}, buffer size: ${buffer.length}`);
+  log.info(`[Cloudinary] Starting upload: ${filename}, buffer size: ${buffer.length}`);
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
@@ -19,10 +20,10 @@ export async function uploadRecording(buffer, filename) {
       },
       (error, result) => {
         if (error) {
-          console.error(`[Cloudinary] Upload failed:`, error);
+          log.error(`[Cloudinary] Upload failed:`, error);
           return reject(error);
         }
-        console.log(`[Cloudinary] Upload success: ${result.secure_url}`);
+        log.info(`[Cloudinary] Upload success: ${result.secure_url}`);
         resolve(result.secure_url);
       }
     );
@@ -39,9 +40,9 @@ export async function deleteRecording(recordingUrl) {
 
     const publicId = `autoniv/recordings/${match[1]}`;
     await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
-    console.log(`[Cloudinary] Deleted recording: ${publicId}`);
+    log.info(`[Cloudinary] Deleted recording: ${publicId}`);
   } catch (err) {
-    console.error(`[Cloudinary] Failed to delete recording:`, err.message);
+    log.error(`[Cloudinary] Failed to delete recording:`, err.message);
   }
 }
 

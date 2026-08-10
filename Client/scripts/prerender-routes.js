@@ -161,7 +161,7 @@ function escapeAttr(str) {
 }
 
 function swapMeta(html, routePath, meta) {
-  const url = routePath === '/' ? DOMAIN : `${DOMAIN}${routePath}`;
+  const url = routePath === '/' ? `${DOMAIN}/` : `${DOMAIN}${routePath}`;
   const escapedTitle = escapeAttr(meta.title);
   const escapedDesc = escapeAttr(meta.description);
 
@@ -180,6 +180,16 @@ function swapMeta(html, routePath, meta) {
   result = result.replace(
     /<link\s+id="canonical-link"\s+rel="canonical"\s+href="[^"]*"\s*\/?>/,
     `<link rel="canonical" href="${url}" />`
+  );
+
+  // Replace hreflang tags — critical for indexing
+  result = result.replace(
+    /<link\s+rel="alternate"\s+hreflang="en"\s+href="[^"]*"\s*\/?>/,
+    `<link rel="alternate" hreflang="en" href="${url}" />`
+  );
+  result = result.replace(
+    /<link\s+rel="alternate"\s+hreflang="x-default"\s+href="[^"]*"\s*\/?>/,
+    `<link rel="alternate" hreflang="x-default" href="${url}" />`
   );
 
   // Replace og:url
@@ -218,54 +228,63 @@ function swapMeta(html, routePath, meta) {
     `<meta name="twitter:description" content="${escapedDesc}" />`
   );
 
-  // Optimize CSS loading for non-blocking initial paint (LCP & FCP)
-  const cssMatch = result.match(/<link\s+rel="stylesheet"\s+crossorigin\s+href="(\/assets\/[^"]+\.css)"\s*\/?>/);
-  if (cssMatch) {
-    const cssPath = cssMatch[1];
-    const optimizedCssTags = `<link rel="preload" href="${cssPath}" as="style" />\n  <link rel="stylesheet" href="${cssPath}" fetchpriority="high" crossorigin />`;
-    result = result.replace(cssMatch[0], optimizedCssTags);
-  }
+  // Keep standard CSS stylesheet link in prerendered HTML for Googlebot compliance
 
-  // Inject route-specific JSON-LD Schema
+  // Strip admin/dashboard modulepreload hints on public pages — they waste mobile bandwidth
+  // Admin chunks (450KB+) are never needed for public visitors and block FCP/LCP
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/admin-[^"]*\.js"\s*\/?>\n?/g, '');
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/vapi-[^"]*\.js"\s*\/?>\n?/g, '');
+  // Also strip non-critical public page chunks (cases, news) — lazy-loaded on navigation, not needed for FCP
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/public-cases-[^"]*\.js"\s*\/?>\n?/g, '');
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/public-news-[^"]*\.js"\s*\/?>\n?/g, '');
+  result = result.replace(/<link\s+rel="modulepreload"\s+crossorigin\s+href="\/assets\/shared-components-[^"]*\.js"\s*\/?>\n?/g, '');
+  // Strip any data: URI modulepreload hints (Vite 8 bug — base64-encodes source paths instead of removing them)
+  result = result.replace(/<link\s+rel="modulepreload"\s+(?:crossorigin\s+)?href="data:[^"]*"\s*\/?>\n?/g, '');
+
+  // Update WebPage schema URL in the consolidated JSON-LD graph
+  result = result.replace(
+    /"@type"\s*:\s*"WebPage"[\s\S]*?"url"\s*:\s*"https:\/\/autoniv\.com\/"/,
+    `"@type": "WebPage",\n          "name": "${escapedTitle.split('|')[0].trim()}",\n          "url": "${url}"`
+  );
+
+  // Update WebPage schema isPartOf URL
+  result = result.replace(
+    /"@type"\s*:\s*"WebSite",\s*"url"\s*:\s*"https:\/\/autoniv\.com\/"\s*\}/,
+    `"@type": "WebSite",\n            "url": "https://autoniv.com/"\n          }`
+  );
+
+  // Update BreadcrumbList in the consolidated JSON-LD graph
+  const pathParts = routePath.split('/').filter(Boolean);
+  let currentPath = '';
+  const breadcrumbItems = [{ position: 1, name: 'Home' }];
+  pathParts.forEach((part, index) => {
+    currentPath += '/' + part;
+    const name = part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
+    breadcrumbItems.push({ position: index + 2, name });
+  });
+  const breadcrumbJson = JSON.stringify({
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbItems.map(item => ({
+      '@type': 'ListItem',
+      position: item.position,
+      name: item.name,
+    })),
+  });
+  result = result.replace(
+    /\{"@type"\s*:\s*"BreadcrumbList"[^}]*"itemListElement"\s*:\s*\[[^\]]*\]\}/,
+    breadcrumbJson
+  );
+
+  // Inject route-specific JSON-LD Schema (for page-specific schemas like Service, FAQPage)
   if (meta.schema) {
     const schemaScript = `  <script type="application/ld+json">\n${JSON.stringify(meta.schema, null, 2)}\n  </script>`;
     result = result.replace('</head>', `${schemaScript}\n</head>`);
   }
 
-  // Preload primary woff2 fonts to eliminate critical request chain delay
-  try {
-    const assetsDir = path.join(distDir, 'assets');
-    const assetsFiles = fs.readdirSync(assetsDir);
-    const primaryFonts = assetsFiles.filter((f) =>
-      f.endsWith('.woff2') && (f.includes('inter-latin-400') || f.includes('inter-latin-700') || f.includes('plus-jakarta-sans-latin-600'))
-    );
-    if (primaryFonts.length > 0) {
-      const fontPreloadTags = primaryFonts
-        .map((f) => `  <link rel="preload" href="/assets/${f}" as="font" type="font/woff2" crossorigin />`)
-        .join('\n');
-      result = result.replace('</head>', `${fontPreloadTags}\n</head>`);
-    }
-
-    // Preload the navbar brand logo (LCP image) so it's discoverable in the initial HTML document
-    // This prevents the browser from waiting for JS to execute before discovering the image.
-    const brandLogo = assetsFiles.find((f) => f.startsWith('autoniv-brand-logo') && f.endsWith('.webp'));
-    if (brandLogo) {
-      const logoPreload = `  <link rel="preload" href="/assets/${brandLogo}" as="image" type="image/webp" fetchpriority="high" />`;
-      result = result.replace('</head>', `${logoPreload}\n</head>`);
-    }
-    // Inject font-display:swap override so deferred fonts never cause FOIT
-    const fontDisplayStyle = `  <style id="font-display-swap">
-    /* Deferred @fontsource sheets inherit font-display:auto which can block paint.
-       Override to swap so system fonts show immediately, webfonts swap in. */
-    @font-face { font-family: 'Inter'; font-display: swap; src: local('Inter'); }
-    @font-face { font-family: 'Plus Jakarta Sans'; font-display: swap; src: local('Plus Jakarta Sans'); }
-    @font-face { font-family: 'JetBrains Mono'; font-display: swap; src: local('Courier New'); }
-  </style>`;
-    result = result.replace('</head>', `${fontDisplayStyle}\n</head>`);
-
-  } catch (_) {
-    /* ignore */
-  }
+  // Preload the navbar brand logo (LCP image) so it's discoverable in the initial HTML document
+  // Uses /logo.webp from public/ — matches the actual <img> src used in PublicNavbar
+  const logoPreload = `  <link rel="preload" href="/logo.webp" as="image" type="image/webp" fetchpriority="high" />`;
+  result = result.replace('</head>', `${logoPreload}\n</head>`);
 
   return result;
 }

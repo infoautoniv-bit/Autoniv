@@ -130,8 +130,8 @@ export function CreateUser() {
       await dispatch(createUser(formData)).unwrap();
       await dispatch(fetchAllUsers({ page: 1, limit: 20 }));
       navigate('/admin/users');
-    } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || err?.message || 'Something went wrong.';
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Something went wrong.';
       setError(errorMsg);
     } finally {
       setSubmitting(false);

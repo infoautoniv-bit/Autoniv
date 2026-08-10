@@ -22,10 +22,10 @@ const USERS = [
   {
     email: 'user@autoniv.ai',
     password: '$2a$12$hyy/4PQn/LPfgaChXlT6fuL6JJG8y6n6y3MXvCpz7TCgDxFmGmqPm',
-    name: 'User',
-    phoneNumber: '8921001100',
+    name: 'Test User',
+    phoneNumber: '+1555000001',
     role: 'user',
-    company: 'user',
+    company: 'Test Corp',
     plan: 'both_starter',
     isActive: true,
     isVerified: false,
@@ -33,7 +33,6 @@ const USERS = [
     chatPlan: 'chat_starter',
     voiceEnabled: true,
     voicePlan: 'voice_starter',
-    apiKey: hashApiKey('ak_de0080bc576599ec6a05d54fb82f6b7905a8adc3c8f9b817'),
   },
   {
     email: 'admin@autoniv.ai',
@@ -51,12 +50,12 @@ const USERS = [
     voicePlan: 'voice_free',
   },
   {
-    email: 'bhanupratap7530@gmail.com',
+    email: 'test1@autoniv.ai',
     password: '$2a$10$2DcaEhH8hnrdhHTf7qjSZOF3QSCOV3hagY6ZY7miU2OAfXrqp0Zwm',
-    name: 'test01',
-    phoneNumber: '7987656754',
+    name: 'Test User 1',
+    phoneNumber: '+1555000002',
     role: 'user',
-    company: 'test01.com',
+    company: 'test1.com',
     plan: 'voice_free',
     isActive: true,
     isVerified: true,
@@ -66,27 +65,12 @@ const USERS = [
     voicePlan: 'voice_free',
   },
   {
-    email: 'tanu@gmail.com',
+    email: 'test2@autoniv.ai',
     password: '$2a$10$.jFOPrG/Rwq0jJa8Y9EAver3v3ThEBy6aDeEMHdprQ.r5djYPO6xS',
-    name: 'tanu',
-    phoneNumber: '7451211212',
+    name: 'Test User 2',
+    phoneNumber: '+1555000003',
     role: 'user',
-    company: 'new',
-    plan: 'free',
-    isActive: true,
-    isVerified: true,
-    chatEnabled: true,
-    chatPlan: 'chat_free',
-    voiceEnabled: true,
-    voicePlan: 'voice_free',
-  },
-  {
-    email: 'tanishaborana970@gmail.com',
-    password: '$2a$10$EgKlNkjYFfWmJZzkTZW6YeFdxVNVof40tLDe/Gz7LIpKgeXjJp2HS',
-    name: 'tanu',
-    phoneNumber: '7894554554',
-    role: 'user',
-    company: '',
+    company: 'test2.com',
     plan: 'free',
     isActive: true,
     isVerified: true,
@@ -110,27 +94,12 @@ const USERS = [
     voiceEnabled: true,
     voicePlan: 'voice_free',
   },
-  {
-    email: 'vikasprasad2903@gmail.com',
-    password: '$2a$10$NPZFwq.xP6gAvtav.jqn7u.zutYOTm33.TUDXQQIU5vZfMto5Cc8G',
-    name: 'Vikas',
-    phoneNumber: '7048922570',
-    role: 'user',
-    company: 'vikas',
-    plan: 'chat_free',
-    isActive: true,
-    isVerified: false,
-    chatEnabled: true,
-    chatPlan: 'chat_free',
-    voiceEnabled: false,
-    voicePlan: 'none',
-  }
 ];
 
 async function seedAddOns() {
-  console.log('🌱 Clearing existing add-ons...');
+  console.log('Clearing existing add-ons...');
   await AddOn.deleteMany({});
-  console.log('🌱 Seeding add-ons...');
+  console.log('Seeding add-ons...');
   let inserted = 0;
   let updated = 0;
   let skipped = 0;
@@ -140,7 +109,7 @@ async function seedAddOns() {
     if (!existing) {
       await AddOn.create(addon);
       inserted++;
-      console.log(`  ➕ inserted: ${addon.id}`);
+      console.log(`  inserted: ${addon.id}`);
     } else {
       const dirty =
         existing.icon        !== addon.icon        ||
@@ -152,30 +121,30 @@ async function seedAddOns() {
       if (dirty) {
         await AddOn.updateOne({ id: addon.id }, { $set: addon });
         updated++;
-        console.log(`  ✏️  updated:  ${addon.id}`);
+        console.log(`  updated:  ${addon.id}`);
       } else {
         skipped++;
-        console.log(`  ⏭  unchanged: ${addon.id}`);
+        console.log(`  unchanged: ${addon.id}`);
       }
     }
   }
 
   const total = await AddOn.countDocuments();
-  console.log(`\n✅ AddOns done. Inserted: ${inserted}, Updated: ${updated}, Unchanged: ${skipped}, Total in DB: ${total}`);
+  console.log(`\nAddOns done. Inserted: ${inserted}, Updated: ${updated}, Unchanged: ${skipped}, Total in DB: ${total}`);
 }
 
 async function seedUsers() {
-  console.log('\n👤 Clearing existing users...');
+  console.log('\nClearing existing users...');
   await User.deleteMany({});
-  console.log('👤 Seeding users...');
+  console.log('Seeding users...');
 
   for (const user of USERS) {
     await User.create(user);
-    console.log(`  ➕ inserted: ${user.email}`);
+    console.log(`  inserted: ${user.email}`);
   }
 
   const total = await User.countDocuments();
-  console.log(`\n✅ Users done. Total in DB: ${total}`);
+  console.log(`\nUsers done. Total in DB: ${total}`);
 }
 
 async function main() {
@@ -188,7 +157,7 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch(async (err) => {
-    console.error('❌ Seed failed:', err);
+    console.error('Seed failed:', err);
     try { await closeDb(); } catch {}
     process.exit(1);
   });

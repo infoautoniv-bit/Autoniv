@@ -3,6 +3,7 @@ import User from '../db/models/User.js';
 import { authenticate } from '../middleware/auth.js';
 import { isValidEmail } from '../services/validators.js';
 import { log } from '../services/logger.js';
+import { sendTeamInviteEmail } from '../services/emailService.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -114,6 +115,13 @@ router.post('/invite', async (req, res) => {
     await user.save();
 
     log.info('team_member_added', { userId: user._id, email: cleanEmail });
+
+    // Send invitation email via Resend
+    sendTeamInviteEmail({
+      to: cleanEmail,
+      inviterName: user.name || user.email,
+      role: newMember.role
+    }).catch(err => log.error('team_invite_email_send_error', { error: err.message, email: cleanEmail }));
 
     res.status(201).json({
       message: 'Team member added successfully',

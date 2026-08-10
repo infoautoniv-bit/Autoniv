@@ -1,4 +1,6 @@
 // import AIAssistantChat from '../../components/AIAssistantChat';
+import { useState, useRef, useEffect } from 'react';
+import type React from 'react';
 import { Link } from 'react-router-dom';
 import { Stagger, StaggerItem } from './sections/anim';
 
@@ -27,7 +29,7 @@ const SOCIAL_LINKS = [
   },
   {
     label: 'Facebook',
-    href: 'https://www.facebook.com/profile.php?id=61577457813652&sk',
+    href: 'https://www.facebook.com/profile.php?id=61577457813652',
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
         <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z" />
@@ -51,10 +53,11 @@ const NAV_COLS = [
   {
     heading: 'Product',
     links: [
-      { href: '#features', label: 'Features', scroll: true },
-      { href: '#contact', label: 'Contact Us', scroll: true },
-      { href: '#addons', label: 'Add-Ons', scroll: true },
-      { href: '#', label: 'API Docs' },
+      { href: '/demos', label: 'Demo Recordings' },
+      { href: '/#features', label: 'Features', scroll: true },
+      { href: '/#contact', label: 'Contact Us', scroll: true },
+      { href: '/#addons', label: 'Add-Ons', scroll: true },
+      { href: '/help', label: 'Help Center' },
     ],
   },
   {
@@ -70,7 +73,7 @@ const NAV_COLS = [
     heading: 'Support',
     links: [
       { href: '/help', label: 'Help Center' },
-      { href: '#contact', label: 'Contact', scroll: true },
+      { href: '/#contact', label: 'Contact', scroll: true },
       { href: '/privacy', label: 'Privacy Policy' },
       { href: '/terms', label: 'Terms of Service' },
     ],
@@ -79,350 +82,376 @@ const NAV_COLS = [
 
 function scrollToSection(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
   e.preventDefault();
-  const id = href.replace('#', '');
-  const el = document.getElementById(id);
+  const id = href.replace('/#', '').replace('#', '');
+  const el =
+    document.getElementById(id) ||
+    document.getElementById(id + 's') ||
+    (id.endsWith('s') ? document.getElementById(id.slice(0, -1)) : null);
   if (!el) return;
   const y = el.getBoundingClientRect().top + window.scrollY - 72;
   window.scrollTo({ top: y, behavior: 'smooth' });
 }
 
 export default function Footer() {
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail || !newsletterEmail.includes('@')) return;
+    setNewsletterSubmitted(true);
+    setNewsletterEmail('');
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setNewsletterSubmitted(false), 3000);
+  };
+
   return (
     <>
-    <footer
-      style={{
-        borderTop: '1px solid rgba(16,185,129,0.10)',
-        background: 'rgba(4,8,18,0.98)',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Green-Blue glow effect */}
-      <div style={{
-        position: 'absolute',
-        bottom: '-100px',
-        right: '-100px',
-        width: '400px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(16,185,129,0.04), rgba(37,99,235,0.02) 50%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute',
-        top: '-50px',
-        left: '-50px',
-        width: '300px',
-        height: '300px',
-        background: 'radial-gradient(circle, rgba(6,182,212,0.03), transparent 70%)',
-        pointerEvents: 'none',
-      }} />
+      <footer
+        style={{
+          borderTop: '1px solid rgba(16,185,129,0.10)',
+          background: 'rgba(4,8,18,0.98)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Green-Blue glow effect */}
+        <div style={{
+          position: 'absolute',
+          bottom: '-100px',
+          right: '-100px',
+          width: '400px',
+          height: '400px',
+          background: 'radial-gradient(circle, rgba(16,185,129,0.04), rgba(37,99,235,0.02) 50%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '-50px',
+          left: '-50px',
+          width: '300px',
+          height: '300px',
+          background: 'radial-gradient(circle, rgba(6,182,212,0.03), transparent 70%)',
+          pointerEvents: 'none',
+        }} />
 
-      {/* Main footer body */}
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-14 pb-10" style={{ position: 'relative', zIndex: 1 }}>
-        <Stagger className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12" stagger={0.12} amount={0.15}>
+        {/* Main footer body */}
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-14 pb-10" style={{ position: 'relative', zIndex: 1 }}>
+          <Stagger className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12" stagger={0.12} amount={0.15}>
 
-          {/* Brand column — FULL WIDTH on mobile (col-span-1), spans 2 on tablet, spans 2 on lg */}
-          <StaggerItem variant="fadeUp" className="col-span-1 sm:col-span-2 lg:col-span-2">
-            <Link to="/" className="inline-block -mb-8 -mx-6 sm:-mx-4 -mt-10 sm:mt-0">
-              <img src={LOGO_SRC} alt="Autoniv Full Logo" width={180} height={120} style={{ height: 120 }} />
-            </Link>
-            <p
-              style={{
-                color: 'rgba(148,175,210,0.75)',
-                fontSize: 13.5,
-                lineHeight: 1.7,
-                maxWidth: 260,
-                marginBottom: 20,
-              }}
-            >
-              AI voice agents that handle your calls, capture every lead, and
-              scale your business 24/7.
-            </p>
-
-            {/* Social icons - Green-Blue theme */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              {SOCIAL_LINKS.map((s) => (
-                <a
-                  key={s.label}
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={s.label}
-                  className="social-bounce"
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'rgba(16,185,129,0.07)',
-                    border: '1px solid rgba(16,185,129,0.14)',
-                    color: 'rgba(148,175,210,0.7)',
-                    transition: 'all 0.2s',
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(16,185,129,0.16)';
-                    e.currentTarget.style.borderColor = 'rgba(16,185,129,0.35)';
-                    e.currentTarget.style.color = '#34d399';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(16,185,129,0.07)';
-                    e.currentTarget.style.borderColor = 'rgba(16,185,129,0.14)';
-                    e.currentTarget.style.color = 'rgba(148,175,210,0.7)';
-                  }}
-                >
-                  {s.icon}
-                </a>
-              ))}
-            </div>
-
-            {/* Trust badge */}
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              marginTop: 16,
-              padding: '6px 14px',
-              borderRadius: 99,
-              background: 'rgba(16,185,129,0.05)',
-              border: '1px solid rgba(16,185,129,0.08)',
-            }}>
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-pulse" />
-              <span style={{ fontSize: 11, color: 'rgba(148,175,210,0.7)' }}>
-                Trusted by 2,000+ businesses
-              </span>
-            </div>
-          </StaggerItem>
-
-          {/* Nav columns - On mobile: each takes full width (col-span-1) */}
-          {NAV_COLS.map((col) => (
-            <StaggerItem key={col.heading} variant="fadeUp" className="col-span-1">
+            {/* Brand column — FULL WIDTH on mobile (col-span-1), spans 2 on tablet, spans 2 on lg */}
+            <StaggerItem variant="fadeUp" className="col-span-1 sm:col-span-2 lg:col-span-2">
+              <Link to="/" className="inline-block -mb-8 -mx-6 sm:-mx-4 -mt-10 sm:mt-0">
+                <img src={LOGO_SRC} alt="Autoniv Full Logo" width={180} height={120} style={{ height: 120 }} />
+              </Link>
               <p
                 style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: 'rgba(16,185,129,0.7)',
-                  marginBottom: 16,
+                  color: 'rgba(148,175,210,0.75)',
+                  fontSize: 13.5,
+                  lineHeight: 1.7,
+                  maxWidth: 260,
+                  marginBottom: 20,
                 }}
               >
-                {col.heading}
+                AI voice agents that handle your calls, capture every lead, and
+                scale your business 24/7.
               </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {col.links.map(({ href, label, scroll }) => (
-                  <li key={label} style={{ marginBottom: 10 }}>
-                    {href.startsWith('/') ? (
-                      <Link
-                        to={href}
-                        className="link-underline"
-                        style={{
-                          fontSize: 13.5,
-                          color: 'rgba(148,175,210,0.75)',
-                          textDecoration: 'none',
-                          transition: 'color 0.18s',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = 'rgba(148,175,210,1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'rgba(148,175,210,0.75)';
-                        }}
-                      >
-                        {label}
-                      </Link>
-                    ) : (
-                       <a
-                        href={href}
-                        className="link-underline"
-                        onClick={
-                          scroll
-                            ? (e) => scrollToSection(e as React.MouseEvent<HTMLAnchorElement>, href)
-                            : undefined
-                        }
-                        style={{
-                          fontSize: 13.5,
-                          color: 'rgba(148,175,210,0.75)',
-                          textDecoration: 'none',
-                          transition: 'color 0.18s',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = 'rgba(148,175,210,1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'rgba(148,175,210,0.75)';
-                        }}
-                      >
-                        {label}
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </StaggerItem>
-          ))}
-        </Stagger>
 
-        {/* Trust badges row - Green-Blue theme */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 8,
-            marginBottom: 24,
-            paddingBottom: 24,
-            borderBottom: '1px solid rgba(16,185,129,0.08)',
-          }}
-        >
-          {[
-            { icon: '🔒', text: 'SOC 2 Certified' },
-            { icon: '🌐', text: '20+ Languages' },
-            { icon: '⚡', text: '99.9% Uptime' },
-            { icon: '🔗', text: '50+ Integrations' },
-            { icon: '⭐', text: '4.9/5 Rating' },
-          ].map(({ icon, text }) => (
-            <span
-              key={text}
-              style={{
+              {/* Social icons - Green-Blue theme */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                {SOCIAL_LINKS.map((s) => (
+                  <a
+                    key={s.label}
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.label}
+                    className="social-bounce"
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(16,185,129,0.07)',
+                      border: '1px solid rgba(16,185,129,0.14)',
+                      color: 'rgba(148,175,210,0.7)',
+                      transition: 'all 0.2s',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(16,185,129,0.16)';
+                      e.currentTarget.style.borderColor = 'rgba(16,185,129,0.35)';
+                      e.currentTarget.style.color = '#34d399';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(16,185,129,0.07)';
+                      e.currentTarget.style.borderColor = 'rgba(16,185,129,0.14)';
+                      e.currentTarget.style.color = 'rgba(148,175,210,0.7)';
+                    }}
+                  >
+                    {s.icon}
+                  </a>
+                ))}
+              </div>
+
+              {/* Trust badge */}
+              <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '5px 14px',
-                borderRadius: 20,
-                background: 'rgba(16,185,129,0.04)',
+                gap: 8,
+                marginTop: 16,
+                padding: '6px 14px',
+                borderRadius: 99,
+                background: 'rgba(16,185,129,0.05)',
                 border: '1px solid rgba(16,185,129,0.08)',
+              }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-pulse" />
+                <span style={{ fontSize: 11, color: 'rgba(148,175,210,0.7)' }}>
+                  Trusted by 2,000+ businesses
+                </span>
+              </div>
+            </StaggerItem>
+
+            {/* Nav columns - On mobile: each takes full width (col-span-1) */}
+            {NAV_COLS.map((col) => (
+              <StaggerItem key={col.heading} variant="fadeUp" className="col-span-1">
+                <p
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(16,185,129,0.7)',
+                    marginBottom: 16,
+                  }}
+                >
+                  {col.heading}
+                </p>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {col.links.map(({ href, label, scroll }) => (
+                    <li key={label} style={{ marginBottom: 10 }}>
+                      {href.startsWith('/') ? (
+                        <Link
+                          to={href}
+                          className="link-underline"
+                          style={{
+                            fontSize: 13.5,
+                            color: 'rgba(148,175,210,0.75)',
+                            textDecoration: 'none',
+                            transition: 'color 0.18s',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'rgba(148,175,210,1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'rgba(148,175,210,0.75)';
+                          }}
+                        >
+                          {label}
+                        </Link>
+                      ) : (
+                        <a
+                          href={href}
+                          className="link-underline"
+                          onClick={
+                            scroll
+                              ? (e) => scrollToSection(e as React.MouseEvent<HTMLAnchorElement>, href)
+                              : undefined
+                          }
+                          style={{
+                            fontSize: 13.5,
+                            color: 'rgba(148,175,210,0.75)',
+                            textDecoration: 'none',
+                            transition: 'color 0.18s',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'rgba(148,175,210,1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'rgba(148,175,210,0.75)';
+                          }}
+                        >
+                          {label}
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </StaggerItem>
+            ))}
+          </Stagger>
+
+          {/* Trust badges row - Green-Blue theme */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 8,
+              marginBottom: 24,
+              paddingBottom: 24,
+              borderBottom: '1px solid rgba(16,185,129,0.08)',
+            }}
+          >
+            {[
+              { icon: '🔒', text: 'SOC 2 Certified' },
+              { icon: '🌐', text: '20+ Languages' },
+              { icon: '⚡', text: '99.9% Uptime' },
+              { icon: '🔗', text: '50+ Integrations' },
+              { icon: '⭐', text: '4.9/5 Rating' },
+            ].map(({ icon, text }) => (
+              <span
+                key={text}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 14px',
+                  borderRadius: 20,
+                  background: 'rgba(16,185,129,0.04)',
+                  border: '1px solid rgba(16,185,129,0.08)',
+                  fontSize: 11.5,
+                  color: 'rgba(148,175,210,0.7)',
+                  letterSpacing: '0.01em',
+                  transition: 'all 0.3s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(16,185,129,0.08)';
+                  e.currentTarget.style.borderColor = 'rgba(16,185,129,0.2)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(16,185,129,0.04)';
+                  e.currentTarget.style.borderColor = 'rgba(16,185,129,0.08)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <span style={{ fontSize: 12 }}>{icon}</span>
+                {text}
+              </span>
+            ))}
+          </div>
+
+          {/* Bottom bar */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+            }}
+          >
+            <p
+              style={{
                 fontSize: 11.5,
-                color: 'rgba(148,175,210,0.7)',
-                letterSpacing: '0.01em',
-                transition: 'all 0.3s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(16,185,129,0.08)';
-                e.currentTarget.style.borderColor = 'rgba(16,185,129,0.2)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(16,185,129,0.04)';
-                e.currentTarget.style.borderColor = 'rgba(16,185,129,0.08)';
-                e.currentTarget.style.transform = 'translateY(0)';
+                color: 'rgba(148,175,210,0.6)',
+                letterSpacing: '0.04em',
+                margin: 0,
               }}
             >
-              <span style={{ fontSize: 12 }}>{icon}</span>
-              {text}
-            </span>
-          ))}
-        </div>
+              © 2026 Autoniv. All rights reserved.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  display: 'inline-block',
+                  animation: 'pulse-glow 2s ease-in-out infinite',
+                }}
+              />
+              <span style={{ fontSize: 11.5, color: 'rgba(148,175,210,0.6)' }}>
+                All systems operational
+              </span>
+            </div>
+          </div>
 
-        {/* Bottom bar */}
-        <div
-          style={{
+          {/* Newsletter signup (optional enhancement) */}
+          <form onSubmit={handleNewsletterSubmit} style={{
+            marginTop: 24,
+            paddingTop: 24,
+            borderTop: '1px solid rgba(16,185,129,0.06)',
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 10,
-          }}
-        >
-          <p
-            style={{
-              fontSize: 11.5,
-              color: 'rgba(148,175,210,0.6)',
-              letterSpacing: '0.04em',
-              margin: 0,
-            }}
-          >
-            © 2026 Autoniv. All rights reserved.
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: '#10b981',
-                display: 'inline-block',
-                animation: 'pulse-glow 2s ease-in-out infinite',
-              }}
-            />
-
-          </div>
-        </div>
-
-        {/* Newsletter signup (optional enhancement) */}
-        <div style={{
-          marginTop: 24,
-          paddingTop: 24,
-          borderTop: '1px solid rgba(16,185,129,0.06)',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}>
-          <span style={{
-            fontSize: 12,
-            color: 'rgba(148,175,210,0.7)',
+            gap: 12,
           }}>
-            🚀 Stay updated with the latest AI voice technology
-          </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              style={{
-                padding: '6px 14px',
-                borderRadius: 8,
-                border: '1px solid rgba(16,185,129,0.1)',
-                background: 'rgba(255,255,255,0.03)',
-                color: '#e2e8f0',
-                fontSize: 12,
-                width: 200,
-                outline: 'none',
-                transition: 'border-color 0.3s',
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(16,185,129,0.3)';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(16,185,129,0.1)';
-              }}
-            />
-            <button
-              style={{
-                padding: '6px 16px',
-                borderRadius: 8,
-                border: 'none',
-                background: 'linear-gradient(135deg, #10b981, #2563eb)',
-                color: '#ffffff',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.3s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 4px 16px rgba(16,185,129,0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              Subscribe
-            </button>
-          </div>
+            <span style={{
+              fontSize: 12,
+              color: 'rgba(148,175,210,0.7)',
+            }}>
+              🚀 Stay updated with the latest AI voice technology
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <label htmlFor="footer-newsletter" className="sr-only">Email address</label>
+              <input
+                id="footer-newsletter"
+                type="email"
+                placeholder="Enter your email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                required
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(16,185,129,0.1)',
+                  background: 'rgba(255,255,255,0.03)',
+                  color: '#e2e8f0',
+                  fontSize: 12,
+                  width: 200,
+                  outline: 'none',
+                  transition: 'border-color 0.3s',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(16,185,129,0.3)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(16,185,129,0.1)';
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #10b981, #2563eb)',
+                  color: '#ffffff',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(16,185,129,0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                {newsletterSubmitted ? '✓ Subscribed!' : 'Subscribe'}
+              </button>
+            </div>
+          </form>
         </div>
-      </div>
 
-    </footer>
+      </footer>
     </>
   );
 }

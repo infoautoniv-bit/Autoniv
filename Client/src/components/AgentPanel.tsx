@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { VoicePreviewButton } from './VoicePreviewButton';
-import { VOICE_OPTIONS } from '../config/voices';
+import { getVoicesForLanguage } from '../config/voices';
 import { PROMPT_TEMPLATES } from '../config/agentPrompts';
+import { LANGUAGE_OPTIONS } from '../config/agentConfig';
 import { agentService, phoneNumberService } from '../services/api';
 import { logger } from '../utils/logger';
 import type { Agent, PhoneNumber as SavedPhoneNumber } from '../types';
@@ -15,24 +16,6 @@ interface PhoneNumber {
   assistantId: string | null;
   status: string;
 }
-
-const LANGUAGE_OPTIONS = [
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'fr', label: 'French' },
-  { value: 'de', label: 'German' },
-  { value: 'it', label: 'Italian' },
-  { value: 'pt', label: 'Portuguese' },
-  { value: 'pl', label: 'Polish' },
-  { value: 'hi', label: 'Hindi' },
-  { value: 'ar', label: 'Arabic' },
-  { value: 'ja', label: 'Japanese' },
-  { value: 'ko', label: 'Korean' },
-  { value: 'zh', label: 'Chinese' },
-  { value: 'nl', label: 'Dutch' },
-  { value: 'ru', label: 'Russian' },
-  { value: 'tr', label: 'Turkish' },
-];
 
 const ENGINE_OPTIONS = [
   { value: 'groq:llama-3.3-70b', label: 'Groq Llama-3.3-70b' },
@@ -238,9 +221,21 @@ export interface AgentPanelProps {
     customEngineModel?: string;
     hubspotToken?: string;
     webhookUrl?: string;
+    webhookSecret?: string;
+    googleSheetId?: string;
+    googleSheetUrl?: string;
+    fieldMapping?: string;
+    customHeaders?: string;
+    payloadTemplate?: string;
     crmIntegrations?: {
       hubspotToken?: string;
       webhookUrl?: string;
+      webhookSecret?: string;
+      googleSheetId?: string;
+      googleSheetUrl?: string;
+      fieldMapping?: string;
+      customHeaders?: string;
+      payloadTemplate?: string;
     };
   };
   setFormData: (d: any) => void;
@@ -256,9 +251,15 @@ export function AgentPanel({
   open, onClose, editing, formData, setFormData, onSubmit, submitting,
   onAssignPhone, onUnlinkPhone,
 }: AgentPanelProps) {
-  const filteredVoices = formData.useCustomEngine ? VOICE_OPTIONS : VOICE_OPTIONS.filter(v => !v.value.startsWith('sarvam:'));
+  const filteredVoices = useMemo(() => getVoicesForLanguage(formData.language), [formData.language]);
   const agentTypeMeta = AGENT_TYPES.find((t) => t.value === formData.type) || AGENT_TYPES[0];
   const showConnectTab = !!(editing && onAssignPhone);
+
+  useEffect(() => {
+    if (filteredVoices.length > 0 && !filteredVoices.some(v => v.value === formData.voiceId)) {
+      setFormData((prev: any) => ({ ...prev, voiceId: filteredVoices[0].value }));
+    }
+  }, [formData.language, filteredVoices]);
 
   const [tab, setTab] = useState<TabId>('identity');
   const [voiceHover, setVoiceHover] = useState(false);
@@ -382,7 +383,7 @@ export function AgentPanel({
     prompt: formData.prompt.trim().length > 20,
     engine: !!formData.useCustomEngine,
     connect: hasPhoneLinked,
-    crm: !!(formData.hubspotToken || formData.webhookUrl || formData.crmIntegrations?.hubspotToken || formData.crmIntegrations?.webhookUrl),
+    crm: !!(formData.hubspotToken || formData.webhookUrl || formData.googleSheetUrl || formData.crmIntegrations?.hubspotToken || formData.crmIntegrations?.webhookUrl || formData.crmIntegrations?.googleSheetUrl),
   };
   const readyCount = (['identity', 'voice', 'prompt'] as TabId[]).filter((k) => completion[k]).length;
 
@@ -705,6 +706,125 @@ export function AgentPanel({
                         Instant JSON HTTP POST payload sent when phone calls complete with extracted lead details.
                       </p>
                     </div>
+
+                    <div>
+                      <FieldLabel hint="HMAC Signing Secret">Webhook Secret</FieldLabel>
+                      <TextInput
+                        value={formData.webhookSecret || formData.crmIntegrations?.webhookSecret || ''}
+                        onChange={(v) => setFormData((p: any) => ({ ...p, webhookSecret: v, crmIntegrations: { ...(p.crmIntegrations || {}), webhookSecret: v } }))}
+                        placeholder="Optional — signs webhook payloads with HMAC SHA-256"
+                        mono
+                      />
+                    </div>
+
+                    <div>
+                      <FieldLabel hint="Auto-sync calls & leads">Google Sheet Link / Spreadsheet ID</FieldLabel>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <TextInput
+                            value={formData.googleSheetUrl || formData.crmIntegrations?.googleSheetUrl || ''}
+                            onChange={(v) => setFormData((p: any) => ({ ...p, googleSheetUrl: v, crmIntegrations: { ...(p.crmIntegrations || {}), googleSheetUrl: v } }))}
+                            placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRm53LnX.../edit"
+                            mono
+                          />
+                        </div>
+                        <label className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg cursor-pointer transition-colors whitespace-nowrap shadow-sm">
+                          <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                          </svg>
+                          Upload File
+                          <input
+                            type="file"
+                            accept=".json,.csv,.txt"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                try {
+                                  const text = evt.target?.result as string;
+                                  if (file.name.endsWith('.json')) {
+                                    const json = JSON.parse(text);
+                                    const sheetUrl = json.spreadsheet_url || json.spreadsheetUrl || json.sheet_url || '';
+                                    const sheetId = json.spreadsheet_id || json.spreadsheetId || json.sheet_id || json.client_email || file.name;
+                                    const finalUrl = sheetUrl || (sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}/edit` : file.name);
+                                    setFormData((p: any) => ({ ...p, googleSheetUrl: finalUrl, googleSheetId: sheetId, crmIntegrations: { ...(p.crmIntegrations || {}), googleSheetUrl: finalUrl, googleSheetId: sheetId } }));
+                                  } else {
+                                    const finalUrl = `https://docs.google.com/spreadsheets/d/${file.name}/edit`;
+                                    setFormData((p: any) => ({ ...p, googleSheetUrl: finalUrl, googleSheetId: file.name, crmIntegrations: { ...(p.crmIntegrations || {}), googleSheetUrl: finalUrl, googleSheetId: file.name } }));
+                                  }
+                                } catch {
+                                  setFormData((p: any) => ({ ...p, googleSheetId: file.name }));
+                                }
+                              };
+                              reader.readAsText(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                        Paste your Google Sheets URL or click <strong>Upload File</strong> to load Google Credentials (.json) or Sheet files (.csv) directly from your computer.
+                      </p>
+                    </div>
+
+                    <details className="group">
+                      <summary className="cursor-pointer text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--text)] transition-colors select-none">
+                        Advanced CRM Configuration
+                      </summary>
+                      <div className="mt-3 space-y-4 pl-1">
+                        <div>
+                          <FieldLabel hint="JSON key renaming">Field Mapping</FieldLabel>
+                          <textarea
+                            value={formData.fieldMapping || formData.crmIntegrations?.fieldMapping || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData((p: any) => ({ ...p, fieldMapping: val, crmIntegrations: { ...(p.crmIntegrations || {}), fieldMapping: val } }));
+                            }}
+                            placeholder='{"name": "fullName", "phone": "mobile_number", "email": "email_address", "purpose": "lead_source"}'
+                            rows={3}
+                            className="w-full px-3 py-2.5 text-xs font-mono bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-blue)] resize-vertical"
+                          />
+                          <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                            Rename fields in the webhook payload. Keys are Autoniv fields, values are your CRM field names.
+                          </p>
+                        </div>
+
+                        <div>
+                          <FieldLabel hint="Extra HTTP headers">Custom Headers</FieldLabel>
+                          <textarea
+                            value={formData.customHeaders || formData.crmIntegrations?.customHeaders || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData((p: any) => ({ ...p, customHeaders: val, crmIntegrations: { ...(p.crmIntegrations || {}), customHeaders: val } }));
+                            }}
+                            placeholder='{"Authorization": "Bearer your-token", "X-CRM-Api-Key": "your-key"}'
+                            rows={3}
+                            className="w-full px-3 py-2.5 text-xs font-mono bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-blue)] resize-vertical"
+                          />
+                          <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                            Extra HTTP headers sent with every webhook request (e.g., CRM auth tokens).
+                          </p>
+                        </div>
+
+                        <div>
+                          <FieldLabel hint="JSON template with {{variables}}">Payload Template</FieldLabel>
+                          <textarea
+                            value={formData.payloadTemplate || formData.crmIntegrations?.payloadTemplate || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData((p: any) => ({ ...p, payloadTemplate: val, crmIntegrations: { ...(p.crmIntegrations || {}), payloadTemplate: val } }));
+                            }}
+                            placeholder='{"contact": {"first_name": "{{name}}", "phone": "{{phone}}", "email": "{{email}}", "source": "autoniv_voice"}}'
+                            rows={5}
+                            className="w-full px-3 py-2.5 text-xs font-mono bg-[var(--s1)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-blue)] resize-vertical"
+                          />
+                          <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                            Full control over webhook payload. Use {'{{name}}'}, {'{{phone}}'}, {'{{email}}'}, {'{{purpose}}'}, {'{{notes}}'}, {'{{createdAt}}'} as placeholders.
+                          </p>
+                        </div>
+                      </div>
+                    </details>
                   </motion.div>
                 )}
 

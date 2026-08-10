@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import logoSymbol from '../assets/autoniv-symbol-logo.webp';
 import logoText from '../assets/autoniv-text-logo.webp';
 import { useAppDispatch, useAppSelector } from '../hooks/useStore';
 import { logout, checkAuth } from '../store/slices/authSlice';
 import { Link, useLocation } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from './Modal';
 import { userService, authService } from '../services/api';
@@ -192,6 +191,16 @@ const Tooltip: React.FC<{ label: string; visible: boolean }> = ({ label, visible
 );
 
 // ─── NavLink Component ────────────────────────────────────────────────────────
+const ROUTE_PREFETCH_MAP: Record<string, () => Promise<any>> = {
+  '/dashboard': () => import('../pages/user/UserDashboard'),
+  '/dashboard/ai-voice-agent': () => import('../pages/user/MyAgents'),
+  '/dashboard/calls': () => import('../pages/user/MyCalls'),
+  '/dashboard/leads': () => import('../pages/user/MyLeads'),
+  '/dashboard/appointment-booking': () => import('../pages/user/MyAppointments'),
+  '/dashboard/ai-chatbot': () => import('../pages/user/MyChat'),
+  '/dashboard/billing': () => import('../pages/user/UserBilling'),
+};
+
 const NavLinkItem: React.FC<{
   item: NavItem;
   isActive: boolean;
@@ -201,8 +210,14 @@ const NavLinkItem: React.FC<{
 }> = ({ item, isActive, isCollapsed, index, onClick }) => {
   const [hovered, setHovered] = useState(false);
 
+  const prefetch = () => {
+    try {
+      ROUTE_PREFETCH_MAP[item.path]?.();
+    } catch { /* ignore */ }
+  };
+
   return (
-    <Link to={item.path} onClick={onClick}>
+    <Link to={item.path} onClick={onClick} onMouseEnter={prefetch} onTouchStart={prefetch}>
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
@@ -361,7 +376,7 @@ const UserSection: React.FC<{
       return;
     }
 
-    if (!/[A-Z]/.test(passwordForm.newPassword) || !/[a-z]/.test(passwordForm.newPassword) || !/\d/.test(passwordForm.newPassword) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(passwordForm.newPassword)) {
+    if (!/[A-Z]/.test(passwordForm.newPassword) || !/[a-z]/.test(passwordForm.newPassword) || !/\d/.test(passwordForm.newPassword) || !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(passwordForm.newPassword)) {
       setPasswordError('Password must include uppercase, lowercase, number, and special character');
       return;
     }
@@ -383,7 +398,7 @@ const UserSection: React.FC<{
   };
 
   return (
-    <div className="p-3 border-t border-white/5 space-y-3" ref={dropdownRef}>
+    <div className="p-3 pb-3 border-t border-white/5 space-y-3 flex-shrink-0 mt-auto" ref={dropdownRef}>
       {/* User Info Card */}
       <motion.div
         whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
@@ -402,7 +417,7 @@ const UserSection: React.FC<{
             }}>
             {initials}
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[var(--primary-soft)]0 rounded-full animate-pulse"
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"
             style={{ borderColor: 'var(--s1)', borderWidth: '2px' }} />
         </div>
 
@@ -421,13 +436,26 @@ const UserSection: React.FC<{
         </AnimatePresence>
 
         {!isCollapsed && (
-          <motion.span
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="text-white/40"
-          >
-            {Icons.chevronDown}
-          </motion.span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogoutClick();
+              }}
+              className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+              title="Sign Out"
+            >
+              {Icons.signOut}
+            </button>
+            <motion.span
+              animate={{ rotate: open ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-white/40 p-1"
+            >
+              {Icons.chevronDown}
+            </motion.span>
+          </div>
         )}
       </motion.div>
 
@@ -637,7 +665,7 @@ const UserSection: React.FC<{
                       { label: 'Uppercase letter', met: /[A-Z]/.test(passwordForm.newPassword) },
                       { label: 'Lowercase letter', met: /[a-z]/.test(passwordForm.newPassword) },
                       { label: 'Number', met: /\d/.test(passwordForm.newPassword) },
-                      { label: 'Special character', met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(passwordForm.newPassword) },
+                      { label: 'Special character', met: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(passwordForm.newPassword) },
                     ].map((check, i) => (
                       <div key={i} className="flex items-center gap-1.5 text-xs">
                         <span className={check.met ? 'text-[var(--primary)]' : 'text-white/40'}>
@@ -715,8 +743,8 @@ const UserSection: React.FC<{
 };
 
 // ─── Main Sidebar Component ───────────────────────────────────────────────────
-export function Sidebar() {
-  const dispatch = useDispatch();
+export const Sidebar = memo(function Sidebar() {
+  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const isAdmin = user?.role === 'admin';
   const location = useLocation();
@@ -734,7 +762,7 @@ export function Sidebar() {
   }, [isCollapsed, setIsCollapsed]);
 
   const handleLogout = useCallback(() => {
-    dispatch(logout());
+    dispatch(logout() as any);
   }, [dispatch]);
 
   // Keyboard shortcut: Alt+S
@@ -842,8 +870,31 @@ export function Sidebar() {
       {/* Logo */}
       {renderLogo(forceExpanded)}
 
+      {/* Quick Command Search Trigger Button */}
+      <div className="px-3 pt-2 pb-1">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('toggle-command-palette'))}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-white/60 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all ${isCollapsed && !forceExpanded ? 'justify-center px-2' : ''
+            }`}
+          title="Search or type a command (Ctrl+K)"
+        >
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {(!isCollapsed || forceExpanded) && <span>Quick Search...</span>}
+          </div>
+          {(!isCollapsed || forceExpanded) && (
+            <kbd className="px-1.5 py-0.5 text-[10px] font-semibold text-white/40 bg-white/5 rounded border border-white/10">
+              ⌘K
+            </kbd>
+          )}
+        </button>
+      </div>
+
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Dashboard navigation">
         {navItems.map((item, index) => (
           <NavLinkItem
             key={item.path}
@@ -901,7 +952,7 @@ export function Sidebar() {
             exit={{ x: -280 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="md:hidden fixed inset-y-0 left-0 z-50 w-64
-                       bg-[#050d1a] border-r border-white/5 flex flex-col shadow-2xl overflow-y-auto"
+                       bg-[#050d1a] border-r border-white/5 flex flex-col shadow-2xl overflow-y-auto pb-14"
           >
             <button
               onClick={() => setMobileOpen(false)}
@@ -922,7 +973,7 @@ export function Sidebar() {
         animate={{ width: isCollapsed ? 80 : 256 }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
         className="hidden md:flex flex-col flex-shrink-0 sticky top-0 h-screen
-                   bg-[#050d1a] border-r border-white/5 shadow-2xl z-20 overflow-y-auto"
+                   bg-[#050d1a] border-r border-white/5 shadow-2xl z-20 overflow-hidden"
       >
         {/* Collapse/Expand Toggle Button */}
         <button
@@ -948,4 +999,4 @@ export function Sidebar() {
       </motion.aside>
     </>
   );
-}
+});

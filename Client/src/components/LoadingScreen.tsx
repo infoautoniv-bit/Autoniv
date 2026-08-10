@@ -62,11 +62,8 @@ export default function AutonivLoadingScreen() {
           alt="Autoniv Full Logo"
           width={270}
           height={180}
-          style={{
-            height: 180,
-            width: 'auto',
-            objectFit: 'contain',
-          }}
+          decoding="async"
+          className="w-auto max-h-[120px] sm:max-h-[180px] object-contain"
         />
       </div>
 
@@ -174,7 +171,7 @@ export default function AutonivLoadingScreen() {
           100% { transform: translateX(350%); }
         }
         @media (prefers-reduced-motion: reduce) {
-          img, span, div { animation: none !important; }
+          [style*="animation"] { animation: none !important; }
         }
       `}</style>
     </div>

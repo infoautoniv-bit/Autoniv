@@ -5,6 +5,7 @@ import compression from 'compression';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
 import { WebSocketServer } from 'ws';
+import * as Sentry from '@sentry/node';
 
 import { connectDb } from './db/connection.js';
 import authRoutes from './routes/auth.js';
@@ -54,10 +55,44 @@ import {
 } from './middleware/security.js';
 import { globalLimiter } from './middleware/rateLimiters.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { authenticate } from './middleware/auth.js';
 import { requestIdMiddleware } from './services/crypto.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { IS_PROD, log } from './services/logger.js';
+import { validateEnv } from './services/env.js';
 import './services/orchestratorHandlers.js';
+
+// ─── Validate environment variables ──────────────────────────────────────
+validateEnv();
+
+// ─── Sentry ───────────────────────────────────────────────────────────────
+const SENTRY_DSN = process.env.SENTRY_DSN;
+if (SENTRY_DSN && IS_PROD) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.1,
+    integrations: [Sentry.expressIntegration()],
+  });
+}
+
+// ─── Prometheus Metrics ───────────────────────────────────────────────────
+import { collectDefaultMetrics, Counter, Histogram } from 'prom-client';
+
+collectDefaultMetrics({ prefix: 'autoniv_' });
+
+const httpRequestDuration = new Histogram({
+  name: 'autoniv_http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
+});
+
+const httpRequestsTotal = new Counter({
+  name: 'autoniv_http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code'],
+});
 
 const PORT = Number(process.env.PORT) || 3000;
 const app = express();
@@ -82,7 +117,25 @@ assertSecret('VAPI_API_KEY');
 app.disable('x-powered-by');
 app.disable('etag');
 
+// Sentry request handler (must be first middleware)
+if (SENTRY_DSN && IS_PROD) {
+  app.use(Sentry.Handlers.requestHandler());
+}
+
 app.use(requestIdMiddleware());
+
+// Prometheus metrics middleware
+app.use((req, res, next) => {
+  if (req.path === '/metrics') return next();
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    const route = req.route?.path || req.path;
+    httpRequestDuration.labels(req.method, route, String(res.statusCode)).observe(duration);
+    httpRequestsTotal.labels(req.method, route, String(res.statusCode)).inc();
+  });
+  next();
+});
 
 // Prevent search bots from indexing API endpoints
 app.use((req, res, next) => {
@@ -137,7 +190,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Vapi API' });
 });
 
-app.get('/api/health', (req, res) => {
+app.get(['/health', '/api/health', '/health/liveness'], (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -145,9 +198,49 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get(['/health/readiness', '/api/health/readiness'], (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  if (!isDbConnected) {
+    return res.status(503).json({ status: 'unhealthy', db: 'disconnected' });
+  }
+  res.json({ status: 'ready', db: 'connected', timestamp: new Date().toISOString() });
+});
+
+app.get('/metrics', async (req, res) => {
+  // In production, require a valid admin JWT or a metrics secret token
+  const metricsSecret = process.env.METRICS_SECRET;
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (IS_PROD) {
+    if (metricsSecret && token === metricsSecret) {
+      // Authorized via secret token
+    } else {
+      // Try admin JWT
+      try {
+        const { verifyAccessToken } = await import('./services/tokenService.js');
+        const decoded = token ? verifyAccessToken(token) : null;
+        if (!decoded || decoded.role !== 'admin') {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } catch {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+    }
+  }
+
+  try {
+    const { register } = await import('prom-client');
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (err) {
+    res.status(500).end();
+  }
+});
+
 app.get('/api/csrf-token', csrfTokenEndpoint);
 
-app.use('/api/recordings', express.static('recordings'));
+app.use('/api/recordings', authenticate, express.static('recordings'));
 app.use('/api/vapi', vapiProxy);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -181,7 +274,25 @@ app.use('/api/bulk-calls', bulkCallRoutes);
 app.use('/api/phone-numbers', phoneNumberRoutes);
 app.use('/api/team', teamRoutes);
 
+// ── API v1 aliases (backward-compatible /api/v1/* prefix) ────────────────
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/agents', agentRoutes);
+app.use('/api/v1/calls', callRoutes);
+app.use('/api/v1/leads', leadRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/appointments', appointmentRoutes);
+app.use('/api/v1/add-ons', addOnRoutes);
+app.use('/api/v1/chat', chatRoutes);
+app.use('/api/v1/reports', reportRoutes);
+
 app.use(notFoundHandler);
+
+// Sentry error handler (must be before final errorHandler)
+if (SENTRY_DSN && IS_PROD) {
+  app.use(Sentry.Handlers.errorHandler());
+}
+
 app.use(errorHandler);
 
 (async () => {
@@ -238,6 +349,14 @@ app.use(errorHandler);
 
     function shutdown(signal) {
       log.info('shutdown', { signal });
+
+      // Close all WebSocket connections gracefully
+      try {
+        planWss.clients.forEach((ws) => {
+          ws.close(1001, 'Server shutting down');
+        });
+      } catch { /* ignore */ }
+
       server.close(() => {
         mongoose.connection.close().finally(() => process.exit(0));
       });
@@ -250,7 +369,9 @@ app.use(errorHandler);
       log.fatal('unhandled_rejection', { error: err?.message });
     });
     process.on('uncaughtException', (err) => {
-      log.fatal('uncaught_exception', { error: err?.message });
+      log.fatal('uncaught_exception', { error: err?.message, stack: err?.stack });
+      // Exit after uncaught exception — process is in undefined state
+      setTimeout(() => process.exit(1), 1000).unref();
     });
   } catch (err) {
     log.fatal('startup_failed', { error: err.message });

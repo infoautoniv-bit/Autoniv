@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Modal } from '../../components/Modal';
 import { useAuth } from '../../hooks/useAuth';
-import { authService } from '../../services/api';
+import { authService } from '../../services/api.public';
 // import { useAppDispatch } from '../../hooks/useStore';
 // import { checkAuth } from '../../store/slices/authSlice';
 
@@ -97,9 +97,13 @@ function getPasswordStrength(password: string): { score: number; label: string; 
 }
 
 function parseError(err: unknown, fallback: string): string {
-  if (axios.isAxiosError(err)) return err.response?.data?.message ?? fallback;
-  if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
+  if (axios.isAxiosError(err)) return err.response?.data?.message || err.message || fallback;
+  if (typeof err === 'object' && err !== null) {
+    const resMsg = (err as any).response?.data?.message || (err as any).message || (err as any).payload;
+    if (typeof resMsg === 'string' && resMsg.trim()) return resMsg;
+  }
+  if (err instanceof Error) return err.message;
   return fallback;
 }
 

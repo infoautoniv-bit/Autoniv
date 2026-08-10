@@ -14,14 +14,14 @@ export function useOnboarding() {
   const dismiss = useCallback(() => {
     try {
       localStorage.setItem(STORAGE_KEY, 'true');
-    } catch {}
+    } catch { /* ignored */ }
     setShow(false);
   }, []);
 
   const reset = useCallback(() => {
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    } catch { /* ignored */ }
     setShow(true);
   }, []);
 

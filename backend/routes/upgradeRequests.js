@@ -28,7 +28,23 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (user.plan === requestedPlan) {
+    // Determine the user's current plan for the requested type (chat/voice/both)
+    const userChatPlan = user.chatPlan || 'chat_free';
+    const userVoicePlan = user.voicePlan || 'none';
+    let currentPlanForType = user.plan;
+    if (requestedPlan.startsWith('chat_')) {
+      currentPlanForType = userChatPlan;
+    } else if (requestedPlan.startsWith('voice_')) {
+      currentPlanForType = userVoicePlan;
+    } else if (requestedPlan.startsWith('both_')) {
+      const reqChat = requestedPlan.replace('both_', 'chat_');
+      const reqVoice = requestedPlan.replace('both_', 'voice_');
+      if (userChatPlan === reqChat && userVoicePlan === reqVoice) {
+        currentPlanForType = requestedPlan;
+      }
+    }
+
+    if (currentPlanForType === requestedPlan) {
       return res.status(400).json({ message: `You are already on the ${requestedPlan} plan` });
     }
 

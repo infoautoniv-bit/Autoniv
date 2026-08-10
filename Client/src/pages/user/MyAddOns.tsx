@@ -304,12 +304,12 @@ export function MyAddOns() {
         return;
       }
 
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      const { API_BASE_URL } = await import('../../config/api');
       const now = new Date();
       const month = now.getMonth() + 1;
       const year = now.getFullYear();
 
-      const res = await fetch(`${baseUrl}/reports/performance-report?month=${month}&year=${year}`, {
+      const res = await fetch(`${API_BASE_URL}/reports/performance-report?month=${month}&year=${year}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

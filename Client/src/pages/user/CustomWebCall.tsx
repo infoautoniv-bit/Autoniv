@@ -179,22 +179,30 @@ export function CustomWebCall() {
 
   /* ── Playback Buffer management ── */
   const clearBuf = useCallback(() => {
-    srcs.current.forEach(s => { try { s.stop(); } catch {} });
+    srcs.current.forEach(s => { try { s.stop(); } catch { /* ignored */ } });
     srcs.current = [];
     nextT.current = ctx.current ? ctx.current.currentTime : 0;
   }, []);
 
-  const play = useCallback((b64: string) => {
+  const play = useCallback(async (b64: string) => {
     const ac = ctx.current, an = analyser.current;
     if (!ac || !an) return;
     try {
-      const bin = atob(b64), bytes = new Uint8Array(bin.length);
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const i16 = new Int16Array(bytes.buffer), f32 = new Float32Array(i16.length);
-      for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
 
-      const ab = ac.createBuffer(1, f32.length, 24000);
-      ab.copyToChannel(f32, 0);
+      let ab: AudioBuffer;
+      if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+        const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        ab = await ac.decodeAudioData(copy);
+      } else {
+        const i16 = new Int16Array(bytes.buffer, bytes.byteOffset, Math.floor(bytes.byteLength / 2));
+        const f32 = new Float32Array(i16.length);
+        for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
+        ab = ac.createBuffer(1, f32.length, 24000);
+        ab.copyToChannel(f32, 0);
+      }
 
       const src = ac.createBufferSource();
       src.buffer = ab;
@@ -232,7 +240,12 @@ export function CustomWebCall() {
       mic.current = stream;
 
       const AC = window.AudioContext || (window as any).webkitAudioContext;
-      const ac = new AC({ sampleRate: 16000 });
+      let ac: AudioContext;
+      try {
+        ac = new AC({ sampleRate: 16000 });
+      } catch {
+        ac = new AC();
+      }
       ctx.current = ac;
       if (ac.state === 'suspended') await ac.resume();
       nextT.current = ac.currentTime;
@@ -241,10 +254,9 @@ export function CustomWebCall() {
       an.fftSize = 256;
       analyser.current = an;
 
-      const raw = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      const { API_HOST } = await import('../../config/api');
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      let host = location.host;
-      if (raw.startsWith('http')) host = new URL(raw).host;
+      const host = API_HOST || location.host;
 
       const url = `${proto}//${host}/web-call?agentId=${agentId}`;
       setLogs(p => [...p, { role: 'system', text: `Establishing stream connection to voice lab...`, time: getNowTimeString() }]);
@@ -261,20 +273,43 @@ export function CustomWebCall() {
         proc.current = p;
 
         src.connect(p);
-        p.connect(ac.destination);
+        const zeroGain = ac.createGain();
+        zeroGain.gain.value = 0;
+        p.connect(zeroGain);
+        zeroGain.connect(ac.destination);
         src.connect(an);
 
         p.onaudioprocess = e => {
-          const d = e.inputBuffer.getChannelData(0);
+          const input = e.inputBuffer.getChannelData(0);
           let s = 0;
-          for (let i = 0; i < d.length; i++) s += d[i] * d[i];
-          setRms(Math.sqrt(s / d.length));
+          for (let i = 0; i < input.length; i++) s += input[i] * input[i];
+          setRms(Math.sqrt(s / input.length));
 
-          const pcm = new Int16Array(d.length);
-          for (let i = 0; i < d.length; i++) pcm[i] = Math.max(-1, Math.min(1, d[i])) * 0x7fff;
+          const inputRate = ac.sampleRate;
+          const targetRate = 16000;
+          let pcm: Int16Array;
+
+          if (inputRate === targetRate) {
+            pcm = new Int16Array(input.length);
+            for (let i = 0; i < input.length; i++) {
+              pcm[i] = Math.max(-1, Math.min(1, input[i])) * 0x7fff;
+            }
+          } else {
+            const ratio = inputRate / targetRate;
+            const outputLen = Math.floor(input.length / ratio);
+            const resampled = new Float32Array(outputLen);
+            for (let i = 0; i < outputLen; i++) {
+              const idx = Math.floor(i * ratio);
+              resampled[i] = input[idx];
+            }
+            pcm = new Int16Array(resampled.length);
+            for (let i = 0; i < resampled.length; i++) {
+              pcm[i] = Math.max(-1, Math.min(1, resampled[i])) * 0x7fff;
+            }
+          }
 
           if (socket.readyState === WebSocket.OPEN) {
-            socket.send(pcm.buffer);
+            socket.send(pcm.buffer as ArrayBuffer);
           }
         };
       };
@@ -292,7 +327,7 @@ export function CustomWebCall() {
             const r = d.role === 'assistant' ? 'agent' : d.role === 'user' ? 'caller' : d.role;
             setLogs(p => [...p, { role: r, text: d.text, time: getNowTimeString() }]);
           }
-        } catch {}
+        } catch { /* ignored */ }
       };
 
       socket.onerror = () => {

@@ -1,43 +1,18 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { agentFormSchema } from '../../utils/schemas';
 import { useAppDispatch } from '../../hooks/useStore';
-import { createAgent, fetchMyAgents } from '../../store/slices/agentsSlice';
+import { createAgent } from '../../store/slices/agentsSlice';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AgentCard } from '../../components/AgentCard';
 import type { Agent, PhoneNumber } from '../../types';
 import { createPortal } from 'react-dom';
-import { VOICE_OPTIONS } from '../../config/voices';
+import { getVoicesForLanguage } from '../../config/voices';
 import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
 import { phoneNumberService } from '../../services/api';
-
-// ── Constants ──────────────────────────────────────────────────────────────
-const LANGUAGE_OPTIONS = [
-  { value: 'en', label: '🇺🇸 English' },
-  { value: 'hi', label: '🇮🇳 Hindi' },
-  { value: 'bn', label: '🇮🇳 Bengali' },
-  { value: 'te', label: '🇮🇳 Telugu' },
-  { value: 'ta', label: '🇮🇳 Tamil' },
-  { value: 'mr', label: '🇮🇳 Marathi' },
-  { value: 'gu', label: '🇮🇳 Gujarati' },
-  { value: 'kn', label: '🇮🇳 Kannada' },
-  { value: 'ml', label: '🇮🇳 Malayalam' },
-  { value: 'pa', label: '🇮🇳 Punjabi' },
-  { value: 'or', label: '🇮🇳 Odia' },
-  { value: 'es', label: '🇪🇸 Spanish' },
-  { value: 'fr', label: '🇫🇷 French' },
-  { value: 'de', label: '🇩🇪 German' },
-  { value: 'it', label: '🇮🇹 Italian' },
-  { value: 'pt', label: '🇵🇹 Portuguese' },
-  { value: 'pl', label: '🇵🇱 Polish' },
-  { value: 'ar', label: '🇸🇦 Arabic' },
-  { value: 'ja', label: '🇯🇵 Japanese' },
-  { value: 'ko', label: '🇰🇷 Korean' },
-  { value: 'zh', label: '🇨🇳 Chinese' },
-  { value: 'nl', label: '🇳🇱 Dutch' },
-  { value: 'ru', label: '🇷🇺 Russian' },
-  { value: 'tr', label: '🇹🇷 Turkish' },
-];
+import { logger } from '../../utils/logger';
+import { LANGUAGE_OPTIONS } from '../../config/agentConfig';
 
 
 
@@ -101,6 +76,12 @@ const DEFAULT_FORM_DATA = {
   twilioAuthToken: '',
   hubspotToken: '',
   webhookUrl: '',
+  webhookSecret: '',
+  googleSheetId: '',
+  googleSheetUrl: '',
+  fieldMapping: '',
+  customHeaders: '',
+  payloadTemplate: '',
 };
 
 // ── Shared styles ──────────────────────────────────────────────────────────
@@ -310,13 +291,27 @@ export function CreateCustomAgent() {
           twilioAuthToken: '',
           hubspotToken: '',
           webhookUrl: '',
+          webhookSecret: '',
+          googleSheetId: '',
+          googleSheetUrl: '',
+          fieldMapping: '',
+          customHeaders: '',
+          payloadTemplate: '',
         }
       : DEFAULT_FORM_DATA
   );
-  const selectedVoiceOpt = VOICE_OPTIONS.find(v => v.value === formData.voiceId);
+  const filteredVoices = getVoicesForLanguage(formData.language);
+  const selectedVoiceOpt = filteredVoices.find(v => v.value === formData.voiceId) || filteredVoices[0];
   const selectedVoiceName = selectedVoiceOpt ? selectedVoiceOpt.label.split(' (')[0] : 'Sarvam Bulbul';
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
+
+  useEffect(() => {
+    if (filteredVoices.length > 0 && !filteredVoices.some(v => v.value === formData.voiceId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormData(prev => ({ ...prev, voiceId: filteredVoices[0].value }));
+    }
+  }, [formData.language, formData.voiceId, filteredVoices]);
 
   const [savedPhoneNumbers, setSavedPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [phoneMode, setPhoneMode] = useState<'saved' | 'direct'>('saved');
@@ -330,6 +325,12 @@ export function CreateCustomAgent() {
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
+    const validation = agentFormSchema.safeParse(formData);
+    if (!validation.success) {
+      const issue = validation.error.issues[0];
+      setError(issue ? issue.message : 'Invalid parameters');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -343,14 +344,24 @@ export function CreateCustomAgent() {
         phoneNumber: phoneNumberVal,
         twilioAccountSid: phoneMode === 'direct' ? formData.twilioAccountSid : '',
         twilioAuthToken: phoneMode === 'direct' ? formData.twilioAuthToken : '',
+        googleSheetId: formData.googleSheetId || undefined,
+        googleSheetUrl: formData.googleSheetUrl || undefined,
         crmIntegrations: {
           hubspotToken: formData.hubspotToken || undefined,
           webhookUrl: formData.webhookUrl || undefined,
+          webhookSecret: formData.webhookSecret || undefined,
+          googleSheetId: formData.googleSheetId || undefined,
+          googleSheetUrl: formData.googleSheetUrl || undefined,
+          fieldMapping: formData.fieldMapping ? JSON.parse(formData.fieldMapping) : undefined,
+          customHeaders: formData.customHeaders ? JSON.parse(formData.customHeaders) : undefined,
+          payloadTemplate: formData.payloadTemplate || undefined,
         },
         webhookUrl: formData.webhookUrl || undefined,
       };
-      await dispatch(createAgent(submitData)).unwrap();
-      await dispatch(fetchMyAgents({ page: 1, limit: 20 }));
+      // Instantly redirect to agents page in 0ms while creation completes in background
+      dispatch(createAgent(submitData)).catch((err) => {
+        logger.error('Background agent creation failed:', err);
+      });
       navigate('/dashboard/ai-voice-agent');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
@@ -381,7 +392,38 @@ export function CreateCustomAgent() {
   ];
   const readinessPct = Math.round(readinessItems.filter(r => r.done).length / readinessItems.length * 100);
 
-  const patch = (v: Partial<typeof formData>) => setFormData(p => ({ ...p, ...v }));
+  const patch = useCallback((fields: Partial<typeof formData>) => {
+    setFormData(p => ({ ...p, ...fields }));
+  }, []);
+
+  const handleSheetFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (file.name.endsWith('.json')) {
+          const json = JSON.parse(text);
+          const sheetUrl = json.spreadsheet_url || json.spreadsheetUrl || json.sheet_url || '';
+          const sheetId = json.spreadsheet_id || json.spreadsheetId || json.sheet_id || json.client_email || file.name;
+          if (sheetUrl) {
+            patch({ googleSheetUrl: sheetUrl, googleSheetId: sheetId });
+          } else if (sheetId && sheetId.length > 10) {
+            patch({ googleSheetId: sheetId, googleSheetUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/edit` });
+          } else {
+            patch({ googleSheetId: file.name, payloadTemplate: text });
+          }
+        } else {
+          patch({ googleSheetId: file.name, googleSheetUrl: `https://docs.google.com/spreadsheets/d/${file.name}/edit` });
+        }
+      } catch {
+        patch({ googleSheetId: file.name });
+      }
+    };
+    reader.readAsText(file);
+  }, [patch]);
 
   const focusStyle = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.target.style.borderColor = 'rgba(37,99,235,0.5)';
@@ -393,8 +435,12 @@ export function CreateCustomAgent() {
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
+    <div className="min-h-screen pb-20 relative overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* Glowing background auroras */}
+      <div className="absolute top-10 left-10 w-72 h-72 rounded-full bg-blue-500/10 blur-[120px] pointer-events-none animate-pulse-glow" />
+      <div className="absolute top-40 right-20 w-80 h-80 rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none animate-pulse-glow" style={{ animationDelay: '2s' }} />
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 relative z-10">
 
         {/* Back */}
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -576,7 +622,7 @@ export function CreateCustomAgent() {
                 <SelectInput
                   value={formData.voiceId}
                   onChange={v => patch({ voiceId: v })}
-                  options={VOICE_OPTIONS}
+                  options={filteredVoices}
                 />
 
                 {/* Voice indicator */}
@@ -855,6 +901,109 @@ export function CreateCustomAgent() {
                     Instant webhook payload will be sent when calls end with extracted lead details (name, phone, email, purpose, notes).
                   </p>
                 </div>
+
+                <div>
+                  <label style={fieldLabel}>Webhook Secret (HMAC Signing)</label>
+                  <input
+                    type="password"
+                    value={formData.webhookSecret}
+                    onChange={e => patch({ webhookSecret: e.target.value })}
+                    placeholder="Optional — used to sign webhook payloads with HMAC SHA-256"
+                    style={inputBase}
+                    onFocus={focusStyle}
+                    onBlur={blurStyle}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label style={fieldLabel}>Google Sheet Link / Spreadsheet ID</label>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      LIVE GOOGLE SHEET SYNC
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={formData.googleSheetUrl}
+                      onChange={e => patch({ googleSheetUrl: e.target.value })}
+                      placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRm53LnX.../edit"
+                      style={{ ...inputBase, flex: 1 }}
+                      onFocus={focusStyle}
+                      onBlur={blurStyle}
+                    />
+                    <label className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl cursor-pointer transition-colors whitespace-nowrap shadow-sm">
+                      <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      Upload File from Computer
+                      <input
+                        type="file"
+                        accept=".json,.csv,.txt"
+                        className="hidden"
+                        onChange={handleSheetFileUpload}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Paste your Google Sheets URL or click <strong>Upload File from Computer</strong> to load Google Credentials (.json) or Sheet files (.csv) directly.
+                  </p>
+                </div>
+
+                <details className="group">
+                  <summary className="cursor-pointer text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--text)] transition-colors select-none">
+                    Advanced CRM Configuration
+                  </summary>
+                  <div className="mt-3 space-y-4 pl-1">
+                    <div>
+                      <label style={fieldLabel}>Field Mapping (JSON)</label>
+                      <textarea
+                        value={formData.fieldMapping}
+                        onChange={e => patch({ fieldMapping: e.target.value })}
+                        placeholder='{"name": "fullName", "phone": "mobile_number", "email": "email_address", "purpose": "lead_source"}'
+                        rows={3}
+                        style={{ ...inputBase, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                      <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Rename fields in the webhook payload. Keys are Autoniv fields, values are your CRM field names.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label style={fieldLabel}>Custom Headers (JSON)</label>
+                      <textarea
+                        value={formData.customHeaders}
+                        onChange={e => patch({ customHeaders: e.target.value })}
+                        placeholder='{"Authorization": "Bearer your-token", "X-CRM-Api-Key": "your-key"}'
+                        rows={3}
+                        style={{ ...inputBase, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                      <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Extra HTTP headers sent with every webhook request (e.g., CRM auth tokens).
+                      </p>
+                    </div>
+
+                    <div>
+                      <label style={fieldLabel}>Payload Template (JSON with {'{{variable}}'} placeholders)</label>
+                      <textarea
+                        value={formData.payloadTemplate}
+                        onChange={e => patch({ payloadTemplate: e.target.value })}
+                        placeholder='{"contact": {"first_name": "{{name}}", "phone": "{{phone}}", "email": "{{email}}", "source": "autoniv_voice"}}'
+                        rows={5}
+                        style={{ ...inputBase, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                      <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Full control over the webhook payload structure. Use {'{{name}}'}, {'{{phone}}'}, {'{{email}}'}, {'{{purpose}}'}, {'{{notes}}'}, {'{{createdAt}}'} as placeholders.
+                      </p>
+                    </div>
+                  </div>
+                </details>
               </div>
             </SectionCard>
 

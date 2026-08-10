@@ -209,7 +209,7 @@ export function ChatBotWidget() {
         // Show agent selection buttons
         setShowAgentList(true);
       }
-    } catch (error) {
+    } catch {
       setMessages((prev) => [...prev, {
         id: `b-${Date.now()}`,
         role: 'bot',
@@ -383,8 +383,8 @@ export function ChatBotWidget() {
           { label: 'List All Agents', action: 'list_agents' },
         ]
       }]);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to create agent. Please try again.';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create agent. Please try again.';
       setMessages((prev) => [...prev, { id: `b-${Date.now()}`, role: 'bot', text: msg, type: 'error' }]);
     } finally {
       setCreating(false);
@@ -433,7 +433,7 @@ export function ChatBotWidget() {
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-40 rounded-2xl text-white flex items-center justify-center shadow-xl"
+        className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-[150] rounded-2xl text-white flex items-center justify-center shadow-xl"
         style={{
           width: 52, height: 52,
           background: 'linear-gradient(135deg, #0077ff 0%, #00c8b4 100%)',

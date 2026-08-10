@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { publicLeadService } from '../services/api';
+import { publicLeadService } from '../services/api.leads';
+import { trackLeadFormConversion } from '../utils/analytics';
 import { logger } from '../utils/logger';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
@@ -43,7 +45,7 @@ const KB = {
   platform: {
     name: 'Autoniv',
     tagline: 'AI Voice Agent Platform',
-    description: 'A professional multi-tenant SaaS platform for managing AI voice agents powered by Vapi. Deploy intelligent voice assistants in 20+ languages with 100+ realistic voices.',
+    description: 'A professional multi-tenant SaaS platform for managing AI voice agents powered by Autoniv AI. Deploy intelligent voice assistants in 20+ languages with 100+ realistic voices.',
     stats: { businesses: '10,000+', accuracy: '99.8%', integrations: '50+', languages: '20+', voices: '100+' },
   },
   features: [
@@ -489,6 +491,7 @@ type CallMode = 'idle' | 'connecting' | 'active' | 'ended' | 'error';
 type TabName = 'chat' | 'call';
 
 export default function UnifiedAssistantWidget() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState<TabName>('chat');
 
@@ -542,7 +545,7 @@ export default function UnifiedAssistantWidget() {
     if (proc.current) { proc.current.disconnect(); proc.current = null; }
     if (mic.current) { mic.current.getTracks().forEach(t => t.stop()); mic.current = null; }
 
-    srcs.current.forEach(s => { try { s.stop(); } catch {} });
+    srcs.current.forEach(s => { try { s.stop(); } catch { /* ignored */ } });
     srcs.current = [];
     nextT.current = 0;
 
@@ -554,17 +557,29 @@ export default function UnifiedAssistantWidget() {
     setSpeaking('idle');
   }, [clearTimers]);
 
-  const play = useCallback((b64: string) => {
+  const play = useCallback(async (b64: string) => {
     const ac = ctx.current, an = analyser.current;
     if (!ac || !an) return;
     try {
-      const bin = atob(b64), bytes = new Uint8Array(bin.length);
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const i16 = new Int16Array(bytes.buffer), f32 = new Float32Array(i16.length);
-      for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
 
-      const ab = ac.createBuffer(1, f32.length, 24000);
-      ab.copyToChannel(f32, 0);
+      let ab: AudioBuffer;
+      const isRiff = bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46;
+      const isMp3 = bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33;
+      const isOgg = bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53;
+
+      if (isRiff || isMp3 || isOgg) {
+        const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        ab = await ac.decodeAudioData(copy);
+      } else {
+        const i16 = new Int16Array(bytes.buffer, bytes.byteOffset, Math.floor(bytes.byteLength / 2));
+        const f32 = new Float32Array(i16.length);
+        for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
+        ab = ac.createBuffer(1, f32.length, 24000);
+        ab.copyToChannel(f32, 0);
+      }
 
       const src = ac.createBufferSource();
       src.buffer = ab;
@@ -611,7 +626,7 @@ export default function UnifiedAssistantWidget() {
       mic.current = stream;
 
       const AC = window.AudioContext || (window as any).webkitAudioContext;
-      const ac = new AC({ sampleRate: 16000 });
+      const ac = new AC();
       ctx.current = ac;
       if (ac.state === 'suspended') await ac.resume();
       nextT.current = ac.currentTime;
@@ -620,10 +635,9 @@ export default function UnifiedAssistantWidget() {
       an.fftSize = 256;
       analyser.current = an;
 
-      const raw = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      const { API_HOST } = await import('../config/api');
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      let host = window.location.host;
-      if (raw.startsWith('http')) host = new URL(raw).host;
+      const host = API_HOST || window.location.host;
 
       const url = `${proto}//${host}/web-call?agentId=demo`;
       const socket = new WebSocket(url);
@@ -645,14 +659,26 @@ export default function UnifiedAssistantWidget() {
         proc.current = p;
 
         src.connect(p);
-        p.connect(ac.destination);
+        const zeroGain = ac.createGain();
+        zeroGain.gain.value = 0;
+        p.connect(zeroGain);
+        zeroGain.connect(ac.destination);
         src.connect(an);
 
         p.onaudioprocess = e => {
-          const d = e.inputBuffer.getChannelData(0);
-          const pcm = new Int16Array(d.length);
-          for (let i = 0; i < d.length; i++) {
-            pcm[i] = Math.max(-1, Math.min(1, d[i])) * 0x7fff;
+          const input = e.inputBuffer.getChannelData(0);
+          const inputRate = ac.sampleRate;
+          const targetRate = 16000;
+          const ratio = inputRate / targetRate;
+          const outputLen = Math.floor(input.length / ratio);
+          const resampled = new Float32Array(outputLen);
+          for (let i = 0; i < outputLen; i++) {
+            const idx = Math.floor(i * ratio);
+            resampled[i] = input[idx];
+          }
+          const pcm = new Int16Array(resampled.length);
+          for (let i = 0; i < resampled.length; i++) {
+            pcm[i] = Math.max(-1, Math.min(1, resampled[i])) * 0x7fff;
           }
           if (socket.readyState === WebSocket.OPEN) {
             socket.send(pcm.buffer);
@@ -668,7 +694,7 @@ export default function UnifiedAssistantWidget() {
             play(d.payload);
           } else if (d.event === 'clear') {
             setSpeaking('idle');
-            srcs.current.forEach(s => { try { s.stop(); } catch {} });
+            srcs.current.forEach(s => { try { s.stop(); } catch { /* ignored */ } });
             srcs.current = [];
             nextT.current = ctx.current ? ctx.current.currentTime : 0;
           } else if (d.event === 'transcript') {
@@ -676,7 +702,7 @@ export default function UnifiedAssistantWidget() {
               setSpeaking('user');
             }
           }
-        } catch {}
+        } catch { /* ignored */ }
       };
 
       socket.onerror = () => {
@@ -781,6 +807,8 @@ export default function UnifiedAssistantWidget() {
           purpose: finalLead.purpose,
         });
 
+        trackLeadFormConversion();
+
         addMessage('assistant', `✅ **${res.data.message}**\n\n**Your Details:**\n- Name: ${finalLead.name}\n- Phone: ${finalLead.phone}\n- Email: ${finalLead.email}\n- Purpose: ${finalLead.purpose}\n\nOur team will reach out within 24 hours. Is there anything else I can help with?`);
         setLeadStep('done');
       } catch {
@@ -867,7 +895,7 @@ export default function UnifiedAssistantWidget() {
   ];
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-[150]">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -1219,7 +1247,7 @@ export default function UnifiedAssistantWidget() {
                           ))}
                         </div>
                         <button
-                          onClick={() => window.location.href = '/'}
+                          onClick={() => navigate('/')}
                           style={{
                             width: '100%', padding: '11px 16px', borderRadius: 12, cursor: 'pointer',
                             border: 'none', background: T.gradAccent,

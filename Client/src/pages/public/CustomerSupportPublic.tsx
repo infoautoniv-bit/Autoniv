@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import Footer from './Footer';
+import { USPSlider } from './sections/USPSlider';
 import { BRAND, INK, SLATE, HAIRLINE, SURFACE, Reveal, SectionLabel, GradientText, StatCard, FAQItem } from './design';
 
 const SUPPORT_STATS = [
@@ -160,6 +161,7 @@ export function CustomerSupportPublic() {
         </div>
       </section>
 
+      <USPSlider />
       <Footer />
     </div>
   );

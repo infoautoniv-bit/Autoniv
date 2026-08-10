@@ -80,23 +80,15 @@ export const VOICE_OPTIONS: VoiceOption[] = [
   { value: 'sarvam:bulbul:v3:kavitha', label: 'Sarvam Kavitha (V3 - Female)' },
   { value: 'sarvam:bulbul:v3:rehan', label: 'Sarvam Rehan (V3 - Male)' },
   { value: 'sarvam:bulbul:v3:soham', label: 'Sarvam Soham (V3 - Male)' },
-  { value: 'sarvam:bulbul:v3:rupali', label: 'Sarvam Rupali (V3 - Female)' },
-
-  // --- Sarvam AI Indian-Native Voices (Indic-native) - Bulbul V2 (Hindi-only) ---
-  { value: 'sarvam:bulbul:v2:anushka', label: 'Sarvam Anushka (V2 - Female)' },
-  { value: 'sarvam:bulbul:v2:abhilash', label: 'Sarvam Abhilash (V2 - Male)' },
-  { value: 'sarvam:bulbul:v2:manisha', label: 'Sarvam Manisha (V2 - Female)' },
-  { value: 'sarvam:bulbul:v2:vidya', label: 'Sarvam Vidya (V2 - Female)' },
-  { value: 'sarvam:bulbul:v2:arya', label: 'Sarvam Arya (V2 - Female)' },
-  { value: 'sarvam:bulbul:v2:karun', label: 'Sarvam Karun (V2 - Male)' },
-  { value: 'sarvam:bulbul:v2:hitesh', label: 'Sarvam Hitesh (V2 - Male)' },
-
+  { value: 'sarvam:bulbul:v3:rupali', label: 'Sarvam Rupali (V3 - Female)' }
 ];
 
-export function getVoicesForLanguage(language: string): VoiceOption[] {
-  // If language is Hindi, bubble up Hindi/Indian voices first
-  if (language === 'hi') {
-    return VOICE_OPTIONS.filter(v => v.value.includes('hi-IN') || v.value.includes('en-IN') || v.value.includes('sarvam') || v.value.includes('vapi:Rohan') || v.value.includes('vapi:Sagar') || v.value.includes('vapi:Neil') || v.value.includes('vapi:Naina'));
+export const INDIC_LANGUAGES = ['hi', 'ta', 'te', 'mr', 'bn', 'gu', 'kn', 'ml', 'pa', 'or'];
+
+export function getVoicesForLanguage(language?: string): VoiceOption[] {
+  if (!language) return VOICE_OPTIONS;
+  if (INDIC_LANGUAGES.includes(language)) {
+    return VOICE_OPTIONS.filter(v => v.value.startsWith('sarvam:') || v.value.includes('sarvam'));
   }
   return VOICE_OPTIONS;
 }

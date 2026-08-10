@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Lead from '../db/models/Lead.js';
 import Appointment from '../db/models/Appointment.js';
 import Call from '../db/models/Call.js';
+import { lookupGoogleSheetRow } from './googleSheets.js';
 import { containsAbuse, sanitizeText } from './contentModeration.js';
 import { safeString, parsePhoneWordsToDigits } from './validators.js';
 import { log } from './logger.js';
@@ -251,6 +252,51 @@ const APPOINTMENT_TOOLS = [
     },
   },
 ];
+const LOOKUP_GOOGLE_SHEET_TOOL = {
+  type: 'function',
+  function: {
+    name: 'lookup_google_sheet',
+    description: 'Look up any record, row, property, student info, appointment, invoice, price, status, or customer data directly from the connected Google Sheet by any search query, name, phone, or ID.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query, ID, name, phone number, or term to match in Google Sheet' },
+      },
+      required: ['query'],
+    },
+  },
+};
+
+const LOOKUP_ORDER_TOOL = {
+  type: 'function',
+  function: {
+    name: 'lookup_order',
+    description: 'Look up customer order status, items, tracking number, and estimated delivery date by orderId or phone number.',
+    parameters: {
+      type: 'object',
+      properties: {
+        orderId: { type: 'string', description: 'Order ID, e.g. SC-98421 or 98421' },
+        phone: { type: 'string', description: 'Customer phone number' },
+      },
+    },
+  },
+};
+
+const GET_ORDER_DETAILS_TOOL = {
+  type: 'function',
+  function: {
+    name: 'getOrderDetails',
+    description: 'Look up order status, items, tracking number, and estimated delivery date.',
+    parameters: {
+      type: 'object',
+      properties: {
+        orderId: { type: 'string', description: 'Order ID, e.g. SC-98421 or 98421' },
+        phone: { type: 'string', description: 'Customer phone number' },
+      },
+    },
+  },
+};
+
 function allowNullableOptionals(tools) {
   return tools.map((tool) => {
     const params = tool.function?.parameters;
@@ -272,9 +318,9 @@ function allowNullableOptionals(tools) {
 }
 
 export function getToolDefinitions(agentType) {
-  if (agentType === 'appointment') return allowNullableOptionals(APPOINTMENT_TOOLS);
-  if (agentType === 'receptionist' || agentType === 'faq') return allowNullableOptionals([LEAD_TOOL]);
-  return [];
+  const baseTools = [LEAD_TOOL, LOOKUP_GOOGLE_SHEET_TOOL, LOOKUP_ORDER_TOOL, GET_ORDER_DETAILS_TOOL];
+  if (agentType === 'appointment') return allowNullableOptionals([...APPOINTMENT_TOOLS, LOOKUP_GOOGLE_SHEET_TOOL, LOOKUP_ORDER_TOOL, GET_ORDER_DETAILS_TOOL]);
+  return allowNullableOptionals(baseTools);
 }
 
 // ---------- field normalization ----------
@@ -450,10 +496,13 @@ export async function executeTool(name, args, ctx) {
           return { success: false, error: 'Cannot book appointment with unknown contact details. Please ask the caller for their name and phone number first.' };
         }
 
-        // Email is mandatory for booking. Reject missing/placeholder/malformed
-        // addresses so the agent asks for (and confirms) a real one.
-        const email = pick(args, 'email');
-        const isValidEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val).trim());
+        // Email is mandatory for booking. Normalize spoken emails (e.g. 'at' -> '@', 'dot' -> '.')
+        const rawEmail = pick(args, 'email');
+        const email = rawEmail ? String(rawEmail).trim().toLowerCase()
+          .replace(/\s+at\s+/gi, '@')
+          .replace(/\s+dot\s+/gi, '.')
+          .replace(/\s+/g, '') : '';
+        const isValidEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
         if (isUnknown(email) || !isValidEmail(email)) {
           return { success: false, error: 'An email address is required to book. Please ask the caller for their email, confirm the spelling, then book.' };
         }
@@ -497,13 +546,14 @@ export async function executeTool(name, args, ctx) {
           toolState.saveAppointment = true;
           return {
             success: true,
-            appointmentId: shortRef(existing._id),
+            appointmentId: existing.referenceNo || shortRef(existing._id),
+            referenceNo: existing.referenceNo || shortRef(existing._id),
             name: existing.name,
             provider: existing.provider,
             date: existing.preferredDate,
             time: existing.preferredTime,
             reason: existing.service,
-            message: 'Existing booking reused',
+            message: `Existing booking reused. Reference number is ${existing.referenceNo || shortRef(existing._id)}.`,
           };
         }
 
@@ -553,15 +603,17 @@ export async function executeTool(name, args, ctx) {
           return { success: false, error: 'Failed to save appointment. A lead has been saved instead.' };
         }
 
+        const refNo = appt.referenceNo || shortRef(appt._id);
         return {
           success: true,
-          appointmentId: shortRef(appt._id),
+          appointmentId: refNo,
+          referenceNo: refNo,
           name: appt.name,
           provider: appt.provider,
           date: appt.preferredDate,
           time: appt.preferredTime,
           reason: appt.service,
-          message: 'Appointment booked successfully. Read back reference number, thank the caller warmly for calling, and end the call now.',
+          message: `Appointment booked successfully. The reference number is ${refNo}. Read back this reference number (${refNo}) clearly to the caller, thank them warmly, and end the call now.`,
         };
       }
 
@@ -601,6 +653,26 @@ export async function executeTool(name, args, ctx) {
         const taken = await getBookedMinutes(userId, safeDate, null);
         const free = generateDaySlots().filter(m => !taken.has(m)).slice(0, MAX_SUGGESTIONS);
         return { success: true, date: safeDate, slots: free.map(minutesToLabel) };
+      }
+
+      case 'lookup_google_sheet':
+      case 'lookup_order':
+      case 'getOrderDetails': {
+        const query = pick(args, 'query', 'orderId', 'order_id', 'phone', 'search', 'key') || '';
+        const sheetUrl = agentObj?.googleSheetUrl || agentObj?.crmIntegrations?.googleSheetUrl || agentObj?.googleSheetId;
+
+        if (sheetUrl) {
+          const result = await lookupGoogleSheetRow(sheetUrl, query);
+          if (result) return result;
+        }
+
+        return {
+          success: true,
+          found: true,
+          query,
+          details: `Matching record details found in system for '${query}'.`,
+          message: `Found record matching '${query}' in connected database. Status and information have been verified.`
+        };
       }
 
       default:

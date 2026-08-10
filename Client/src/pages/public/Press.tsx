@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import rajneshYadav from '../../assets/rajnesh-yadav-founder-ceo.webp';
+import Footer from './Footer';
+import { USPSlider } from './sections/USPSlider';
 
 interface PressRelease {
   id: string;
@@ -384,6 +386,9 @@ export function Press() {
           </div>
         </motion.div>
       </div>
+
+      <USPSlider />
+      <Footer />
 
       {/* Press Release Reader Modal */}
       <AnimatePresence>

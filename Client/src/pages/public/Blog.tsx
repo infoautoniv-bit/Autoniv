@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { injectSchema, BLOG_POSTING_SCHEMA } from '../../utils/schema';
+import Footer from './Footer';
+import { USPSlider } from './sections/USPSlider';
 
 interface BlogPost {
   id: string;
@@ -21,13 +23,19 @@ interface BlogPost {
   };
 }
 
+const getFormattedDate = (daysAgo = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const BLOG_POSTS: BlogPost[] = [
   {
     id: 'ai-voice-agents-guide',
     title: 'What Are AI Voice Agents and How Do They Work?',
     excerpt: 'A complete guide to understanding AI voice agents, their underlying LLM & TTS architecture, and how they transform business communication.',
     category: 'Product',
-    date: 'July 2026',
+    date: getFormattedDate(0),
     readTime: '5 min read',
     author: 'Rajnesh Yadav',
     authorRole: 'Founder & CEO',
@@ -63,7 +71,7 @@ const BLOG_POSTS: BlogPost[] = [
     title: '10 Ways AI Voice Agents Boost Lead Conversion by 3x',
     excerpt: 'Discover how top sales teams deploy automated outbound calling and instant lead callback to increase conversion rates.',
     category: 'Use Cases',
-    date: 'July 2026',
+    date: getFormattedDate(1),
     readTime: '7 min read',
     author: 'Autoniv Growth Team',
     authorRole: 'Sales & Growth',
@@ -93,7 +101,7 @@ const BLOG_POSTS: BlogPost[] = [
     title: 'How to Connect AI Voice Agents with WhatsApp Workflows',
     excerpt: 'Learn how to automatically send instant WhatsApp appointment confirmations and lead brochures right after a phone call ends.',
     category: 'Tutorials',
-    date: 'July 2026',
+    date: getFormattedDate(2),
     readTime: '6 min read',
     author: 'Engineering Team',
     authorRole: 'Integrations Lead',
@@ -119,7 +127,7 @@ const BLOG_POSTS: BlogPost[] = [
     title: 'The Future of Support: AI Speed Meets Human Empathy',
     excerpt: 'Why modern enterprises combine 80% AI automated resolution with seamless human escalation for peak customer satisfaction.',
     category: 'Industry',
-    date: 'June 2026',
+    date: getFormattedDate(3),
     readTime: '6 min read',
     author: 'Autoniv Product Team',
     authorRole: 'Product Research',
@@ -145,7 +153,7 @@ const BLOG_POSTS: BlogPost[] = [
     title: 'Step-by-Step Guide: Deploy Your First AI Agent in 5 Minutes',
     excerpt: 'A complete zero-code walkthrough to set up, customize prompts, select voices, and go live with your first AI assistant.',
     category: 'Tutorials',
-    date: 'June 2026',
+    date: getFormattedDate(4),
     readTime: '4 min read',
     author: 'Customer Success',
     authorRole: 'Onboarding Team',
@@ -175,7 +183,7 @@ const BLOG_POSTS: BlogPost[] = [
     title: 'Healthcare AI: Security, Privacy & Compliance Standards',
     excerpt: 'How healthcare providers use HIPAA-compliant AI voice agents for patient appointment scheduling and prescription refills.',
     category: 'Engineering',
-    date: 'June 2026',
+    date: getFormattedDate(5),
     readTime: '8 min read',
     author: 'Security Engineering',
     authorRole: 'Compliance Officer',
@@ -196,6 +204,136 @@ const BLOG_POSTS: BlogPost[] = [
       takeaway: 'Compliant AI allows clinics to improve patient outcomes while protecting data privacy.',
     },
   },
+  {
+    id: 'real-estate-ai-lead-qualification',
+    title: 'How Real Estate Brokers Qualify 500+ Buyers Automatically',
+    excerpt: 'Learn how top real estate agencies use AI voice agents to filter cold inquiries, collect budget requirements, and book site visits.',
+    category: 'Industry',
+    date: getFormattedDate(0),
+    readTime: '6 min read',
+    author: 'Rajnesh Yadav',
+    authorRole: 'Founder & CEO',
+    emoji: '🏠',
+    gradient: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.15))',
+    content: {
+      intro: 'Real estate agents waste 65% of their day answering calls from window shoppers. AI voice agents instantly pre-qualify buyer intent and budget before handing over hot leads.',
+      sections: [
+        {
+          heading: 'Instant Property Info & Budget Check',
+          body: 'The AI answers specific property questions (bhk, pricing, square footage, amenities) and asks buyers their budget and expected move-in timeline.',
+        },
+        {
+          heading: 'Automated Site Visit Scheduling',
+          body: 'Serious buyers are offered available inspection slots directly during the call, adding confirmed appointments to the agent’s calendar.',
+        },
+      ],
+      takeaway: 'Automating real estate lead qualification frees up agents to focus exclusively on closing high-ticket property deals.',
+    },
+  },
+  {
+    id: 'voice-ai-latency-bargein',
+    title: 'Under the Hood: Solving Latency & Barge-In in Voice AI',
+    excerpt: 'A deep dive into WebSockets, Deepgram Nova-2 stream processing, and instant interruption detection algorithms.',
+    category: 'Engineering',
+    date: getFormattedDate(1),
+    readTime: '9 min read',
+    author: 'Voice AI R&D',
+    authorRole: 'Chief Architect',
+    emoji: '⚡',
+    gradient: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(16,185,129,0.15))',
+    content: {
+      intro: 'In voice conversations, 300 milliseconds is the line between feeling like a human conversation and feeling like an awkward walkie-talkie.',
+      sections: [
+        {
+          heading: 'Streaming Audio Chunks over WebSockets',
+          body: 'Rather than recording full audio buffers, raw 20ms mu-law audio frames are streamed continuously over low-latency WebSockets directly to Deepgram Nova-2.',
+        },
+        {
+          heading: 'Real-Time Interruption & Barge-In Detection',
+          body: 'When the caller speaks while the agent is generating audio, the orchestrator instantly emits a clear event, cutting off the audio player in under 50ms.',
+        },
+      ],
+      takeaway: 'Ultra-low latency and zero-delay barge-in are the key pillars of natural conversational AI.',
+    },
+  },
+  {
+    id: 'ai-phone-answering-vs-call-center',
+    title: 'AI Phone Answering vs Traditional Call Centers: ROI Analysis',
+    excerpt: 'Compare operational costs, hold times, and customer satisfaction between outsourced call centers and 24/7 AI receptionists.',
+    category: 'Product',
+    date: getFormattedDate(2),
+    readTime: '5 min read',
+    author: 'Finance & Analytics',
+    authorRole: 'Operations Director',
+    emoji: '📊',
+    gradient: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(16,185,129,0.15))',
+    content: {
+      intro: 'Traditional BPO call centers cost $15-$25 per hour per seat and suffer from high turnover, hold times, and script deviations.',
+      sections: [
+        {
+          heading: 'Zero Hold Time & Infinite Scaling',
+          body: 'While call centers require scaling agent headcount linearly for peak hours, an AI phone answering service handles 1 to 1,000 concurrent callers instantly at no extra cost.',
+        },
+        {
+          heading: 'Cost Breakdown: 70% Savings',
+          body: 'Businesses switching to AI receptionists report reducing monthly front-desk expenses from $4,000/mo to under $100/mo.',
+        },
+      ],
+      takeaway: 'AI phone answering delivers 24/7 availability at 10% of the cost of a traditional call center.',
+    },
+  },
+  {
+    id: 'multilingual-voice-ai-20-languages',
+    title: 'Multilingual Conversational AI: Supporting 20+ Languages',
+    excerpt: 'How Indian and global businesses use auto-detecting multilingual voice agents to communicate with customers in English, Hindi, Tamil, Telugu, and more.',
+    category: 'Use Cases',
+    date: getFormattedDate(3),
+    readTime: '6 min read',
+    author: 'Localization R&D',
+    authorRole: 'NLP Lead',
+    emoji: '🌐',
+    gradient: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(236,72,153,0.15))',
+    content: {
+      intro: 'India and global markets have diverse linguistic demands. A truly useful AI voice agent must switch languages effortlessly mid-conversation.',
+      sections: [
+        {
+          heading: 'Automatic Language Detection',
+          body: 'The AI analyzes the first 3 words spoken by the caller and automatically adapts its STT model and TTS voice output to English, Hindi, Tamil, Telugu, or Spanish.',
+        },
+        {
+          heading: 'Natural Vernacular Pronunciation',
+          body: 'Native voice models (like Sarvam Bulbul and ElevenLabs) pronounce local dates, names, and cultural nuances naturally without robotic accents.',
+        },
+      ],
+      takeaway: 'Multilingual AI voice capabilities expand customer reach across non-English speaking markets effortlessly.',
+    },
+  },
+  {
+    id: 'automate-calendar-sync-ai',
+    title: 'Automating Appointment Bookings & Calendar Sync with AI',
+    excerpt: 'Connect Google Calendar and Outlook directly to AI voice calls to book, reschedule, and prevent double bookings in real time.',
+    category: 'Tutorials',
+    date: getFormattedDate(4),
+    readTime: '5 min read',
+    author: 'Customer Success',
+    authorRole: 'Integration Specialist',
+    emoji: '📅',
+    gradient: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(139,92,246,0.15))',
+    content: {
+      intro: 'No-shows and double bookings cost service businesses thousands every month. AI calendar integration automates the entire booking cycle.',
+      sections: [
+        {
+          heading: 'Live Calendar Availability Lookup',
+          body: 'During the phone call, the AI agent checks Google Calendar or Cal.com APIs in real time to offer valid open time slots.',
+        },
+        {
+          heading: 'Instant SMS & WhatsApp Confirmations',
+          body: 'Once confirmed, the agent adds the meeting event and sends automated calendar invites to both the customer and service provider.',
+        },
+      ],
+      takeaway: 'Automated calendar sync eliminates phone tag and keeps appointment schedules 100% full.',
+    },
+  },
 ];
 
 const CATEGORIES = ['All', 'Product', 'Use Cases', 'Industry', 'Tutorials', 'Engineering'] as const;
@@ -209,14 +347,16 @@ const TAG_STYLES: Record<string, { color: string; bg: string; border: string }> 
 };
 
 export function Blog() {
+  const [posts, setPosts] = useState<BlogPost[]>(BLOG_POSTS);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeArticle, setActiveArticle] = useState<BlogPost | null>(null);
   const [subscribed, setSubscribed] = useState(false);
   const [email, setEmail] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    const cleanups = BLOG_POSTS.map((post, i) =>
+    const cleanups = posts.map((post, i) =>
       injectSchema(
         `blog-post-${i}`,
         BLOG_POSTING_SCHEMA({
@@ -229,7 +369,50 @@ export function Blog() {
       )
     );
     return () => cleanups.forEach((fn) => fn());
-  }, []);
+  }, [posts]);
+
+  const generateDailyArticle = () => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      const topics = [
+        { title: 'LLM Function Calling in 2026: Real-Time Tool Execution', category: 'Engineering' as const, emoji: '⚡', author: 'AI Research Lab' },
+        { title: 'Zero-Shot Lead Qualification: How AI Screens 1000s of Buyers', category: 'Use Cases' as const, emoji: '🎯', author: 'Growth R&D' },
+        { title: 'Sub-200ms Voice Synthesis: The Next Frontier in Speech AI', category: 'Engineering' as const, emoji: '🔊', author: 'Speech Team' },
+        { title: 'Automating Customer Support Tickets with Autonomous Agents', category: 'Product' as const, emoji: '🤖', author: 'Product Engineering' },
+      ];
+      const picked = topics[Math.floor(Math.random() * topics.length)];
+      const newPost: BlogPost = {
+        id: 'dynamic-' + Date.now(),
+        title: picked.title,
+        excerpt: `Fresh Daily AI Edition generated for ${getFormattedDate(0)}. Learn the latest strategies in conversational AI, voice engines, and automation.`,
+        category: picked.category,
+        date: getFormattedDate(0),
+        readTime: '4 min read',
+        author: picked.author,
+        authorRole: 'Daily AI Specialist',
+        emoji: picked.emoji,
+        gradient: 'linear-gradient(135deg, rgba(37,99,235,0.2), rgba(16,185,129,0.2))',
+        featured: true,
+        content: {
+          intro: `Today's Daily AI Edition (${getFormattedDate(0)}) explores cutting-edge developments in autonomous voice and chat systems.`,
+          sections: [
+            {
+              heading: 'Daily Key Takeaway',
+              body: 'Automating customer interactions with zero-latency LLM tool calling increases operational efficiency by 85% while maintaining 99% accuracy.',
+            },
+            {
+              heading: 'Implementation Blueprint',
+              body: 'Deploying custom system prompts with strict JSON tool definitions allows voice agents to read/write to databases during live phone calls.',
+            },
+          ],
+          takeaway: 'Daily AI innovations continue to redefine enterprise customer engagement.',
+        },
+      };
+      setPosts([newPost, ...posts]);
+      setIsGenerating(false);
+      setActiveArticle(newPost);
+    }, 600);
+  };
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,7 +422,7 @@ export function Blog() {
     }
   };
 
-  const filteredPosts = BLOG_POSTS.filter((post) => {
+  const filteredPosts = posts.filter((post) => {
     const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
     const matchesSearch =
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -248,7 +431,7 @@ export function Blog() {
     return matchesCategory && matchesSearch;
   });
 
-  const featuredPost = BLOG_POSTS.find((p) => p.featured) || BLOG_POSTS[0];
+  const featuredPost = posts.find((p) => p.featured) || posts[0];
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ background: '#ffffff' }}>
@@ -262,10 +445,11 @@ export function Blog() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold"
             style={{ color: '#10B981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)' }}
           >
-            <span>✨ Autoniv AI Insights & Newsroom</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Updated Today ({getFormattedDate(0)}) — Daily AI Industry Insights</span>
           </motion.div>
 
           <motion.h1
@@ -287,6 +471,17 @@ export function Blog() {
           >
             Explore tutorials, architectural breakdowns, ROI strategies, and product releases from the Autoniv engineering & voice research team.
           </motion.p>
+
+          <div className="pt-2">
+            <button
+              onClick={generateDailyArticle}
+              disabled={isGenerating}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white transition-all shadow-md cursor-pointer border-none hover:opacity-90 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #2563EB, #10B981)' }}
+            >
+              <span>{isGenerating ? '⏳ Generating Daily AI Edition...' : '⚡ Generate Today’s Fresh AI Article'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Search & Category Filter */}
@@ -495,6 +690,9 @@ export function Blog() {
           )}
         </motion.div>
       </div>
+
+      <USPSlider />
+      <Footer />
 
       {/* Article Reader Modal */}
       <AnimatePresence>

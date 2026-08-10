@@ -5,10 +5,12 @@ const AuthDialog = lazy(() =>
   import('../pages/public/AuthDialog').then((m) => ({ default: m.AuthDialog }))
 );
 
-import logoBrand from '../assets/autoniv-brand-logo.webp';
-import { GoogleTranslate } from './GoogleTranslate';
+const GoogleTranslate = lazy(() =>
+  import('./GoogleTranslate').then((m) => ({ default: m.GoogleTranslate }))
+);
 
-const LOGO_SRC = logoBrand;
+const LOGO_SRC = '/logo-180.webp';
+const LOGO_SRC_2X = '/logo-360.webp';
 
 function MagBtn({
   children,
@@ -74,7 +76,13 @@ export type NavItem = {
   isHash?: boolean;
   badge?: string;
   hasDropdown?: boolean;
-  dropdownItems?: { label: string; href: string; icon?: string }[];
+  dropdownItems?: {
+    label: string;
+    desc?: string;
+    href: string;
+    icon?: React.ReactNode;
+    badgeBg?: string;
+  }[];
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -87,10 +95,31 @@ const NAV_ITEMS: NavItem[] = [
     href: '/pricing',
     hasDropdown: true,
     dropdownItems: [
-      { label: 'AI Voice Assistance', href: '/pricing/voice-assistance', icon: '🎙️' },
-      { label: 'AI Chatbots', href: '/pricing/ai-chatbot', icon: '💬' },
+      {
+        label: 'AI Voice Assistance',
+        desc: 'Custom voice agents & phone automation',
+        href: '/pricing/voice-assistance',
+        badgeBg: 'bg-blue-50 border-blue-100 text-blue-600',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+        ),
+      },
+      {
+        label: 'AI Chatbots',
+        desc: 'Smart web & WhatsApp chat widgets',
+        href: '/pricing/ai-chatbot',
+        badgeBg: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        ),
+      },
     ],
   },
+  { label: 'Demos', href: '/demos', badge: 'LIVE' },
   { label: 'News', href: '/news', badge: 'NEW' },
   { label: 'Contact', href: '#contact', isHash: true },
   { label: 'About Us', href: '/about' },
@@ -172,7 +201,10 @@ export function PublicNavbar() {
       e.preventDefault();
       const targetId = item.href.replace('#', '');
       if (location.pathname === '/') {
-        const el = document.getElementById(targetId);
+        const el =
+          document.getElementById(targetId) ||
+          document.getElementById(targetId + 's') ||
+          (targetId.endsWith('s') ? document.getElementById(targetId.slice(0, -1)) : null);
         if (el) {
           const y = el.getBoundingClientRect().top + window.scrollY - 72;
           window.scrollTo({ top: y, behavior: 'smooth' });
@@ -206,11 +238,13 @@ export function PublicNavbar() {
           >
             <img
               src={LOGO_SRC}
+              srcSet={`${LOGO_SRC} 1x, ${LOGO_SRC_2X} 2x`}
               alt="Autoniv Brand Logo"
               width={180}
               height={120}
               fetchPriority="high"
-              decoding="sync"
+              loading="eager"
+              decoding="async"
               className="h-30 sm:h-30 w-auto object-contain transition-transform hover:scale-105"
             />
           </Link>
@@ -235,16 +269,30 @@ export function PublicNavbar() {
                       </svg>
                     </Link>
                     {/* Dropdown Menu */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 hidden group-hover:block w-52 z-50">
-                      <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl shadow-xl p-1.5">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 hidden group-hover:block w-72 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl shadow-2xl p-2 space-y-1">
+                        <div className="px-3 py-1.5 text-[10px] font-extrabold tracking-wider uppercase text-slate-400">
+                          Pricing Options
+                        </div>
                         {item.dropdownItems.map((subItem) => (
                           <Link
                             key={subItem.label}
                             to={subItem.href}
-                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-50/90 rounded-xl transition-all"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group/sub"
                           >
-                            {subItem.icon && <span className="text-sm">{subItem.icon}</span>}
-                            <span>{subItem.label}</span>
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${subItem.badgeBg || 'bg-blue-50 text-blue-600 border-blue-100'} transition-transform group-hover/sub:scale-105`}>
+                              {subItem.icon}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-xs font-bold text-slate-800 group-hover/sub:text-blue-600 transition-colors leading-tight">
+                                {subItem.label}
+                              </span>
+                              {subItem.desc && (
+                                <span className="text-[10px] text-slate-500 font-medium truncate mt-0.5">
+                                  {subItem.desc}
+                                </span>
+                              )}
+                            </div>
                           </Link>
                         ))}
                       </div>
@@ -275,7 +323,9 @@ export function PublicNavbar() {
 
           {/* Desktop CTA buttons */}
           <div className="hidden sm:flex items-center gap-1.5 xl:gap-2 flex-shrink-0">
-            <GoogleTranslate />
+            <Suspense fallback={<div className="w-[72px] h-[34px]" />}>
+              <GoogleTranslate />
+            </Suspense>
             <button
               onClick={() => openAuth('login')}
               className="px-4 py-2 text-xs xl:text-sm font-semibold rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer"
@@ -421,15 +471,15 @@ export function PublicNavbar() {
                   {item.label}
                 </Link>
                 {hasSub && (
-                  <div className="pl-4 space-y-0.5 mt-0.5 border-l border-slate-100 ml-4 mb-2">
+                  <div className="ml-4 pl-3 py-1 space-y-1 border-l-2 border-blue-500/30 my-1">
                     {item.dropdownItems?.map((subItem) => (
                       <Link
                         key={subItem.label}
                         to={subItem.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center gap-2 min-h-[40px] px-4 py-2 text-xs font-semibold text-slate-500 rounded-lg hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 text-[12.5px] font-semibold text-slate-700 hover:text-blue-600 hover:bg-blue-50/60 rounded-lg transition-colors"
                       >
-                        {subItem.icon && <span>{subItem.icon}</span>}
+                        <span className="text-blue-600 shrink-0">{subItem.icon}</span>
                         <span>{subItem.label}</span>
                       </Link>
                     ))}
@@ -446,7 +496,9 @@ export function PublicNavbar() {
           style={{ borderTop: '1px solid rgba(37,99,235,0.10)' }}
         >
           <div className="w-full flex justify-center pb-2">
-            <GoogleTranslate />
+            <Suspense fallback={<div className="w-[72px] h-[34px]" />}>
+              <GoogleTranslate />
+            </Suspense>
           </div>
           <button
             onClick={() => {

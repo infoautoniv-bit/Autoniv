@@ -22,6 +22,8 @@ export function Badge({ count, size = 'sm' }: BadgeProps) {
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
       whileHover={{ scale: 1.1 }}
+      role="status"
+      aria-label={`${count} unread notification${count !== 1 ? 's' : ''}`}
       className={`${sizes[size]} rounded-full bg-gradient-to-r from-[#ef4444] to-[#f59e0b] flex items-center justify-center text-white font-bold shadow-lg`}
     >
       {count}

@@ -1,21 +1,45 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from './hooks/useStore';
 import { useAuth } from './hooks/useAuth';
-import { useEffect, useMemo, lazy, Suspense, type ReactNode } from 'react';
-import { Sidebar } from './components/Sidebar';
-import { Breadcrumbs } from './components/Breadcrumbs';
+import { useEffect, useMemo, lazy, Suspense, type ReactNode, memo, useState } from 'react';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import LoadingScreen from './components/LoadingScreen';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 import { MetaRobots, PUBLIC_ROBOTS, PRIVATE_ROBOTS } from './components/MetaRobots';
 import { isChatPlan, isVoicePlan } from './utils/plan';
-import UnifiedAssistantWidget from './components/UnifiedAssistantWidget';
 import { STUDIES } from './pages/public/caseStudiesData';
 import { injectSchema, ORGANIZATION_SCHEMA, WEBSITE_SCHEMA, SOFTWARE_APPLICATION_SCHEMA } from './utils/schema';
+import { LandingSection as Landing } from './pages/public/sections/LandingSection';
 
-const Landing = lazy(() => import('./pages/public').then(m => ({ default: m.Landing })));
-const Login = lazy(() => import('./pages/public').then(m => ({ default: m.Login })));
-const Register = lazy(() => import('./pages/public').then(m => ({ default: m.Register })));
+const UnifiedAssistantWidget = lazy(() => import('./components/UnifiedAssistantWidget'));
+
+const DeferredAssistantWidget = memo(function DeferredAssistantWidget() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShow(true), 3500);
+    const handleScroll = () => {
+      setShow(true);
+      window.removeEventListener('scroll', handleScroll);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  if (!show) return null;
+  return <UnifiedAssistantWidget />;
+});
+const CommandPalette = lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
+const Sidebar = lazy(() => import('./components/Sidebar').then(m => ({ default: m.Sidebar })));
+const Breadcrumbs = lazy(() => import('./components/Breadcrumbs').then(m => ({ default: m.Breadcrumbs })));
+
+// Landing is eagerly imported above to eliminate LCP waterfall chain on mobile
+const Login = lazy(() => import('./pages/public/Login').then(m => ({ default: m.Login })));
+const Register = lazy(() => import('./pages/public/Register').then(m => ({ default: m.Register })));
 const UserDashboard = lazy(() => import('./pages/user/UserDashboard').then(m => ({ default: m.UserDashboard })));
 const ForgotPassword = lazy(() => import('./pages/public/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const PrivacyPolicy = lazy(() => import('./pages/public/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
@@ -26,14 +50,15 @@ const Careers = lazy(() => import('./pages/public/Careers').then(m => ({ default
 const Blog = lazy(() => import('./pages/public/Blog').then(m => ({ default: m.Blog })));
 const Press = lazy(() => import('./pages/public/Press').then(m => ({ default: m.Press })));
 const Agents = lazy(() => import('./pages/public/Agents').then(m => ({ default: m.default })));
-const AiVoiceAgent = lazy(() => import('./pages/public').then(m => ({ default: m.AiVoiceAgent })));
-const AiChatbot = lazy(() => import('./pages/public').then(m => ({ default: m.AiChatbot })));
-const AiPhoneAnswering = lazy(() => import('./pages/public').then(m => ({ default: m.AiPhoneAnswering })));
-const AppointmentBooking = lazy(() => import('./pages/public').then(m => ({ default: m.AppointmentBooking })));
-const CustomerSupportPublic = lazy(() => import('./pages/public').then(m => ({ default: m.CustomerSupportPublic })));
-const RealEstateIndustry = lazy(() => import('./pages/public').then(m => ({ default: m.RealEstateIndustry })));
-const HealthcareIndustry = lazy(() => import('./pages/public').then(m => ({ default: m.HealthcareIndustry })));
+const AiVoiceAgent = lazy(() => import('./pages/public/AiVoiceAgent').then(m => ({ default: m.AiVoiceAgent })));
+const AiChatbot = lazy(() => import('./pages/public/AiChatbot').then(m => ({ default: m.AiChatbot })));
+const AiPhoneAnswering = lazy(() => import('./pages/public/AiPhoneAnswering').then(m => ({ default: m.AiPhoneAnswering })));
+const AppointmentBooking = lazy(() => import('./pages/public/AppointmentBooking').then(m => ({ default: m.AppointmentBooking })));
+const CustomerSupportPublic = lazy(() => import('./pages/public/CustomerSupportPublic').then(m => ({ default: m.CustomerSupportPublic })));
+const RealEstateIndustry = lazy(() => import('./pages/public/RealEstateIndustry').then(m => ({ default: m.RealEstateIndustry })));
+const HealthcareIndustry = lazy(() => import('./pages/public/HealthcareIndustry').then(m => ({ default: m.HealthcareIndustry })));
 const CaseStudies = lazy(() => import('./pages/public/CaseStudies').then(m => ({ default: m.CaseStudies })));
+const DemoRecordings = lazy(() => import('./pages/public/DemoRecordings').then(m => ({ default: m.DemoRecordings })));
 const CaseStudyDetail = lazy(() => import('./pages/public/CaseStudyDetail'));
 const Pricing = lazy(() => import('./pages/public/Pricing').then(m => ({ default: m.Pricing })));
 const VoiceAssistancePricing = lazy(() => import('./pages/public/VoiceAssistancePricing').then(m => ({ default: m.VoiceAssistancePricing })));
@@ -56,17 +81,7 @@ const MyChat = lazy(() => import('./pages/user/MyChat').then(m => ({ default: m.
 const MyChatbots = lazy(() => import('./pages/user/MyChatbots').then(m => ({ default: m.MyChatbots })));
 const CreateChatbot = lazy(() => import('./pages/user/CreateChatbot').then(m => ({ default: m.CreateChatbot })));
 const CustomerSupport = lazy(() => import('./pages/user/CustomerSupport').then(m => ({ default: m.CustomerSupport })));
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const AdminUsers = lazy(() => import('./pages/admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
-const CreateUser = lazy(() => import('./pages/admin/CreateUser').then(m => ({ default: m.CreateUser })));
-const AdminAgents = lazy(() => import('./pages/admin/AdminAgents').then(m => ({ default: m.AdminAgents })));
-const AdminCalls = lazy(() => import('./pages/admin/AdminCalls').then(m => ({ default: m.AdminCalls })));
-const AdminBilling = lazy(() => import('./pages/admin/AdminBilling').then(m => ({ default: m.AdminBilling })));
-const AdminLeads = lazy(() => import('./pages/admin/AdminLeads').then(m => ({ default: m.AdminLeads })));
-const AdminUpgradeRequests = lazy(() => import('./pages/admin/AdminUpgradeRequests').then(m => ({ default: m.AdminUpgradeRequests })));
-const AdminAddOns = lazy(() => import('./pages/admin/AdminAddOns').then(m => ({ default: m.AdminAddOns })));
-const AdminAppointments = lazy(() => import('./pages/admin/AdminAppointments').then(m => ({ default: m.AdminAppointments })));
-const AdminChat = lazy(() => import('./pages/admin/AdminChat').then(m => ({ default: m.AdminChat })));
+const AdminRoutes = lazy(() => import('./routes/AdminRoutes').then(m => ({ default: m.AdminRoutes })));
 const WelcomeOnboarding = lazy(() => import('./components/WelcomeOnboarding').then(m => ({ default: m.default })));
 const NotFound = lazy(() => import('./pages/public/NotFound').then(m => ({ default: m.NotFound })));
 
@@ -123,6 +138,11 @@ const EXACT_META: Record<string, Meta> = {
     title: 'HIPAA-Compliant AI Voice & Chat for Healthcare | Autoniv',
     description:
       'Automate patient intake, appointment scheduling, prescription refills, and follow-ups with secure, intelligent healthcare AI assistants.',
+  },
+  '/demos': {
+    title: 'AI Voice Agent Demo Recordings across Healthcare, Real Estate & Finance | Autoniv',
+    description:
+      'Listen to live AI voice agent demo recordings and test audio calls for Healthcare, Real Estate, Financial Services, E-Commerce, Education, and Travel.',
   },
   '/login': {
     title: 'Login - Autoniv',
@@ -284,7 +304,7 @@ function setMetaTag(selector: string, create: () => HTMLElement, attr: string, v
 
 
 
-function ProtectedRoute({
+export const ProtectedRoute = memo(function ProtectedRoute({
   children,
   adminOnly = false,
   hideSidebar = false,
@@ -333,7 +353,7 @@ function ProtectedRoute({
             <Breadcrumbs />
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6 md:p-8 md:mt-4 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-6 md:p-8 md:mt-4 overflow-y-auto pb-20 md:pb-8">
           <div className="hidden md:block">
             <Breadcrumbs />
           </div>
@@ -342,12 +362,10 @@ function ProtectedRoute({
       </div>
     </div>
   );
-}
+});
 
 function AppRoutes() {
   const { user } = useAuth();
-  const initialized = useAppSelector((s) => s.auth.initialized);
-  const token = useAppSelector((s) => s.auth.token);
   const location = useLocation();
 
   useEffect(() => {
@@ -392,7 +410,7 @@ function AppRoutes() {
       const m = document.createElement('meta');
       m.setAttribute('property', 'og:image');
       return m;
-    }, 'content', 'https://autoniv.com/og-image.png');
+    }, 'content', 'https://autoniv.com/og-image.webp');
 
     setMetaTag('meta[property="og:type"]', () => {
       const m = document.createElement('meta');
@@ -429,7 +447,7 @@ function AppRoutes() {
       const m = document.createElement('meta');
       m.setAttribute('name', 'twitter:image');
       return m;
-    }, 'content', 'https://autoniv.com/og-image.png');
+    }, 'content', 'https://autoniv.com/og-image.webp');
 
     // Canonical link
     setMetaTag('link[rel="canonical"]', () => {
@@ -442,29 +460,33 @@ function AppRoutes() {
     injectSchema('organization-jsonld', ORGANIZATION_SCHEMA);
     injectSchema('website-jsonld', WEBSITE_SCHEMA);
     injectSchema('software-app-jsonld', SOFTWARE_APPLICATION_SCHEMA);
+    injectSchema('webpage-jsonld', {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: title.split('|')[0].trim(),
+      url,
+      description,
+      isPartOf: {
+        '@type': 'WebSite',
+        url: 'https://autoniv.com/',
+      },
+    });
 
     // Breadcrumb JSON-LD
     const pathParts = path.split('/').filter(Boolean);
-    const existingScript = document.getElementById('breadcrumb-jsonld');
-    if (pathParts.length > 0) {
-      let currentPath = '';
-      const itemListElement = [{ '@type': 'ListItem', position: 1, name: 'Home', item: 'https://autoniv.com/' }];
-      pathParts.forEach((part, index) => {
-        currentPath += '/' + part;
-        const name = BREADCRUMB_LABELS[part] ?? part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
-        itemListElement.push({ '@type': 'ListItem', position: index + 2, name, item: 'https://autoniv.com' + currentPath });
-      });
+    let currentPath = '';
+    const itemListElement = [{ '@type': 'ListItem', position: 1, name: 'Home', item: 'https://autoniv.com/' }];
+    pathParts.forEach((part, index) => {
+      currentPath += '/' + part;
+      const name = BREADCRUMB_LABELS[part] ?? part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
+      itemListElement.push({ '@type': 'ListItem', position: index + 2, name, item: 'https://autoniv.com' + currentPath });
+    });
 
-      const script = (existingScript as HTMLScriptElement) ?? document.createElement('script');
-      if (!existingScript) {
-        script.id = 'breadcrumb-jsonld';
-        script.type = 'application/ld+json';
-        document.head.appendChild(script);
-      }
-      script.text = JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement });
-    } else {
-      existingScript?.remove();
-    }
+    injectSchema('breadcrumb-jsonld', {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement,
+    });
   }, [location.pathname]);
 
   const home = useMemo(
@@ -472,11 +494,12 @@ function AppRoutes() {
     [user]
   );
 
-  if (token && !initialized) return <LoadingScreen />;
-
   return (
     <Suspense fallback={<LoadingScreen />}>
       <ScrollToTop />
+      <Suspense fallback={null}>
+        <CommandPalette />
+      </Suspense>
       <MetaRobots content={
         (location.pathname.startsWith('/dashboard/support')) ? PUBLIC_ROBOTS :
         (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/onboarding') || location.pathname === '/connect' || location.pathname === '/contact' || location.pathname === '/contact-ad') ? PRIVATE_ROBOTS :
@@ -514,43 +537,49 @@ function AppRoutes() {
         <Route path="/pricing/voice-assistance" element={<VoiceAssistancePricing />} />
         <Route path="/pricing/ai-chatbot" element={<AiChatbotPricing />} />
         <Route path="/news" element={<News />} />
+        <Route path="/demos" element={<DemoRecordings />} />
 
-        <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-voice-agent" element={<ProtectedRoute feature="voice"><MyAgents /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-phone-answering" element={<ProtectedRoute feature="voice"><CustomWebCall /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-phone-answering/:agentId" element={<ProtectedRoute feature="voice"><CustomWebCall /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-voice-agent/new" element={<ProtectedRoute feature="voice"><CreateAgent /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-voice-agent/new-custom" element={<ProtectedRoute feature="voice"><CreateCustomAgent /></ProtectedRoute>} />
-        <Route path="/dashboard/calls" element={<ProtectedRoute feature="voice"><MyCalls /></ProtectedRoute>} />
-        <Route path="/dashboard/bulk-calls" element={<ProtectedRoute feature="voice"><BulkCallDashboard /></ProtectedRoute>} />
-        <Route path="/dashboard/phone-numbers" element={<ProtectedRoute feature="voice"><MyPhoneNumbers /></ProtectedRoute>} />
-        <Route path="/dashboard/leads" element={<ProtectedRoute><MyLeads /></ProtectedRoute>} />
-        <Route path="/dashboard/appointment-booking" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
-        <Route path="/dashboard/ai-chatbot" element={<ProtectedRoute feature="chat"><MyChat /></ProtectedRoute>} />
-        <Route path="/dashboard/chatbots" element={<ProtectedRoute feature="chat"><MyChatbots /></ProtectedRoute>} />
-        <Route path="/dashboard/chatbots/new" element={<ProtectedRoute feature="chat"><CreateChatbot /></ProtectedRoute>} />
-        <Route path="/dashboard/chatbots/:id" element={<ProtectedRoute feature="chat"><CreateChatbot /></ProtectedRoute>} />
-        <Route path="/dashboard/billing" element={<ProtectedRoute><UserBilling /></ProtectedRoute>} />
-        <Route path="/dashboard/team" element={<ProtectedRoute><MyTeam /></ProtectedRoute>} />
-        <Route path="/dashboard/add-ons" element={<ProtectedRoute><MyAddOns /></ProtectedRoute>} />
-        <Route path="/dashboard/support" element={<CustomerSupport />} />
+        <Route path="/dashboard" element={<ProtectedRoute><RouteErrorBoundary><UserDashboard /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-voice-agent" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><MyAgents /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-phone-answering" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><CustomWebCall /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-phone-answering/:agentId" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><CustomWebCall /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-voice-agent/new" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><CreateAgent /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-voice-agent/new-custom" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><CreateCustomAgent /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/calls" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><MyCalls /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/bulk-calls" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><BulkCallDashboard /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/phone-numbers" element={<ProtectedRoute feature="voice"><RouteErrorBoundary><MyPhoneNumbers /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/leads" element={<ProtectedRoute><RouteErrorBoundary><MyLeads /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/appointment-booking" element={<ProtectedRoute><RouteErrorBoundary><MyAppointments /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/ai-chatbot" element={<ProtectedRoute feature="chat"><RouteErrorBoundary><MyChat /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/chatbots" element={<ProtectedRoute feature="chat"><RouteErrorBoundary><MyChatbots /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/chatbots/new" element={<ProtectedRoute feature="chat"><RouteErrorBoundary><CreateChatbot /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/chatbots/:id" element={<ProtectedRoute feature="chat"><RouteErrorBoundary><CreateChatbot /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/billing" element={<ProtectedRoute><RouteErrorBoundary><UserBilling /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/team" element={<ProtectedRoute><RouteErrorBoundary><MyTeam /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/add-ons" element={<ProtectedRoute><RouteErrorBoundary><MyAddOns /></RouteErrorBoundary></ProtectedRoute>} />
+        <Route path="/dashboard/support" element={<ProtectedRoute><RouteErrorBoundary><CustomerSupport /></RouteErrorBoundary></ProtectedRoute>} />
 
-        {/* Admin routes — isolated Suspense so admin.js chunk is never fetched on public pages */}
-        <Route path="/admin" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/users" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/users/new" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><CreateUser /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/agents" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAgents /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/calls" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminCalls /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/leads" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminLeads /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/appointments" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAppointments /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/billing" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminBilling /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/upgrade-requests" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminUpgradeRequests /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/add-ons" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminAddOns /></ProtectedRoute></Suspense>} />
-        <Route path="/admin/chat" element={<Suspense fallback={<LoadingScreen />}><ProtectedRoute adminOnly><AdminChat /></ProtectedRoute></Suspense>} />
+        {/* Admin routes — lazy-loaded as a separate chunk to avoid preloading on public pages */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute adminOnly>
+            <Suspense fallback={<LoadingScreen />}>
+              <AdminRoutes />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+
+        {/* Route Aliases & Redirects */}
+        <Route path="/agents" element={<Navigate to="/dashboard/ai-voice-agent" replace />} />
+        <Route path="/calls" element={<Navigate to="/dashboard/calls" replace />} />
+        <Route path="/leads" element={<Navigate to="/dashboard/leads" replace />} />
+        <Route path="/chatbots" element={<Navigate to="/dashboard/ai-chatbot" replace />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {!user && <UnifiedAssistantWidget />}
+      <Suspense fallback={null}>
+        {!user && <DeferredAssistantWidget />}
+      </Suspense>
+      <MobileBottomNav />
     </Suspense>
   );
 }

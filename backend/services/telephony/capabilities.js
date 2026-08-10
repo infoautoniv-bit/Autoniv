@@ -1,27 +1,3 @@
-// Central capability map for telephony providers on the custom voice
-// orchestrator (Deepgram STT -> LLM -> TTS). This is the single source of truth
-// consulted by the inbound webhook (routes/webhooks.js), the outbound caller
-// (routes/calls.js), and the frontend (via GET /api/phone-numbers/capabilities).
-//
-// Tiers:
-//   'native-stream' - provider opens a real-time bidirectional audio WebSocket
-//                     that our orchestrator answers directly. Lowest latency.
-//   'turn-based'    - provider cannot stream to an external AI, but can play a
-//                     TTS audio URL and post recognized speech back (a <Gather>
-//                     style loop). Functional, higher latency.
-//   'unsupported'   - provider runs its OWN AI engine (e.g. Retell) or otherwise
-//                     cannot hand raw audio to our orchestrator. Rejected for the
-//                     custom engine with a clear message instead of silent failure.
-//
-// NOTE: In the current implementation pass, only 'twilio' and 'signalwire' are
-// truly native-streaming. Plivo/Exotel/Ozonetel are documented as
-// native-capable but their real-time adapters are DEFERRED, so they run on the
-// turn-based fallback for now. `activeTier()` reflects what actually runs today;
-// `nativeCapable` records the eventual target so the UI can label "Real-time
-// (coming soon)" without lying about current behavior.
-
-/** @typedef {'native-stream'|'turn-based'|'unsupported'} CapabilityTier */
-
 export const PROVIDER_CAPABILITIES = {
   twilio:     { nativeCapable: true,  streamingLive: true,  label: 'Twilio' },
   signalwire: { nativeCapable: true,  streamingLive: true,  label: 'SignalWire' },

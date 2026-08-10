@@ -1,6 +1,7 @@
-import { type FormEvent, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import type React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authService } from '../../services/api';
+import { authService } from '../../services/api.public';
 import axios from 'axios';
 
 export function ForgotPassword() {
@@ -16,8 +17,11 @@ export function ForgotPassword() {
   const [success, setSuccess] = useState('');
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [timer, setTimer] = useState(30);
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleEmailSubmit = async (e: FormEvent) => {
+  useEffect(() => () => { if (navTimerRef.current) clearTimeout(navTimerRef.current); }, []);
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -37,7 +41,7 @@ export function ForgotPassword() {
     }
   };
 
-  const handlePasswordSubmit = async (e: FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     const code = otp.join('');
@@ -60,7 +64,7 @@ export function ForgotPassword() {
     try {
       await authService.resetPassword(email, password, code);
       setSuccess('Password reset successfully! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 2000);
+      navTimerRef.current = setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message || 'Failed to reset password');
@@ -79,8 +83,9 @@ export function ForgotPassword() {
       await authService.resendOtp(email, 'reset_password');
       setTimer(30);
       setOtp(Array(6).fill(''));
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to resend code');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Failed to resend code';
+      setError(message || 'Failed to resend code');
     }
   };
 
@@ -119,13 +124,11 @@ export function ForgotPassword() {
 
   // Timer effect
   const activeTimer = step === 'password';
-  useState(() => {
-    let t: ReturnType<typeof setInterval>;
-    if (activeTimer && timer > 0) {
-      t = setInterval(() => setTimer((v) => v - 1), 1000);
-    }
+  useEffect(() => {
+    if (!activeTimer || timer <= 0) return;
+    const t = setInterval(() => setTimer((v) => v - 1), 1000);
     return () => clearInterval(t);
-  });
+  }, [activeTimer, timer]);
 
   const validatePassword = (pwd: string) => {
     const checks = [
@@ -245,7 +248,6 @@ export function ForgotPassword() {
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-white transition-colors"
-                    tabIndex={-1}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
@@ -291,7 +293,6 @@ export function ForgotPassword() {
                     type="button"
                     onClick={() => setShowConfirmPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-white transition-colors"
-                    tabIndex={-1}
                     aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                   >
                     {showConfirmPassword ? (

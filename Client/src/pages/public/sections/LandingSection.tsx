@@ -1,12 +1,14 @@
 import { useState, lazy, Suspense, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { PublicNavbar } from "../../../components/PublicNavbar";
-import Footer from "../Footer";
-import { USPSlider } from "./USPSlider";
-import { Features } from "./Features";
-import { Services } from "./ServicesSection";
 import { DeferRender } from "../../../components/DeferRender";
 import { Hero } from "./Hero/Hero";
+
+import { PublicNavbar } from "../../../components/PublicNavbar";
+import { USPSlider } from "./USPSlider";
+const Footer = lazy(() => import("../Footer"));
+
+const Features = lazy(() => import("./Features").then(m => ({ default: m.Features })));
+const Services = lazy(() => import("./ServicesSection").then(m => ({ default: m.Services })));
 
 const Demo = lazy(() => import("./Demo/Demo").then(m => ({ default: m.Demo })));
 
@@ -34,9 +36,12 @@ export function LandingSection() {
 
   useEffect(() => {
     if (location.hash) {
-      const targetId = location.hash.replace('#', '');
+      const rawHash = location.hash.replace('#', '');
       const scroll = () => {
-        const el = document.getElementById(targetId);
+        const el =
+          document.getElementById(rawHash) ||
+          document.getElementById(rawHash + 's') ||
+          (rawHash.endsWith('s') ? document.getElementById(rawHash.slice(0, -1)) : null);
         if (el) {
           const y = el.getBoundingClientRect().top + window.scrollY - 72;
           window.scrollTo({ top: y, behavior: 'smooth' });
@@ -56,21 +61,33 @@ export function LandingSection() {
 
   return (
     <div className="landing-page" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      <PublicNavbar />
+      <Suspense fallback={null}>
+        <PublicNavbar />
+      </Suspense>
       <main>
         <div className="page-bg" style={{ paddingTop: 120, paddingBottom: 8 }}>
           <div className="box-wrap">
-            <USPSlider />
+            <Suspense fallback={null}>
+              <USPSlider />
+            </Suspense>
             <Hero openAuth={openAuth} />
             <DeferRender height={600} forceRender={forceRender}>
               <Suspense fallback={<div style={{ minHeight: 600 }} />}>
                 <Demo />
               </Suspense>
             </DeferRender>
-              <div id="features">
-                <Features />
-              </div>
-              <Services openAuth={openAuth} />
+            <DeferRender height={500} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 500 }} />}>
+                <div id="feature">
+                  <Features />
+                </div>
+              </Suspense>
+            </DeferRender>
+            <DeferRender height={600} forceRender={forceRender}>
+              <Suspense fallback={<div style={{ minHeight: 600 }} />}>
+                <Services openAuth={openAuth} />
+              </Suspense>
+            </DeferRender>
             <DeferRender height={500} forceRender={forceRender}>
               <Suspense fallback={<div style={{ minHeight: 500 }} />}>
                 <Comparison />
@@ -129,7 +146,9 @@ export function LandingSection() {
           </div>
         </div>
       </main>
-      <Footer />
+      <Suspense fallback={<div style={{ minHeight: 200 }} />}>
+        <Footer />
+      </Suspense>
 
       <Suspense fallback={null}>
         <AuthDialog

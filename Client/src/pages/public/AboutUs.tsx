@@ -5,7 +5,7 @@ import Footer from './Footer';
 import ScrollToTop from '../../components/ScrollToTop';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import { USPSlider } from './sections/USPSlider';
-import { injectSchema, LOCAL_BUSINESS_SCHEMA } from '../../utils/schema';
+import { injectSchema, FAQ_SCHEMA } from '../../utils/schema';
 
 /* ───────────────────────────────────────────────────────────
    Design tokens (kept in one place so every section reads off
@@ -296,10 +296,6 @@ function GradientText({ children }: { children: React.ReactNode }) {
 
 /* ─── Main Export ─── */
 export function AboutUS() {
-  useEffect(() => {
-    return injectSchema('local-business-jsonld', LOCAL_BUSINESS_SCHEMA);
-  }, []);
-
   const faqs = [
     { q: 'What exactly does Autoniv do?', a: 'Autoniv deploys AI voice agents that handle your business phone calls 24/7 — answering inbound calls, running outbound campaigns, qualifying leads, booking appointments, and following up with customers, all without adding headcount.' },
     { q: 'Is this just another IVR or phone bot?', a: "No. Traditional IVRs make callers press buttons and navigate menus. Autoniv's AI voice agents hold natural two-way conversations, handle unexpected questions, and respond intelligently — the way a trained human rep would." },
@@ -312,6 +308,10 @@ export function AboutUS() {
     { q: 'Can I track what my AI agent says on calls?', a: 'Yes. Every call is transcribed and searchable in a real-time dashboard. You can review exactly what your AI agent said, spot trends, and continuously improve performance with real data.' },
     { q: 'How do I get started?', a: "Book a free 30-minute strategy call with the Autoniv team. We'll map your call flows, show you where you're losing revenue, and walk you through what your custom AI voice agent would look like — no credit card, no obligation." },
   ];
+
+  useEffect(() => {
+    return injectSchema('about-faq-jsonld', FAQ_SCHEMA(faqs));
+  }, [faqs]);
 
   return (
     <div
@@ -516,13 +516,13 @@ export function AboutUS() {
                     alt="Rajnesh Yadav - Founder & CEO of Autoniv" 
                     width={500}
                     height={500}
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover',
-                    }}
+                    loading="lazy"
+                    className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.currentTarget.style.display = 'none';
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      const fallback = target.parentElement?.querySelector('.fallback-initials') as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
                     }}
                   />
                   
@@ -537,6 +537,7 @@ export function AboutUS() {
                       textShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     }}
                     className="fallback-initials"
+                    aria-hidden="true"
                   >
                     RY
                   </span>

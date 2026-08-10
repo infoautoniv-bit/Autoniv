@@ -27,7 +27,7 @@ function getGroq() {
 // ─── API Key authentication middleware ───────────────────────────────────────
 async function authenticateApiKey(req, res, next) {
   try {
-    const apiKey = req.headers['x-api-key'] || req.query.apiKey;
+    const apiKey = req.headers['x-api-key'];
     if (!apiKey) {
       return res.status(401).json({ message: 'API key required' });
     }
@@ -500,6 +500,7 @@ You MUST respond in valid JSON only:
 router.get('/voiceWidget.js', (req, res) => {
   res.set('Content-Type', 'application/javascript');
   res.set('Cache-Control', 'public, max-age=3600');
+  res.set('Access-Control-Allow-Origin', '*');
   res.send(`
 (function() {
   'use strict';
@@ -651,6 +652,17 @@ router.get('/voiceWidget.js', (req, res) => {
       }
     });
 
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.lang = (navigator && navigator.language) ? navigator.language : 'en-US';
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
     async function startCall() {
       isCalling = true;
       micBtn.classList.add('calling');
@@ -658,17 +670,25 @@ router.get('/voiceWidget.js', (req, res) => {
       statusText.innerText = 'AI Agent Connected';
       subText.innerText = 'Listening... Speak naturally';
 
+      speakText("Hello! I am Priya, your Autoniv AI Screening Assistant. How can I help you today?");
+
       try {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
           recognition = new SpeechRecognition();
           recognition.continuous = true;
           recognition.interimResults = false;
-          recognition.lang = 'en-US';
+          recognition.lang = (navigator && navigator.language) ? navigator.language : 'en-US';
 
-          recognition.onresult = (event) => {
+          recognition.onresult = async (event) => {
             const transcript = event.results[event.results.length - 1][0].transcript;
             subText.innerText = 'You: ' + transcript;
+            statusText.innerText = 'AI Agent Speaking...';
+            const aiReply = "Thank you for sharing! Could you tell me more about your recent project experience?";
+            speakText(aiReply);
+            setTimeout(() => {
+              if (isCalling) statusText.innerText = 'AI Agent Connected';
+            }, 3000);
           };
 
           recognition.start();
@@ -684,6 +704,7 @@ router.get('/voiceWidget.js', (req, res) => {
       micBtn.innerHTML = '🎙️';
       statusText.innerText = 'Call Ended';
       subText.innerText = 'Thank you for speaking with Autoniv AI';
+      speakText("Call ended. Thank you for speaking with Autoniv AI!");
       if (recognition) {
         try { recognition.stop(); } catch (_) {}
       }
@@ -906,7 +927,7 @@ router.post('/call', authenticateApiKey, async (req, res) => {
         phone: formattedPhone,
         status: dialSuccess ? 'initiating' : 'queued',
         timestamp: new Date().toISOString(),
-      }, webhookSecret);
+      }, webhookSecret, agent?.crmIntegrations || null);
     }
 
     res.json({

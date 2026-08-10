@@ -12,7 +12,7 @@ export const FloatingCards = React.memo(function FloatingCards({ lowPower }: Flo
   return (
     <>
       {/* Card 1: Incoming Call - Top Right */}
-      <div className={`absolute top-[10%] right-[0%] sm:top-[4%] sm:-right-[8%] z-20 pointer-events-auto w-[100px] sm:w-[185px] ${lowPower ? "" : "card-float-1"}`}>
+      <div className={`absolute top-[10%] right-[0%] sm:top-[2%] sm:right-[0%] md:top-[2%] md:right-[0%] lg:top-[4%] lg:right-[0%] z-20 pointer-events-auto w-[100px] sm:w-[130px] md:w-[140px] lg:w-[160px] ${lowPower ? "" : "card-float-1"}`}>
         <div className="bg-[var(--surface)] backdrop-blur-md rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 shadow-[0_8px_28px_rgba(37,99,235,0.10)] border border-[rgba(37,99,235,0.2)]">
           <div className="flex justify-between items-center">
             <span className="text-[6px] sm:text-[10px] font-semibold text-[#2563EB] tracking-wide uppercase">
@@ -40,7 +40,7 @@ export const FloatingCards = React.memo(function FloatingCards({ lowPower }: Flo
       </div>
 
       {/* Card 2: Appointment Booked - Bottom Right */}
-      <div className={`absolute bottom-[2%] right-[4%] sm:bottom-[16%] sm:-right-[2%] z-20 pointer-events-auto w-[95px] sm:w-[180px] ${lowPower ? "" : "card-float-2"}`}>
+      <div className={`absolute bottom-[2%] right-[0%] sm:bottom-[12%] sm:right-[0%] md:bottom-[14%] md:right-[0%] lg:bottom-[16%] lg:right-[0%] z-20 pointer-events-auto w-[95px] sm:w-[120px] md:w-[135px] lg:w-[155px] ${lowPower ? "" : "card-float-2"}`}>
         <div className="bg-[var(--surface)] backdrop-blur-md rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 shadow-[0_8px_28px_rgba(37,99,235,0.10)] border border-[rgba(37,99,235,0.2)] flex items-center gap-1.5 sm:gap-3">
           <div className="w-5 h-5 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-[rgba(37,99,235,0.08)] border border-[rgba(37,99,235,0.2)] flex items-center justify-center text-xs sm:text-lg flex-shrink-0 animate-[ringsPulse1_3s_ease-in-out_infinite_1.5s]">
             📅
@@ -53,14 +53,14 @@ export const FloatingCards = React.memo(function FloatingCards({ lowPower }: Flo
               May 24, 2025
             </p>
             <p className="text-[5px] sm:text-[9px] font-medium m-0" style={{ color: '#1d4ed8' }}>
-               10:00 AM
+              10:00 AM
             </p>
           </div>
         </div>
       </div>
 
       {/* Card 3: AI Assistant - Top Left */}
-      <div className={`absolute top-[10%] left-[4%] sm:top-[4%] sm:-left-[4%] z-20 pointer-events-auto w-[100px] sm:w-[195px] ${lowPower ? "" : "card-float-3"}`}>
+      <div className={`absolute top-[10%] left-[0%] sm:top-[2%] sm:left-[0%] md:top-[2%] md:left-[0%] lg:top-[4%] lg:left-[0%] z-20 pointer-events-auto w-[100px] sm:w-[135px] md:w-[145px] lg:w-[165px] ${lowPower ? "" : "card-float-3"}`}>
         <div className="bg-[var(--surface)] backdrop-blur-md rounded-lg sm:rounded-2xl p-1.5 sm:p-3 shadow-[0_8px_28px_rgba(37,99,235,0.10)] border border-[rgba(37,99,235,0.2)]">
           <div className="flex items-center gap-1 sm:gap-1.5">
             <span className="text-[6px] sm:text-[9px] text-[var(--muted)]">
@@ -86,7 +86,7 @@ export const FloatingCards = React.memo(function FloatingCards({ lowPower }: Flo
       </div>
 
       {/* Card 4: Leads Captured - Bottom Left */}
-      <div className={`absolute bottom-[2%] left-[4%] sm:bottom-[8%] sm:-left-[4%] z-20 pointer-events-auto w-[100px] sm:w-[185px] ${lowPower ? "" : "card-float-4"}`}>
+      <div className={`absolute bottom-[2%] left-[0%] sm:bottom-[8%] sm:left-[0%] md:bottom-[8%] md:left-[0%] lg:bottom-[8%] lg:left-[0%] z-20 pointer-events-auto w-[100px] sm:w-[130px] md:w-[140px] lg:w-[160px] ${lowPower ? "" : "card-float-4"}`}>
         <div className="bg-[var(--surface)] backdrop-blur-md rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 shadow-[0_8px_28px_rgba(37,99,235,0.10)] border border-[rgba(37,99,235,0.2)]">
           <div>
             <p className="text-[5px] sm:text-[9px] font-semibold text-[var(--muted)] uppercase tracking-wider m-0">

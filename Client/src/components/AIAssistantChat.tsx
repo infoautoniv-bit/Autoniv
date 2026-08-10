@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { publicLeadService } from '../services/api';
+import { publicLeadService } from '../services/api.leads';
+import { trackLeadFormConversion } from '../utils/analytics';
 
 const T = {
   cyan: '#2563EB',
@@ -275,6 +276,14 @@ export default function AIAssistantChat() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
 
   const [leadStep, setLeadStep] = useState<LeadStep>('idle');
   const [leadInfo, setLeadInfo] = useState<LeadInfo>({ name: '', phone: '', email: '', purpose: '' });
@@ -350,6 +359,8 @@ export default function AIAssistantChat() {
           purpose: finalLead.purpose,
         });
 
+        trackLeadFormConversion();
+
         addMessage('assistant', `✅ **${res.data.message}**\n\n**Your Details:**\n- Name: ${finalLead.name}\n- Phone: ${finalLead.phone}\n- Email: ${finalLead.email}\n- Purpose: ${finalLead.purpose}\n\nOur team will reach out within 24 hours. Is there anything else I can help with?`);
         setLeadStep('done');
       } catch {
@@ -366,6 +377,7 @@ export default function AIAssistantChat() {
     const text = input.trim();
     if (!text || isTyping) return;
 
+    clearTimers();
     addMessage('user', text);
     setInput('');
     setIsTyping(true);
@@ -375,50 +387,48 @@ export default function AIAssistantChat() {
 
     // ── Mid-form question: answer it, then re-prompt the current step ──
     if (isInLeadFlow && isOffTopicQuestion(text)) {
-      setTimeout(() => {
+      timersRef.current.push(setTimeout(() => {
         const result = generateResponse(text);
-        // Answer the question without triggering a new lead flow
         addMessage('assistant', result.text);
 
-        // Re-prompt the step they were on after a short pause
         const reprompt = getReprompt(leadStep);
         if (reprompt) {
-          setTimeout(() => {
+          timersRef.current.push(setTimeout(() => {
             addMessage('assistant', reprompt);
-          }, 500);
+          }, 500));
         }
         setIsTyping(false);
-      }, 700 + Math.random() * 300);
+      }, 700 + Math.random() * 300));
       return;
     }
 
     // ── Normal lead flow step ──
     if (isInLeadFlow) {
-      setTimeout(() => {
+      timersRef.current.push(setTimeout(() => {
         processLeadStep(text);
         setIsTyping(false);
-      }, 500 + Math.random() * 400);
+      }, 500 + Math.random() * 400));
       return;
     }
 
     // ── Normal conversation (not in lead flow) ──
-    setTimeout(() => {
+    timersRef.current.push(setTimeout(() => {
       const result = generateResponse(text);
 
       if (result.triggerLead && leadStep === 'idle') {
         addMessage('assistant', result.text);
-        setTimeout(() => {
+        timersRef.current.push(setTimeout(() => {
           addMessage('assistant', "**To get started, please share your details:**\n\n**1. What's your name?**");
           setLeadStep('ask_name');
           setIsTyping(false);
-        }, 600);
+        }, 600));
         return;
       }
 
       addMessage('assistant', result.text);
       setIsTyping(false);
-    }, 700 + Math.random() * 400);
-  }, [input, isTyping, leadStep, processLeadStep]);
+    }, 700 + Math.random() * 400));
+  }, [input, isTyping, leadStep, processLeadStep, clearTimers]);
 
   /* ── Input placeholder by current step ── */
   const inputPlaceholder =
@@ -429,7 +439,7 @@ export default function AIAssistantChat() {
     'Ask about Autoniv, agents, pricing...';
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-[150]">
       <AnimatePresence>
         {isOpen && (
           <motion.div

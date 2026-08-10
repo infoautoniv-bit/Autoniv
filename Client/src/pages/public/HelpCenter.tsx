@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicNavbar } from '../../components/PublicNavbar';
 import Footer from './Footer';
+import { USPSlider } from './sections/USPSlider';
 import { BRAND, INK, SLATE, HAIRLINE, SURFACE, MONO, Reveal, SectionLabel, GradientText } from './design';
 
 const CATEGORIES = [
@@ -302,6 +303,7 @@ export function HelpCenter() {
         </div>
       </section>
 
+      <USPSlider />
       <Footer />
     </div>
   );

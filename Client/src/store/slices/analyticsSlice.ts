@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { Stats, MyStats, TrendPoint, PeriodOverview } from '../../types';
-import { analyticsService } from '../../services/api';
+import { analyticsService } from '../../services/api.analytics';
+import { loadFromSession, saveToSession } from '../../utils/storage';
 
 interface AnalyticsState {
   overview: Stats | null;
@@ -10,21 +11,6 @@ interface AnalyticsState {
   periodOverview: PeriodOverview | null;
   loading: boolean;
   error: string | null;
-}
-
-function loadFromSession<T>(key: string): T | null {
-  try {
-    const raw = sessionStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveToSession(key: string, value: unknown) {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch { /* quota exceeded — ignore */ }
 }
 
 const initialState: AnalyticsState = {

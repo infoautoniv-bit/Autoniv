@@ -1,37 +1,18 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { agentFormSchema } from '../../utils/schemas';
 import { useAppDispatch, useAppSelector } from '../../hooks/useStore';
-import { createAgent, fetchMyAgents } from '../../store/slices/agentsSlice';
+import { createAgent } from '../../store/slices/agentsSlice';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { VoicePreviewButton } from '../../components/VoicePreviewButton';
 import { AgentCard } from '../../components/AgentCard';
-import { VOICE_OPTIONS } from '../../config/voices';
-
-const VAPI_VOICE_OPTIONS = VOICE_OPTIONS;
+import { VOICE_OPTIONS, getVoicesForLanguage } from '../../config/voices';
 import { PROMPT_TEMPLATES } from '../../config/agentPrompts';
 import type { Agent, PhoneNumber } from '../../types';
 import { createPortal } from 'react-dom';
 import { agentService, phoneNumberService } from '../../services/api';
 import { logger } from '../../utils/logger';
-
-// ── Constants ──────────────────────────────────────────────────────────────
-const LANGUAGE_OPTIONS = [
-  { value: 'en', label: '🇺🇸 English' },
-  { value: 'es', label: '🇪🇸 Spanish' },
-  { value: 'fr', label: '🇫🇷 French' },
-  { value: 'de', label: '🇩🇪 German' },
-  { value: 'it', label: '🇮🇹 Italian' },
-  { value: 'pt', label: '🇵🇹 Portuguese' },
-  { value: 'pl', label: '🇵🇱 Polish' },
-  { value: 'hi', label: '🇮🇳 Hindi' },
-  { value: 'ar', label: '🇸🇦 Arabic' },
-  { value: 'ja', label: '🇯🇵 Japanese' },
-  { value: 'ko', label: '🇰🇷 Korean' },
-  { value: 'zh', label: '🇨🇳 Chinese' },
-  { value: 'nl', label: '🇳🇱 Dutch' },
-  { value: 'ru', label: '🇷🇺 Russian' },
-  { value: 'tr', label: '🇹🇷 Turkish' },
-];
+import { LANGUAGE_OPTIONS } from '../../config/agentConfig';
 
 const AGENT_TYPES = [
   {
@@ -76,13 +57,19 @@ const AGENT_TYPES = [
 ];
 
 const DEFAULT_FORM_DATA = {
-  name: '', type: 'receptionist', prompt: '', language: 'en', voiceId: VAPI_VOICE_OPTIONS[0].value,
+  name: '', type: 'receptionist', prompt: '', language: 'en', voiceId: VOICE_OPTIONS[0].value,
   phoneNumberId: '',
   phoneNumber: '',
   twilioAccountSid: '',
   twilioAuthToken: '',
   hubspotToken: '',
   webhookUrl: '',
+  webhookSecret: '',
+  googleSheetId: '',
+  googleSheetUrl: '',
+  fieldMapping: '',
+  customHeaders: '',
+  payloadTemplate: '',
 };
 
 // ── Shared styles ──────────────────────────────────────────────────────────
@@ -123,11 +110,14 @@ function SelectInput({ value, onChange, options }: {
   options: { value: string; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, openUpward: false });
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const selected = options.find((o) => o.value === value) || options[0];
+  const selectedIndex = options.findIndex((o) => o.value === value);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -142,6 +132,8 @@ function SelectInput({ value, onChange, options }: {
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
     const updatePosition = () => {
       if (!triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
@@ -153,14 +145,66 @@ function SelectInput({ value, onChange, options }: {
     window.addEventListener('scroll', updatePosition, true);
     window.addEventListener('resize', updatePosition);
     return () => { window.removeEventListener('scroll', updatePosition, true); window.removeEventListener('resize', updatePosition); };
-  }, [open]);
+  }, [open, selectedIndex]);
+
+  const scrollToIndex = (idx: number) => {
+    const list = listRef.current;
+    if (!list) return;
+    const item = list.children[idx] as HTMLElement | undefined;
+    if (item) item.scrollIntoView({ block: 'nearest' });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setOpen(true);
+      }
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault();
+        const next = Math.min(activeIndex + 1, options.length - 1);
+        setActiveIndex(next);
+        scrollToIndex(next);
+        break;
+      }
+      case 'ArrowUp': {
+        e.preventDefault();
+        const prev = Math.max(activeIndex - 1, 0);
+        setActiveIndex(prev);
+        scrollToIndex(prev);
+        break;
+      }
+      case 'Enter': {
+        e.preventDefault();
+        if (activeIndex >= 0 && activeIndex < options.length) {
+          onChange(options[activeIndex].value);
+          setOpen(false);
+        }
+        break;
+      }
+      case 'Escape': {
+        e.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        break;
+      }
+    }
+  };
 
   return (
     <div className="relative" ref={ref}>
       <button
         ref={triggerRef}
         type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={selected?.label || 'Select option'}
         onClick={() => setOpen(p => !p)}
+        onKeyDown={handleKeyDown}
         className="w-full flex items-center justify-between gap-2 cursor-pointer transition-colors duration-150"
         style={inputBase}
         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary-blue)'; }}
@@ -198,20 +242,23 @@ function SelectInput({ value, onChange, options }: {
                 width: coords.width,
               }}
             >
-              <div className="max-h-52 overflow-y-auto py-1">
-                {options.map((opt) => (
+              <div ref={listRef} role="listbox" aria-label="Options" className="max-h-52 overflow-y-auto py-1">
+                {options.map((opt, idx) => (
                   <button
                     key={opt.value}
                     type="button"
+                    role="option"
+                    aria-selected={opt.value === value}
                     onClick={() => { onChange(opt.value); setOpen(false); }}
+                    onMouseEnter={() => setActiveIndex(idx)}
                     className="w-full text-left px-3.5 py-2.5 text-[12.5px] transition-colors cursor-pointer"
                     style={{
                       color: opt.value === value ? 'var(--primary-blue)' : 'var(--text-secondary)',
-                      background: opt.value === value ? 'var(--primary-blue-soft)' : 'transparent',
+                      background: idx === activeIndex
+                        ? 'var(--primary-blue-soft)'
+                        : opt.value === value ? 'var(--primary-blue-soft)' : 'transparent',
                       fontWeight: opt.value === value ? 600 : 400,
                     }}
-                    onMouseEnter={e => { if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'var(--s1)'; }}
-                    onMouseLeave={e => { if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
                     {opt.label}
                   </button>
@@ -292,6 +339,12 @@ export function CreateAgent() {
           twilioAuthToken: '',
           hubspotToken: '',
           webhookUrl: '',
+          webhookSecret: '',
+          googleSheetId: '',
+          googleSheetUrl: '',
+          fieldMapping: '',
+          customHeaders: '',
+          payloadTemplate: '',
         }
       : DEFAULT_FORM_DATA
   );
@@ -323,8 +376,8 @@ export function CreateAgent() {
     fetchPhoneNumbers();
   }, []);
 
-  const filteredVoices = VAPI_VOICE_OPTIONS;
-  const voiceOpt  = VAPI_VOICE_OPTIONS.find(v => v.value === formData.voiceId);
+  const filteredVoices = getVoicesForLanguage(formData.language);
+  const voiceOpt  = filteredVoices.find(v => v.value === formData.voiceId) || filteredVoices[0];
   let voiceName = 'Default';
   if (voiceOpt) {
     const firstPart = voiceOpt.label.split(' - ')[0];
@@ -344,6 +397,12 @@ export function CreateAgent() {
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
+    const validation = agentFormSchema.safeParse(formData);
+    if (!validation.success) {
+      const issue = validation.error.issues[0];
+      setError(issue ? issue.message : 'Invalid form parameters');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -363,17 +422,28 @@ export function CreateAgent() {
         phoneNumberId: phoneMode === 'vapi' ? formData.phoneNumberId : undefined,
         twilioAccountSid: phoneMode === 'direct' ? formData.twilioAccountSid : '',
         twilioAuthToken: phoneMode === 'direct' ? formData.twilioAuthToken : '',
+        googleSheetId: formData.googleSheetId || undefined,
+        googleSheetUrl: formData.googleSheetUrl || undefined,
         crmIntegrations: {
           hubspotToken: formData.hubspotToken || undefined,
           webhookUrl: formData.webhookUrl || undefined,
+          webhookSecret: formData.webhookSecret || undefined,
+          googleSheetId: formData.googleSheetId || undefined,
+          googleSheetUrl: formData.googleSheetUrl || undefined,
+          fieldMapping: formData.fieldMapping ? JSON.parse(formData.fieldMapping) : undefined,
+          customHeaders: formData.customHeaders ? JSON.parse(formData.customHeaders) : undefined,
+          payloadTemplate: formData.payloadTemplate || undefined,
         },
         webhookUrl: formData.webhookUrl || undefined,
       };
-      await dispatch(createAgent(submitData)).unwrap();
-      await dispatch(fetchMyAgents({ page: 1, limit: 20 }));
+      // Instantly redirect to agents page in 0ms while creation completes in background
+      dispatch(createAgent(submitData)).catch((err) => {
+        logger.error('Background agent creation failed:', err);
+      });
       navigate('/dashboard/ai-voice-agent');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Something went wrong.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong.';
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -399,9 +469,38 @@ export function CreateAgent() {
   ];
   const readinessPct = Math.round(readinessItems.filter(r => r.done).length / readinessItems.length * 100);
 
-  const patch = (v: Partial<typeof formData>) => setFormData(p => ({ ...p, ...v }));
+  const patch = useCallback((fields: Partial<typeof DEFAULT_FORM_DATA>) => {
+    setFormData(p => ({ ...p, ...fields }));
+  }, []);
 
-  const focusStyle = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleSheetFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (file.name.endsWith('.json')) {
+          const json = JSON.parse(text);
+          const sheetUrl = json.spreadsheet_url || json.spreadsheetUrl || json.sheet_url || '';
+          const sheetId = json.spreadsheet_id || json.spreadsheetId || json.sheet_id || json.client_email || file.name;
+          if (sheetUrl) {
+            patch({ googleSheetUrl: sheetUrl, googleSheetId: sheetId });
+          } else if (sheetId && sheetId.length > 10) {
+            patch({ googleSheetId: sheetId, googleSheetUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/edit` });
+          } else {
+            patch({ googleSheetId: file.name, payloadTemplate: text });
+          }
+        } else {
+          patch({ googleSheetId: file.name, googleSheetUrl: `https://docs.google.com/spreadsheets/d/${file.name}/edit` });
+        }
+      } catch {
+        patch({ googleSheetId: file.name });
+      }
+    };
+    reader.readAsText(file);
+  }, [patch]); const focusStyle = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.target.style.borderColor = 'rgba(37,99,235,0.5)';
     e.target.style.background  = 'var(--surface)';
   };
@@ -589,7 +688,7 @@ export function CreateAgent() {
                 <SelectInput
                   value={formData.voiceId}
                   onChange={v => patch({ voiceId: v })}
-                  options={VAPI_VOICE_OPTIONS}
+                  options={filteredVoices}
                 />
 
                 {/* Voice indicator */}
@@ -881,6 +980,109 @@ export function CreateAgent() {
                     Instant webhook payload will be sent when calls end with extracted lead details (name, phone, email, purpose, notes).
                   </p>
                 </div>
+
+                <div>
+                  <label style={fieldLabel}>Webhook Secret (HMAC Signing)</label>
+                  <input
+                    type="password"
+                    value={formData.webhookSecret}
+                    onChange={e => patch({ webhookSecret: e.target.value })}
+                    placeholder="Optional — used to sign webhook payloads with HMAC SHA-256"
+                    style={inputBase}
+                    onFocus={focusStyle}
+                    onBlur={blurStyle}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label style={fieldLabel}>Google Sheet Link / Spreadsheet ID</label>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      LIVE GOOGLE SHEET SYNC
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={formData.googleSheetUrl}
+                      onChange={e => patch({ googleSheetUrl: e.target.value })}
+                      placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRm53LnX.../edit"
+                      style={{ ...inputBase, flex: 1 }}
+                      onFocus={focusStyle}
+                      onBlur={blurStyle}
+                    />
+                    <label className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl cursor-pointer transition-colors whitespace-nowrap shadow-sm">
+                      <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      Upload File from Computer
+                      <input
+                        type="file"
+                        accept=".json,.csv,.txt"
+                        className="hidden"
+                        onChange={handleSheetFileUpload}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Paste your Google Sheets URL or click <strong>Upload File from Computer</strong> to load Google Credentials (.json) or Sheet files (.csv) directly.
+                  </p>
+                </div>
+
+                <details className="group">
+                  <summary className="cursor-pointer text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--text)] transition-colors select-none">
+                    Advanced CRM Configuration
+                  </summary>
+                  <div className="mt-3 space-y-4 pl-1">
+                    <div>
+                      <label style={fieldLabel}>Field Mapping (JSON)</label>
+                      <textarea
+                        value={formData.fieldMapping}
+                        onChange={e => patch({ fieldMapping: e.target.value })}
+                        placeholder='{"name": "fullName", "phone": "mobile_number", "email": "email_address", "purpose": "lead_source"}'
+                        rows={3}
+                        style={{ ...inputBase, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                      <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Rename fields in the webhook payload. Keys are Autoniv fields, values are your CRM field names.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label style={fieldLabel}>Custom Headers (JSON)</label>
+                      <textarea
+                        value={formData.customHeaders}
+                        onChange={e => patch({ customHeaders: e.target.value })}
+                        placeholder='{"Authorization": "Bearer your-token", "X-CRM-Api-Key": "your-key"}'
+                        rows={3}
+                        style={{ ...inputBase, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                      <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Extra HTTP headers sent with every webhook request (e.g., CRM auth tokens).
+                      </p>
+                    </div>
+
+                    <div>
+                      <label style={fieldLabel}>Payload Template (JSON with {'{{variable}}'} placeholders)</label>
+                      <textarea
+                        value={formData.payloadTemplate}
+                        onChange={e => patch({ payloadTemplate: e.target.value })}
+                        placeholder='{"contact": {"first_name": "{{name}}", "phone": "{{phone}}", "email": "{{email}}", "source": "autoniv_voice"}}'
+                        rows={5}
+                        style={{ ...inputBase, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                      <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Full control over the webhook payload structure. Use {'{{name}}'}, {'{{phone}}'}, {'{{email}}'}, {'{{purpose}}'}, {'{{notes}}'}, {'{{createdAt}}'} as placeholders.
+                      </p>
+                    </div>
+                  </div>
+                </details>
               </div>
             </SectionCard>
 

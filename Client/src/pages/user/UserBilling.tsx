@@ -229,10 +229,7 @@ const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease } },
 };
-const fadeSlide = {
-  initial: { opacity: 0, x: 15 },
-  animate: { opacity: 1, x: 0, transition: { duration: 0.3, ease } },
-};
+
 
 function getUsageBarColor(pct: number) {
   if (pct > 90) return 'from-rose-500 to-pink-500';
@@ -311,8 +308,9 @@ function WhiteLabelSection({ user, onUnlockPlan }: { user: any; onUnlockPlan: ()
       });
       setMsg({ type: 'success', text: res.data.message || 'White Label & Custom Branding saved successfully!' });
       dispatch(checkAuth());
-    } catch (err: any) {
-      setMsg({ type: 'error', text: err.response?.data?.message || 'Failed to save White Label settings.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save White Label settings.';
+      setMsg({ type: 'error', text: msg });
     } finally {
       setSaving(false);
     }
@@ -476,18 +474,47 @@ export function UserBilling() {
     }
   }, [dispatch, isVoice]);
 
+  useEffect(() => {
+    if (pendingRequest && showUpgrade) {
+      setShowUpgrade(false);
+    }
+  }, [pendingRequest, showUpgrade]);
+
+  const openUpgradeModal = (tab?: 'chat' | 'voice' | 'both') => {
+    if (pendingRequest) return;
+    if (tab) setModalTab(tab);
+    setShowUpgrade(true);
+  };
+
   const { plan: activePlanConfig, type: activePlanType } = getPlanConfig(user?.plan);
+
+  // Determine if user can upgrade chat or voice independently
+  const userChatPlan = user?.chatPlan || 'chat_free';
+  const userVoicePlan = user?.voicePlan || 'none';
+  const chatTierOrder: Record<string, number> = { free: 0, starter: 1, growth: 2, enterprise: 3 };
+  const chatTier = userChatPlan.replace('chat_', '') || 'free';
+  const voiceTier = userVoicePlan.replace('voice_', '') || 'free';
+  const canUpgradeChat = (chatTierOrder[chatTier] ?? 0) < 3;
+  const canUpgradeVoice = userVoicePlan !== 'none' && (chatTierOrder[voiceTier] ?? 0) < 3;
+
+
+  // Get configs for each plan type
+  const chatPlanConfig = getPlanConfigByKey(userChatPlan);
+  const voicePlanConfig = userVoicePlan !== 'none' ? getPlanConfigByKey(userVoicePlan) : getPlanConfigByKey('voice_free');
 
   // Synchronize upgrade modal default tab
   useEffect(() => {
     const handle = setTimeout(() => {
       if (showUpgrade) {
-        setModalTab(activePlanType);
+        // Default to the tab where upgrade is possible
+        if (canUpgradeChat && !canUpgradeVoice) setModalTab('chat');
+        else if (canUpgradeVoice && !canUpgradeChat) setModalTab('voice');
+        else setModalTab(activePlanType);
         setSelectedPlan(null);
       }
     }, 0);
     return () => clearTimeout(handle);
-  }, [showUpgrade, activePlanType]);
+  }, [showUpgrade, activePlanType, canUpgradeChat, canUpgradeVoice]);
 
   const chatLimit = user?.chatLimit || activePlanConfig.callsPerMonth || 100;
   const rawMinutesLimit = user?.minutesLimit ?? activePlanConfig.minutesPerMonth ?? 0;
@@ -513,8 +540,8 @@ export function UserBilling() {
     try {
       await dispatch(createUpgradeRequest(selectedPlan)).unwrap();
       setShowUpgrade(false);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Something went wrong';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong';
       alert(msg);
     } finally {
       setUpgrading(false);
@@ -568,140 +595,267 @@ export function UserBilling() {
             <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 shadow-sm w-fit whitespace-nowrap shrink-0">
               <span className="w-2 h-2 rounded-full animate-pulse bg-emerald-500 shrink-0" />
               <span className="text-xs text-slate-700 font-bold">
-                {activePlanConfig.name} Plan Active
+                {chatPlanConfig.name}{userVoicePlan !== 'none' ? ` + ${voicePlanConfig.name}` : ''} Active
               </span>
             </div>
           </div>
         </motion.div>
 
-        {/* ── Main Grid ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ── Plan Cards Grid ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* ── Current Plan Card ── */}
+          {/* ── Chat Plan Card ── */}
           <motion.div
             variants={fadeUp}
-            className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white/70 backdrop-blur-md shadow-sm p-6 sm:p-8 relative overflow-hidden group"
+            className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur-md shadow-sm p-6 sm:p-8 relative overflow-hidden group"
           >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-radial-gradient from-blue-500/5 to-transparent rounded-full pointer-events-none" />
-            <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-radial-gradient from-emerald-500/5 to-transparent rounded-full pointer-events-none" />
+            <div className="absolute top-0 right-0 w-48 h-48 bg-radial-gradient from-blue-500/5 to-transparent rounded-full pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-radial-gradient from-emerald-500/5 to-transparent rounded-full pointer-events-none" />
 
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5 mb-8 relative">
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border bg-emerald-50 text-emerald-600 border-emerald-200 mb-4">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  CURRENT ACTIVE PLAN
-                </span>
-                <h2 className="text-3xl font-black text-slate-800 tracking-tight">
-                  {activePlanConfig.name}
-                </h2>
-                <p className="text-xs text-slate-500 mt-1.5 font-semibold leading-relaxed max-w-xs">{activePlanConfig.tagline}</p>
-                <div className="flex flex-col gap-1 mt-5">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-black text-slate-800 tracking-tight">
-                      {activePlanConfig.id.endsWith('enterprise') ? 'Custom' : currency === 'usd' ? `$${(activePlanConfig.priceUSD || 0).toLocaleString()}` : `₹${activePlanConfig.price.toLocaleString()}`}
-                    </span>
-                    {!activePlanConfig.id.endsWith('enterprise') && <span className="text-slate-500 font-bold text-xs">/ month</span>}
-                  </div>
-                  {!activePlanConfig.id.endsWith('enterprise') && (
-                    <span className="text-xs text-slate-400 font-extrabold tracking-wide">
-                      {currency === 'usd' ? `₹${activePlanConfig.price.toLocaleString()} INR` : `$${(activePlanConfig.priceUSD || 0).toLocaleString()} USD`}
-                    </span>
-                  )}
+            <div className="flex items-center justify-between mb-6 relative">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-100 flex items-center justify-center text-blue-600 text-lg">
+                  💬
                 </div>
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black border bg-blue-50 text-blue-600 border-blue-200 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    CHAT PLAN
+                  </span>
+                  <h2 className="text-xl font-black text-slate-800 tracking-tight">{chatPlanConfig.name}</h2>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] font-black text-emerald-600 uppercase">Active</span>
               </div>
             </div>
 
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-5">{chatPlanConfig.name}</p>
+
+            <div className="flex flex-col gap-1 mb-6">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-black text-slate-800 tracking-tight">
+                  {userChatPlan.endsWith('enterprise') ? 'Custom' : currency === 'usd' ? `$${(chatPlanConfig.monthlyPriceUSD || 0).toLocaleString()}` : `₹${chatPlanConfig.monthlyPrice.toLocaleString()}`}
+                </span>
+                {!userChatPlan.endsWith('enterprise') && <span className="text-slate-500 font-bold text-xs">/ month</span>}
+              </div>
+              {!userChatPlan.endsWith('enterprise') && (
+                <span className="text-[10px] text-slate-400 font-extrabold tracking-wide">
+                  {currency === 'usd' ? `₹${chatPlanConfig.monthlyPrice.toLocaleString()} INR` : `$${(chatPlanConfig.monthlyPriceUSD || 0).toLocaleString()} USD`}
+                </span>
+              )}
+            </div>
+
+            {/* Chat Usage */}
+            <div className="mb-5">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Conversations used</span>
+                <span className="text-xs font-extrabold text-slate-700 tabular-nums">
+                  {user?.chatUsed || 0}
+                  <span className="text-slate-400 font-medium">
+                    {userChatPlan.endsWith('enterprise') ? ' / ∞' : ` / ${chatLimit}`}
+                  </span>
+                </span>
+              </div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(chatUsagePct, 100)}%` }}
+                  transition={{ delay: 0.35, duration: 0.95, ease }}
+                  className={`h-full rounded-full bg-gradient-to-r ${getUsageBarColor(chatUsagePct)} relative`}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-500 mt-1.5 font-bold">
+                <span>{chatUsagePct.toFixed(1)}%</span>
+                <span className="text-blue-600">
+                  {userChatPlan.endsWith('enterprise') ? 'Unlimited' : `${Math.max(0, chatRemaining).toLocaleString()} remaining`}
+                </span>
+              </div>
+            </div>
+
+            {/* Chat Upgrade Button */}
             {pendingRequest ? (
-              <div className="w-full py-4 rounded-xl font-bold text-center text-xs bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center gap-2">
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <div className="w-full py-3 rounded-xl font-bold text-center text-[10px] bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center gap-2">
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Upgrade request to {getPlanConfig(pendingRequest.requestedPlan).plan.name} is pending admin review
+                Upgrade pending admin review
               </div>
-            ) : activePlanConfig.id.endsWith('enterprise') ? (
-              <div className="w-full py-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-xs text-slate-500">
-                Enterprise Plan — Contact support for custom volume quotas
-              </div>
-            ) : (
+            ) : canUpgradeChat ? (
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={() => setShowUpgrade(true)}
-                className="btn-cta w-full py-3.5 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-blue-600 to-indigo-650 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
+                onClick={() => openUpgradeModal('chat')}
+                className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
               >
-                Upgrade Subscription
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                Upgrade Chat Plan
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </motion.button>
+            ) : (
+              <div className="w-full py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-[10px] text-slate-500">
+                Enterprise — Contact support
+              </div>
             )}
           </motion.div>
 
-          {/* ── Sidebar ── */}
-          <div className="space-y-4">
-            <motion.div variants={fadeSlide} className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur-md p-6">
-              <h3 className="text-[10px] font-black text-slate-400 mb-5 tracking-[0.16em] uppercase">Plan Entitlements</h3>
-              <ul className="space-y-3">
-                {activePlanConfig.features.map((feature, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, x: 8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.04, duration: 0.22, ease }}
-                    className="flex items-center gap-3.5"
-                  >
-                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 ${feature.included ? 'bg-blue-50 border border-blue-100 text-blue-500' : 'bg-slate-50 border border-slate-200 text-slate-400'
-                      }`}>
-                      {feature.included ? (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.6}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <span className="text-[9px] font-black">–</span>
-                      )}
-                    </div>
-                    <span className={`text-xs font-semibold ${feature.included ? 'text-slate-700' : 'text-slate-400 line-through decoration-slate-200'}`}>
-                      {feature.text}
-                    </span>
-                  </motion.li>
-                ))}
-              </ul>
-            </motion.div>
+          {/* ── Voice Plan Card ── */}
+          <motion.div
+            variants={fadeUp}
+            className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur-md shadow-sm p-6 sm:p-8 relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 w-48 h-48 bg-radial-gradient from-emerald-500/5 to-transparent rounded-full pointer-events-none" />
+            <div className="absolute -bottom-16 -right-16 w-56 h-56 bg-radial-gradient from-blue-500/5 to-transparent rounded-full pointer-events-none" />
 
-            <motion.div variants={fadeSlide} className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur-md p-6 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-radial-gradient from-blue-500/5 to-transparent rounded-full pointer-events-none" />
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-100 flex items-center justify-center text-blue-600">
-                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 12a3 3 0 110-6 3 3 0 010 6z" />
-                  </svg>
+            <div className="flex items-center justify-between mb-6 relative">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-100 flex items-center justify-center text-emerald-600 text-lg">
+                  🎙️
                 </div>
-                <h3 className="text-xs font-extrabold text-slate-800 tracking-tight">Need assistance?</h3>
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black border bg-emerald-50 text-emerald-600 border-emerald-200 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    VOICE PLAN
+                  </span>
+                  <h2 className="text-xl font-black text-slate-800 tracking-tight">{voicePlanConfig.name}</h2>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mb-4">Our dedicated operations and billing team is here to support you at any stage.</p>
-              <button className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 rounded-xl text-xs font-bold transition-all border border-slate-200 cursor-pointer">
-                Contact Billing Support
-              </button>
-            </motion.div>
+              {userVoicePlan !== 'none' ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-black text-emerald-600 uppercase">Active</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200">
+                  <span className="text-[9px] font-black text-slate-400 uppercase">Not Active</span>
+                </div>
+              )}
+            </div>
 
-            <motion.div variants={fadeSlide} className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur-md p-6">
-              <h3 className="text-[10px] font-black text-slate-400 mb-4 tracking-[0.16em] uppercase">Billing Cycle</h3>
-              <div className="space-y-3">
-                {[
-                  { label: 'Billing Period', value: 'Monthly recurring' },
-                  { label: 'Next Renewal', value: '1st of next month' },
-                  { label: 'Setup Fee', value: 'Waived ($0 / ₹0)' },
-                ].map((item) => (
-                  <div key={item.label} className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-bold">{item.label}</span>
-                    <span className="text-slate-700 font-extrabold">{item.value}</span>
-                  </div>
-                ))}
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-5">{voicePlanConfig.name}</p>
+
+            <div className="flex flex-col gap-1 mb-6">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-black text-slate-800 tracking-tight">
+                  {userVoicePlan.endsWith('enterprise') ? 'Custom' : userVoicePlan === 'none' ? '—' : currency === 'usd' ? `$${(voicePlanConfig.monthlyPriceUSD || 0).toLocaleString()}` : `₹${voicePlanConfig.monthlyPrice.toLocaleString()}`}
+                </span>
+                {!userVoicePlan.endsWith('enterprise') && userVoicePlan !== 'none' && <span className="text-slate-500 font-bold text-xs">/ month</span>}
               </div>
-            </motion.div>
-          </div>
+              {!userVoicePlan.endsWith('enterprise') && userVoicePlan !== 'none' && (
+                <span className="text-[10px] text-slate-400 font-extrabold tracking-wide">
+                  {currency === 'usd' ? `₹${voicePlanConfig.monthlyPrice.toLocaleString()} INR` : `$${(voicePlanConfig.monthlyPriceUSD || 0).toLocaleString()} USD`}
+                </span>
+              )}
+            </div>
+
+            {/* Voice Usage */}
+            {userVoicePlan !== 'none' ? (
+              <div className="mb-5">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Minutes used</span>
+                  <span className="text-xs font-extrabold text-slate-700 tabular-nums">
+                    {user?.minutesUsed || 0}
+                    <span className="text-slate-400 font-medium">
+                      {userVoicePlan.endsWith('enterprise') ? ' / ∞' : ` / ${minutesLimit}`}
+                    </span>
+                  </span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(voiceUsagePct, 100)}%` }}
+                    transition={{ delay: 0.35, duration: 0.95, ease }}
+                    className={`h-full rounded-full bg-gradient-to-r ${getUsageBarColor(voiceUsagePct)} relative`}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-500 mt-1.5 font-bold">
+                  <span>{voiceUsagePct.toFixed(1)}%</span>
+                  <span className="text-emerald-600">
+                    {userVoicePlan.endsWith('enterprise') ? 'Unlimited' : `${Math.max(0, voiceRemaining).toLocaleString()} remaining`}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-5 py-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                <p className="text-[10px] text-slate-400 font-bold">No voice plan active</p>
+                <p className="text-[9px] text-slate-300 font-semibold mt-0.5">Subscribe to unlock AI voice agents</p>
+              </div>
+            )}
+
+            {/* Voice Upgrade Button */}
+            {pendingRequest ? (
+              <div className="w-full py-3 rounded-xl font-bold text-center text-[10px] bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center gap-2">
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Upgrade pending admin review
+              </div>
+            ) : canUpgradeVoice ? (
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => openUpgradeModal('voice')}
+                className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
+              >
+                Upgrade Voice Plan
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </motion.button>
+            ) : userVoicePlan === 'none' ? (
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => openUpgradeModal('voice')}
+                className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
+              >
+                Activate Voice Plan
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </motion.button>
+            ) : (
+              <div className="w-full py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-[10px] text-slate-500">
+                Enterprise — Contact support
+              </div>
+            )}
+          </motion.div>
         </div>
+
+        {/* ── Combined Plan CTA ── */}
+        <motion.div
+          variants={fadeUp}
+          className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 backdrop-blur-md p-6 sm:p-8 relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-48 h-48 bg-radial-gradient from-indigo-500/5 to-transparent rounded-full pointer-events-none" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 relative">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                ⚡
+              </div>
+              <div>
+                <p className="text-[9px] font-black tracking-[0.2em] uppercase text-indigo-500 mb-1">COMBINED PLANS</p>
+                <h3 className="text-lg font-black text-slate-800 tracking-tight">Need Chat + Voice Together?</h3>
+                <p className="text-xs text-slate-500 font-semibold mt-1 max-w-lg leading-relaxed">
+                  Get bundled pricing with a custom Chat + Voice plan. Our team will configure the perfect package for your business needs.
+                </p>
+              </div>
+            </div>
+            <a
+              href="mailto:hello@autoniv.com"
+              className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 active:scale-95 no-underline"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Contact Sales
+            </a>
+          </div>
+        </motion.div>
 
         {/* ── My Chat ── */}
         <div className="relative">
@@ -709,7 +863,7 @@ export function UserBilling() {
             <LockedSectionOverlay
               title="Chat Capabilities Locked"
               desc="Upgrade your plan to a Chat Plan or combined Chat + Voice Plan to access chatbot conversations."
-              onUnlock={() => setShowUpgrade(true)}
+              onUnlock={() => openUpgradeModal()}
             />
           )}
           <motion.div
@@ -728,7 +882,7 @@ export function UserBilling() {
                 <p className="mt-1 text-xs font-semibold text-slate-500">Conversation usage according to your current active subscription</p>
               </div>
               <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-50 border border-blue-200">
-                <span className="text-xs font-extrabold text-blue-700">{activePlanConfig.name}</span>
+                <span className="text-xs font-extrabold text-blue-700">{chatPlanConfig.name}</span>
               </div>
             </div>
 
@@ -739,7 +893,7 @@ export function UserBilling() {
                   <span className="text-xs font-extrabold text-slate-700 tabular-nums">
                     {user?.chatUsed || 0}
                     <span className="text-slate-400 font-medium">
-                      {activePlanConfig.id.endsWith('enterprise') ? ' / ∞' : ` / ${chatLimit}`}
+                      {userChatPlan.endsWith('enterprise') ? ' / ∞' : ` / ${chatLimit}`}
                     </span>
                   </span>
                 </div>
@@ -756,7 +910,7 @@ export function UserBilling() {
                 <div className="flex justify-between text-[11px] text-slate-500 mt-2.5 font-bold">
                   <span>{chatUsagePct.toFixed(1)}% of monthly limit</span>
                   <span className="text-blue-600">
-                    {activePlanConfig.id.endsWith('enterprise') ? 'Unlimited' : `${Math.max(0, chatRemaining).toLocaleString()} conversations remaining`}
+                    {userChatPlan.endsWith('enterprise') ? 'Unlimited' : `${Math.max(0, chatRemaining).toLocaleString()} conversations remaining`}
                   </span>
                 </div>
               </div>
@@ -764,8 +918,8 @@ export function UserBilling() {
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Chats Used', value: user?.chatUsed || 0, bg: 'bg-blue-50 border-blue-100 text-blue-600' },
-                  { label: 'Available', value: activePlanConfig.id.endsWith('enterprise') ? '∞' : Math.max(0, chatRemaining), bg: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
-                  { label: 'Monthly Limit', value: activePlanConfig.id.endsWith('enterprise') ? '∞' : chatLimit, bg: 'bg-slate-50 border-slate-200 text-slate-700' },
+                  { label: 'Available', value: userChatPlan.endsWith('enterprise') ? '∞' : Math.max(0, chatRemaining), bg: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
+                  { label: 'Monthly Limit', value: userChatPlan.endsWith('enterprise') ? '∞' : chatLimit, bg: 'bg-slate-50 border-slate-200 text-slate-700' },
                 ].map((stat, i) => (
                   <motion.div
                     key={stat.label}
@@ -789,7 +943,7 @@ export function UserBilling() {
             <LockedSectionOverlay
               title="Voice Agent Capabilities Locked"
               desc="Upgrade your plan to a Voice Plan or combined Chat + Voice Plan to build, test and deploy voice receptionists."
-              onUnlock={() => setShowUpgrade(true)}
+              onUnlock={() => openUpgradeModal()}
             />
           )}
           <motion.div
@@ -825,7 +979,7 @@ export function UserBilling() {
                 <span className="text-xs font-extrabold text-slate-700 tabular-nums">
                   {voiceCallsUsed}
                   <span className="text-slate-400 font-medium">
-                    {activePlanConfig.id.endsWith('enterprise') ? ' / ∞' : voiceCallsLimit > 0 ? ` / ${voiceCallsLimit}` : ' / —'}
+                    {userVoicePlan.endsWith('enterprise') ? ' / ∞' : voiceCallsLimit > 0 ? ` / ${voiceCallsLimit}` : ' / —'}
                   </span>
                 </span>
               </div>
@@ -842,7 +996,7 @@ export function UserBilling() {
               <div className="flex justify-between text-[11px] text-slate-500 mt-2.5 font-bold">
                 <span>{voiceCallsPct.toFixed(1)}% of monthly limit</span>
                 <span className="text-emerald-600">
-                  {activePlanConfig.id.endsWith('enterprise') ? 'Unlimited' : isUnlimitedCalls ? 'Unlimited' : voiceCallsLimit > 0 ? `${Math.max(0, voiceCallsRemaining).toLocaleString()} calls remaining` : 'No call limit set'}
+                  {userVoicePlan.endsWith('enterprise') ? 'Unlimited' : isUnlimitedCalls ? 'Unlimited' : voiceCallsLimit > 0 ? `${Math.max(0, voiceCallsRemaining).toLocaleString()} calls remaining` : 'No call limit set'}
                 </span>
               </div>
             </div>
@@ -854,7 +1008,7 @@ export function UserBilling() {
                 <span className="text-xs font-extrabold text-slate-700 tabular-nums">
                   {user?.minutesUsed || 0}
                   <span className="text-slate-400 font-medium">
-                    {activePlanConfig.id.endsWith('enterprise') ? ' / ∞' : ` / ${minutesLimit}`}
+                    {userVoicePlan.endsWith('enterprise') ? ' / ∞' : ` / ${minutesLimit}`}
                   </span>
                 </span>
               </div>
@@ -871,7 +1025,7 @@ export function UserBilling() {
               <div className="flex justify-between text-[11px] text-slate-500 mt-2.5 font-bold">
                 <span>{voiceUsagePct.toFixed(1)}% of monthly limit</span>
                 <span className="text-emerald-600">
-                  {activePlanConfig.id.endsWith('enterprise') ? 'Unlimited' : `${Math.max(0, voiceRemaining).toLocaleString()} minutes remaining`}
+                  {userVoicePlan.endsWith('enterprise') ? 'Unlimited' : `${Math.max(0, voiceRemaining).toLocaleString()} minutes remaining`}
                 </span>
               </div>
             </div>
@@ -924,7 +1078,7 @@ export function UserBilling() {
         </div>
 
         {/* ── White Label Settings ── */}
-        <WhiteLabelSection user={user} onUnlockPlan={() => setShowUpgrade(true)} />
+        <WhiteLabelSection user={user} onUnlockPlan={() => openUpgradeModal()} />
 
         {/* ── Upgrade Modal ── */}
         <AnimatePresence>
@@ -1084,7 +1238,8 @@ export function UserBilling() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {planCategories[modalTab as 'chat' | 'voice'].map((p) => {
-                          const isCurrent = p.id === user?.plan;
+                          const currentPlanForTab = modalTab === 'chat' ? userChatPlan : userVoicePlan;
+                          const isCurrent = p.id === currentPlanForTab;
                           const isSelected = selectedPlan === p.id;
                           const isFeatured = p.style === 'featured';
                           return (

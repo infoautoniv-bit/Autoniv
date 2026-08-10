@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { teamService, type TeamData, type TeamMember } from '../../services/api';
-import { toast } from 'react-hot-toast';
+import { useToast } from '../../hooks/useToast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const UsersIcon = () => (
@@ -185,6 +185,7 @@ const RoleDropdown: React.FC<{
 };
 
 export const MyTeam: React.FC = () => {
+  const { add: addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [inviting, setInviting] = useState(false);
   const [teamData, setTeamData] = useState<TeamData | null>(null);
@@ -193,46 +194,48 @@ export const MyTeam: React.FC = () => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'member' | 'agent' | 'admin'>('member');
 
-  const fetchTeam = async () => {
+  const fetchTeam = useCallback(async () => {
     try {
       setLoading(true);
       const res = await teamService.getTeam();
       setTeamData(res.data);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to load team data');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load team data';
+      addToast(message, 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     const handle = setTimeout(() => {
       fetchTeam();
     }, 0);
     return () => clearTimeout(handle);
-  }, []);
+  }, [fetchTeam]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Please enter team member name');
+      addToast('Please enter team member name', 'error');
       return;
     }
     if (!email.trim()) {
-      toast.error('Please enter team member email');
+      addToast('Please enter team member email', 'error');
       return;
     }
 
     try {
       setInviting(true);
       const res = await teamService.inviteMember({ name, email, role });
-      toast.success(res.data.message || 'Team member added successfully!');
+      addToast(res.data.message || 'Team member added successfully!', 'success');
       setName('');
       setEmail('');
       setRole('member');
       fetchTeam();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to add team member');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to add team member';
+      addToast(message, 'error');
     } finally {
       setInviting(false);
     }
@@ -243,10 +246,11 @@ export const MyTeam: React.FC = () => {
 
     try {
       const res = await teamService.removeMember(memberId);
-      toast.success(res.data.message || 'Team member removed');
+      addToast(res.data.message || 'Team member removed', 'success');
       fetchTeam();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to remove team member');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to remove team member';
+      addToast(message, 'error');
     }
   };
 
@@ -266,34 +270,32 @@ export const MyTeam: React.FC = () => {
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       {/* Top Header Card */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-                <UsersIcon />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-4 min-w-0">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 shrink-0">
+              <UsersIcon />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Team Seats & Access</h1>
+                <span className="px-2.5 py-0.5 text-[11px] font-black uppercase bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200/80 shrink-0">
+                  {teamData?.planName || 'Growth Plan'}
+                </span>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Team Seats & Access</h1>
-                  <span className="px-2.5 py-1 text-xs font-black uppercase bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200">
-                    {teamData?.planName || 'Growth Plan'}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-500">Manage team members, roles, and shared inbox access for your organization.</p>
-              </div>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium">Manage team members, roles, and shared inbox access for your organization.</p>
             </div>
           </div>
 
           {/* Seat Counter Badge */}
-          <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex flex-col items-center sm:items-end min-w-[200px]">
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Seats Used</div>
-            <div className="text-2xl font-black text-slate-900">
-              <span className="text-emerald-600">{usedSeats}</span> / {totalSeats}
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col items-start md:items-end min-w-[210px] shrink-0">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Seats Used</div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900">
+              <span className="text-emerald-600">{usedSeats}</span> / {totalSeats > 500 ? 'Unlimited' : totalSeats}
             </div>
-            <div className="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
+            <div className="w-full bg-slate-200/80 h-2 rounded-full mt-2.5 overflow-hidden">
               <div
                 className="bg-emerald-500 h-full transition-all duration-300"
-                style={{ width: `${Math.min(100, (usedSeats / totalSeats) * 100)}%` }}
+                style={{ width: `${Math.min(100, (usedSeats / Math.min(totalSeats, 100)) * 100)}%` }}
               />
             </div>
           </div>

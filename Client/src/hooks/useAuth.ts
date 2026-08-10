@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from './useStore';
 import {
-  logout,
+  logout as logoutAction,
   checkAuth,
   login as loginAction,
   register as registerAction,
@@ -22,30 +22,36 @@ export function useAuth() {
     }
   }, [token, initialized, dispatch]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     return dispatch(loginAction({ email, password })).unwrap();
-  };
+  }, [dispatch]);
 
-  const register = async (data: { name: string; email: string; password: string; company?: string; phoneNumber?: string }) => {
+  const register = useCallback(async (data: { name: string; email: string; password: string; company?: string; phoneNumber?: string }) => {
     return dispatch(registerAction(data)).unwrap();
-  };
+  }, [dispatch]);
 
-  const verifyOtp = async (email: string, otp: string, purpose: 'register' | 'login') => {
+  const verifyOtp = useCallback(async (email: string, otp: string, purpose: 'register' | 'login') => {
     return dispatch(verifyOtpAction({ email, otp, purpose })).unwrap();
-  };
+  }, [dispatch]);
 
-  const googleLogin = async (credential: string) => {
+  const googleLogin = useCallback(async (credential: string) => {
     return dispatch(googleLoginAction(credential)).unwrap();
-  };
+  }, [dispatch]);
 
-  return {
+  const logout = useCallback(() => {
+    return dispatch(logoutAction() as any);
+  }, [dispatch]);
+
+  const isAdmin = user?.role === 'admin';
+
+  return useMemo(() => ({
     user,
     loading,
-    isAdmin: user?.role === 'admin',
+    isAdmin,
     login,
     register,
     verifyOtp,
     googleLogin,
-    logout: () => dispatch(logout()),
-  };
+    logout,
+  }), [user, loading, isAdmin, login, register, verifyOtp, googleLogin, logout]);
 }

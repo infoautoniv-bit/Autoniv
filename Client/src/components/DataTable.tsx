@@ -374,6 +374,7 @@ export function DataTable<T extends Record<string, any>>({
     const a = document.createElement('a');
     a.href = url; a.download = `export-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const getPageNumbers = () => {
@@ -460,6 +461,25 @@ export function DataTable<T extends Record<string, any>>({
               </div>
             )}
 
+            {/* Active search filter badge indicator */}
+            {activeSearch && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-700 font-medium shrink-0 animate-fadeIn">
+                <span>Filter: <strong className="font-bold">"{activeSearch}"</strong></span>
+                <span className="text-[10px] bg-blue-200/60 px-1.5 py-0.5 rounded font-bold">{sorted.length} / {data.length}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSearchChange) onSearchChange('');
+                    else setLocalSearch('');
+                  }}
+                  className="ml-1 text-blue-500 hover:text-blue-900 font-bold"
+                  title="Clear search filter"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {/* Mobile: filter toggle button */}
             {hasData && (
               <button
@@ -542,7 +562,7 @@ export function DataTable<T extends Record<string, any>>({
         {!loading && hasData && hasResults && !isCardView && (
           <>
             <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full min-w-[500px] border-collapse">
+              <table className="w-full min-w-[500px] border-collapse" role="table">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/40">
                     {selectable && (
@@ -550,6 +570,7 @@ export function DataTable<T extends Record<string, any>>({
                         <input type="checkbox"
                           checked={pageData.length > 0 && pageData.every(item => selectedKeys.has(keyExtractor(item)))}
                           onChange={handleSelectAll}
+                          aria-label="Select all rows"
                           className="rounded border-slate-300 text-[var(--primary-blue)] focus:ring-[var(--primary-blue)]/20 cursor-pointer" />
                       </th>
                     )}
@@ -583,6 +604,7 @@ export function DataTable<T extends Record<string, any>>({
                           {selectable && (
                             <td className="px-5 text-center" onClick={e => e.stopPropagation()}>
                               <input type="checkbox" checked={isSelected} onChange={() => handleSelectRow(itemKey)}
+                                aria-label={`Select row`}
                                 className="rounded border-slate-300 text-[var(--primary-blue)] focus:ring-[var(--primary-blue)]/20 cursor-pointer" />
                             </td>
                           )}
@@ -669,7 +691,7 @@ export function DataTable<T extends Record<string, any>>({
                           {cardBadge && !isSelected && <div className="shrink-0 ml-2">{cardBadge(item)}</div>}
                         </div>
                       )}
-                      <div className="space-y-2.5 pl-2">
+                      <div className="grid grid-cols-2 gap-3 pl-2 py-1 border-t border-slate-100 pt-3">
                         {columns.filter(c => c.card && visibleColumns.includes(c.key)).map(col => (
                           <div key={col.key} className="flex flex-col gap-0.5">
                             <span className="text-[9px] font-extrabold uppercase tracking-[0.15em] text-slate-400">{col.card!.label}</span>
@@ -677,9 +699,9 @@ export function DataTable<T extends Record<string, any>>({
                           </div>
                         ))}
                         {!columns.some(c => c.card) && columns.filter(c => visibleColumns.includes(c.key)).map(col => (
-                          <div key={col.key} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
+                          <div key={col.key} className="flex flex-col gap-0.5">
                             <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-400">{col.header}</span>
-                            <span className="text-xs text-slate-600 font-semibold text-right truncate ml-2">{col.render(item)}</span>
+                            <span className="text-xs text-slate-600 font-semibold">{col.render(item)}</span>
                           </div>
                         ))}
                       </div>
@@ -722,15 +744,15 @@ function Pagination({ currentPage, totalPages, totalItems, currentLimit, hasPrev
         <span className="font-bold text-slate-600">{from}–{to}</span> of <span className="font-bold text-slate-600">{totalItems}</span>
       </p>
       <div className="flex items-center gap-1.5 order-1 sm:order-2">
-        <PaginationBtn onClick={() => onPageChange(currentPage - 1)} disabled={!hasPrev}>
+        <PaginationBtn onClick={() => onPageChange(currentPage - 1)} disabled={!hasPrev} aria-label="Previous page">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
         </PaginationBtn>
         {getPageNumbers().map((p, idx) =>
           p === -1
-            ? <span key={`e${idx}`} className="w-8 text-center text-slate-300 text-xs">…</span>
-            : <PaginationBtn key={p} active={currentPage === p} onClick={() => onPageChange(p)}>{p}</PaginationBtn>
+            ? <span key={`e${idx}`} className="w-8 text-center text-slate-300 text-xs" aria-hidden="true">…</span>
+            : <PaginationBtn key={p} active={currentPage === p} onClick={() => onPageChange(p)} aria-label={`Page ${p}`}>{p}</PaginationBtn>
         )}
-        <PaginationBtn onClick={() => onPageChange(currentPage + 1)} disabled={!hasNext}>
+        <PaginationBtn onClick={() => onPageChange(currentPage + 1)} disabled={!hasNext} aria-label="Next page">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
         </PaginationBtn>
       </div>
@@ -738,9 +760,9 @@ function Pagination({ currentPage, totalPages, totalItems, currentLimit, hasPrev
   );
 }
 
-function PaginationBtn({ children, onClick, disabled, active }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; active?: boolean }) {
+function PaginationBtn({ children, onClick, disabled, active, ...props }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; active?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button onClick={onClick} disabled={disabled}
+    <button onClick={onClick} disabled={disabled} {...props}
       className={`min-w-[34px] h-8 px-2 rounded-lg text-xs font-bold flex items-center justify-center border transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer ${
         active ? 'bg-[var(--primary-blue)] border-[var(--primary-blue)] text-white shadow-sm shadow-[var(--primary-blue)]/20'
                : 'bg-white border-slate-200/80 text-slate-500 hover:text-slate-700 hover:bg-slate-50 hover:border-slate-200'

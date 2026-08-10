@@ -1,7 +1,9 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { User } from '../../types';
-import { authService, fetchCsrfToken, resetCsrfToken } from '../../services/api';
+import { authService } from '../../services/api.auth';
+import { fetchCsrfToken, resetCsrfToken } from '../../services/api.base';
 import { getCookie, setCookie, deleteCookie } from '../../services/cookies';
+import { loadFromSession, saveToSession } from '../../utils/storage';
 
 export interface DashboardStats {
   agentCount?: number;
@@ -24,21 +26,6 @@ interface AuthState {
   error: string | null;
 }
 
-function loadFromSession<T>(key: string): T | null {
-  try {
-    const raw = sessionStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveToSession(key: string, value: unknown) {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch { /* quota exceeded — ignore */ }
-}
-
 const cachedUser = loadFromSession<User>('user');
 const accessToken = getCookie('accessToken');
 
@@ -47,7 +34,7 @@ const initialState: AuthState = {
   token: accessToken,
   refreshToken: getCookie('refreshToken'),
   loading: false,
-  initialized: !!(cachedUser && accessToken),
+  initialized: !accessToken || !!(cachedUser && accessToken),
   dashboardStats: loadFromSession<DashboardStats>('cache:dashboardStats'),
   error: null,
 };
@@ -61,8 +48,8 @@ export const checkAuth = createAsyncThunk(
       const res = await authService.me();
       fetchCsrfToken(true);
       return res.data.user as User;
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Session expired');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Session expired');
     }
   },
 );
@@ -88,8 +75,9 @@ export const login = createAsyncThunk(
       fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Login failed');
+    } catch (err: unknown) {
+      const message = (err as any)?.response?.data?.message || (err instanceof Error ? err.message : 'Login failed');
+      return rejectWithValue(message);
     }
   },
 );
@@ -107,8 +95,8 @@ export const googleLogin = createAsyncThunk(
       fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Google authentication failed');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Google authentication failed');
     }
   },
 );
@@ -120,8 +108,8 @@ export const fetchDashboardStats = createAsyncThunk(
     try {
       const res = await authService.getDashboardStats();
       return res.data;
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Failed to load dashboard stats');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to load dashboard stats');
     }
   },
 );
@@ -156,8 +144,8 @@ export const register = createAsyncThunk(
       fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Registration failed');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Registration failed');
     }
   },
 );
@@ -179,10 +167,30 @@ export const verifyOtp = createAsyncThunk(
       fetchCsrfToken(true);
 
       return { token: accessToken, refreshToken: refreshToken ?? null, user };
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Verification failed');
+    } catch (err: unknown) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Verification failed');
     }
   },
+);
+
+export const logout = createAsyncThunk(
+  'auth/logout',
+  async () => {
+    resetCsrfToken();
+    try {
+      await authService.logout();
+    } catch {
+      /* ignore network errors during logout */
+    }
+    deleteCookie('accessToken');
+    deleteCookie('refreshToken');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('cache:myStats');
+    sessionStorage.removeItem('cache:myAgents');
+    sessionStorage.removeItem('cache:myCalls');
+    sessionStorage.removeItem('cache:dashboardStats');
+    fetchCsrfToken(true);
+  }
 );
 
 // ── Slice ──────────────────────────────────────────────────────────────────
@@ -197,30 +205,22 @@ const authSlice = createSlice({
         if (action.payload.chatLimit !== undefined) {
           state.user.chatLimit = action.payload.chatLimit;
         }
-        sessionStorage.setItem('user', JSON.stringify(state.user));
+        saveToSession('user', state.user);
       }
     },
     updatePlan: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
         Object.assign(state.user, action.payload);
-        sessionStorage.setItem('user', JSON.stringify(state.user));
+        saveToSession('user', state.user);
       }
     },
-    logout: (state) => {
-      resetCsrfToken();
-      authService.logout(); // async — clears cookies/sessionStorage and calls /auth/logout
-      fetchCsrfToken(true);
+    resetAuthState: (state) => {
       state.user = null;
       state.token = null;
       state.refreshToken = null;
       state.dashboardStats = null;
       state.error = null;
-      state.initialized = false; // reset so checkAuth reruns on next login
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('cache:myStats');
-      sessionStorage.removeItem('cache:myAgents');
-      sessionStorage.removeItem('cache:myCalls');
-      sessionStorage.removeItem('cache:dashboardStats');
+      state.initialized = false;
     },
     clearError: (state) => {
       state.error = null;
@@ -228,6 +228,15 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // ── logout ───────────────────────────────────────────────────────────
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.dashboardStats = null;
+        state.error = null;
+        state.initialized = false;
+      })
       // ── login ────────────────────────────────────────────────────────────
       .addCase(login.pending, (state) => {
         state.loading = true;
@@ -373,5 +382,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, updateChatUsed, updatePlan } = authSlice.actions;
+export const { resetAuthState, clearError, updateChatUsed, updatePlan } = authSlice.actions;
 export default authSlice.reducer;

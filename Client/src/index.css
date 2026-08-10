@@ -144,6 +144,22 @@ button {
   scrollbar-color: var(--surface-hover) transparent;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  75% { transform: rotate(-10deg); }
+}
+
+@keyframes shimmerSlide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -671,18 +687,15 @@ textarea::placeholder {
   -webkit-tap-highlight-color: transparent;
 }
 
-.landing-page img {
-  content-visibility: auto;
-  contain-intrinsic-size: auto;
-}
+/* Removed content-visibility:auto from .landing-page img — it hides LCP candidates from the rendering pipeline, preventing early discovery. */
 .tag{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;}
 
 @keyframes marquee{0%{transform:translateX(0%)}100%{transform:translateX(-50%)}}
-.animate-marquee{display:flex;width:max-content;animation:marquee 25s linear infinite;will-change:transform;transform:translateZ(0);}
+.animate-marquee{display:flex;width:max-content;animation:marquee 25s linear infinite;transform:translateZ(0);}
 @keyframes marqueeLeft{0%{transform:translateX(0%)}100%{transform:translateX(-33.333%)}}
 @keyframes marqueeRight{0%{transform:translateX(-33.333%)}100%{transform:translateX(0%)}}
-.animate-marquee-left{display:flex;width:max-content;animation:marqueeLeft 30s linear infinite;will-change:transform;transform:translateZ(0);}
-.animate-marquee-right{display:flex;width:max-content;animation:marqueeRight 30s linear infinite;will-change:transform;transform:translateZ(0);}
+.animate-marquee-left{display:flex;width:max-content;animation:marqueeLeft 30s linear infinite;transform:translateZ(0);}
+.animate-marquee-right{display:flex;width:max-content;animation:marqueeRight 30s linear infinite;transform:translateZ(0);}
 .animate-marquee-left:hover,.animate-marquee-right:hover{animation-play-state:paused;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideIn{from{opacity:0;transform:translateY(10px) scale(0.97)}to{opacity:1;transform:none}}
@@ -700,7 +713,7 @@ textarea::placeholder {
 .delay-100{animation-delay:.1s}.delay-200{animation-delay:.2s}.delay-300{animation-delay:.3s}.delay-400{animation-delay:.4s}.delay-500{animation-delay:.5s}
 
 .chat-bubble-in{animation:slideIn .35s cubic-bezier(.16,1,.3,1) both;will-change:transform,opacity;transform:translateZ(0);}
-.orb-idle{animation:orbIdle 3s ease-in-out infinite;will-change:opacity;}
+.orb-idle{animation:orbIdle 3s ease-in-out infinite;}
 
 .nav-glass{background:rgba(255,255,255,0.96);border-bottom:1px solid rgba(37,99,235,0.12);}
 .nav-glass.scrolled{box-shadow:0 4px 30px rgba(37,99,235,0.06);}
@@ -774,7 +787,7 @@ textarea::placeholder {
 
 /* ── Slow drifting gradient (Hero headline / backgrounds) ── */
 @keyframes gradientDrift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.animated-gradient{background-size:100% auto;will-change:transform;}
+.animated-gradient{background-size:100% auto;}
 
 /* ── Hero clipped gradient headline (works across per-word reveal spans) ── */
 .hero-gradient-text{
@@ -786,13 +799,13 @@ textarea::placeholder {
 
 /* ── Floating decorative blobs (CTA / Hero) ── */
 @keyframes blobFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(3%,-4%) scale(1.06)}66%{transform:translate(-3%,4%) scale(0.96)}}
-.blob-float{animation:blobFloat 14s ease-in-out infinite;will-change:transform;transform:translateZ(0);}
+.blob-float{animation:blobFloat 14s ease-in-out infinite;transform:translateZ(0);}
 .blob-float.slow{animation-duration:20s;}
 
 /* ── Animated gradient border for the "popular" pricing card ── */
 @keyframes borderSpin{0%{background-position:0% 50%}100%{background-position:200% 50%}}
 .popular-border{position:relative;}
-.popular-border::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:linear-gradient(120deg,#2563EB,#10B981,#34D399,#2563EB);background-size:200% 200%;animation:borderSpin 5s linear infinite;will-change:background-position;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:2;}
+.popular-border::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:linear-gradient(120deg,#2563EB,#10B981,#34D399,#2563EB);background-size:200% 200%;animation:borderSpin 5s linear infinite;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:2;}
 
 /* ── Animated underline for links ── */
 .link-underline{position:relative;}
@@ -805,7 +818,7 @@ textarea::placeholder {
 
 /* ── Sparkle twinkle (CTA) ── */
 @keyframes sparkleTwinkle{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:.9;transform:scale(1.1)}}
-.sparkle{animation:sparkleTwinkle 3s ease-in-out infinite;will-change:transform,opacity;transform:translateZ(0);}
+.sparkle{animation:sparkleTwinkle 3s ease-in-out infinite;transform:translateZ(0);}
 
 /* ════════════════════════════════════════════════════════════════════════
    prefers-reduced-motion — collapse all motion to near-instant, opacity-safe
@@ -837,17 +850,17 @@ textarea::placeholder {
   0%, 100% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(0, -10px, 0); }
 }
-.card-float-1 { animation: cardFloat1 5.5s ease-in-out infinite; will-change: transform; }
-.card-float-2 { animation: cardFloat2 6.0s ease-in-out infinite; will-change: transform; }
-.card-float-3 { animation: cardFloat3 5.2s ease-in-out infinite; will-change: transform; }
-.card-float-4 { animation: cardFloat4 5.8s ease-in-out infinite; will-change: transform; }
+.card-float-1 { animation: cardFloat1 5.5s ease-in-out infinite; }
+.card-float-2 { animation: cardFloat2 6.0s ease-in-out infinite; }
+.card-float-3 { animation: cardFloat3 5.2s ease-in-out infinite; }
+.card-float-4 { animation: cardFloat4 5.8s ease-in-out infinite; }
 
 /* ── Glow Ring and Phone Mockup loop keyframes ── */
 @keyframes phoneFloat {
   0%, 100% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(0, -12px, 0); }
 }
-.phone-float { animation: phoneFloat 6s ease-in-out infinite; will-change: transform; }
+.phone-float { animation: phoneFloat 6s ease-in-out infinite; }
 
 @keyframes orbPulse {
   0%, 100% { transform: scale(1); opacity: 0.85; }
@@ -947,6 +960,34 @@ body {
   -webkit-background-clip: text !important;
   background-clip: text !important;
   display: inline !important;
+}
+
+/* ─── Custom Scrollbar ─── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+/* ─── Screen reader only utility ─── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 

@@ -60,6 +60,7 @@ export function Pagination({ pagination, onPageChange }: PaginationProps) {
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={!hasPrev}
+          aria-label="Previous page"
           className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-slate-100 border border-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center bg-white shadow-sm"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
@@ -69,13 +70,15 @@ export function Pagination({ pagination, onPageChange }: PaginationProps) {
 
         {getPages().map((p, i) =>
           p === '...' ? (
-            <span key={`dots-${i}`} className="text-slate-400 px-1.5 font-bold select-none">
+            <span key={`dots-${i}`} className="text-slate-400 px-1.5 font-bold select-none" aria-hidden="true">
               …
             </span>
           ) : (
             <button
               key={p}
               onClick={() => onPageChange(p)}
+              aria-label={`Page ${p}`}
+              aria-current={p === page ? 'page' : undefined}
               className={`w-8 h-8 rounded-xl text-xs font-bold transition-all flex items-center justify-center border active:scale-95 ${
                 p === page
                   ? 'bg-[var(--primary-blue)] border-[var(--primary-blue)] text-white shadow-md shadow-blue-500/20'
@@ -90,6 +93,7 @@ export function Pagination({ pagination, onPageChange }: PaginationProps) {
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={!hasNext}
+          aria-label="Next page"
           className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-slate-50 border border-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center bg-white shadow-sm"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>

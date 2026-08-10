@@ -1,147 +1,185 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MetaRobots, PRIVATE_ROBOTS } from '../../components/MetaRobots';
 import PublicNavbar from '../../components/PublicNavbar';
 import Footer from './Footer';
 import { USPSlider } from './sections/USPSlider';
-import { contactService } from '../../services/api';
+import { contactService } from '../../services/api.public';
+import { trackLeadFormConversion } from '../../utils/analytics';
+
 
 interface FormData {
+  // Step 1: Contact
   fullName: string;
   email: string;
   phone: string;
   company: string;
-  primaryGoal: string;
-  teamSize: string;
-  budget: string;
-  message: string;
+  website: string;
+  
+  // Step 2: Business
+  industry: string;
+  companySize: string;
+
+  // Step 3: Needs
+  needs: string[];
+  callVolume: string;
+  challenge: string;
+
+  // Step 4: Preferences
+  contactMethod: string;
+  preferredTime: string;
 }
 
 interface FormErrors {
   fullName?: string;
   email?: string;
   phone?: string;
+  company?: string;
+  industry?: string;
+  companySize?: string;
+  contactMethod?: string;
 }
 
-const GOALS = [
-  {
-    id: 'voice_agent',
-    title: 'AI Voice Agents',
-    desc: 'Inbound & outbound 24/7 call automation',
-    icon: (
-      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'chatbot',
-    title: 'AI Chatbots & WhatsApp',
-    desc: 'Website & WhatsApp sales lead capture',
-    icon: (
-      <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'receptionist',
-    title: 'Phone Receptionist',
-    desc: '24/7 Front-desk call answering & transfer',
-    icon: (
-      <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'custom_ai',
-    title: 'Enterprise Custom AI',
-    desc: 'Bespoke LLM & CRM voice workflow integrations',
-    icon: (
-      <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-  },
+const INDUSTRIES = [
+  'Healthcare',
+  'Real Estate',
+  'Finance',
+  'Education',
+  'E-commerce',
+  'Automotive',
+  'Restaurant',
+  'Home Services',
+  'Recruitment',
+  'Other',
 ];
 
-const TEAM_SIZES = ['1 - 10', '11 - 50', '51 - 200', '200+ employees'];
-const BUDGET_RANGES = ['< ₹25k / $300 mo', '₹25k - ₹75k mo', '₹75k - ₹2L mo', 'Enterprise Custom'];
+const COMPANY_SIZES = [
+  '1–10 Employees',
+  '11–50 Employees',
+  '51–200 Employees',
+  '201–1000 Employees',
+  '1000+',
+];
+
+const NEEDS_OPTIONS = [
+  'AI Voice Agent',
+  'AI Chatbot',
+  'AI Receptionist',
+  'Appointment Booking',
+  'Customer Support Automation',
+  'Lead Qualification',
+  'Outbound Calling',
+  'Custom AI Solution',
+];
+
+const CALL_VOLUMES = [
+  'Less than 500',
+  '500–2,000',
+  '2,000–10,000',
+  '10,000+',
+];
+
+const CONTACT_METHODS = [
+  { id: 'Phone Call', label: '📞 Phone Call' },
+  { id: 'WhatsApp', label: '💬 WhatsApp' },
+  { id: 'Email', label: '✉️ Email' },
+  { id: 'Google Meet', label: '🎥 Google Meet' },
+];
+
+const PREFERRED_TIMES = [
+  'Morning (9 AM–12 PM)',
+  'Afternoon (12 PM–4 PM)',
+  'Evening (4 PM–8 PM)',
+];
 
 export function ContactAdPage() {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
     phone: '',
     company: '',
-    primaryGoal: 'voice_agent',
-    teamSize: '1 - 10',
-    budget: '₹25k - ₹75k mo',
-    message: '',
+    website: '',
+    industry: '',
+    companySize: '',
+    needs: ['AI Voice Agent'],
+    callVolume: '',
+    challenge: '',
+    contactMethod: 'Phone Call',
+    preferredTime: '',
   });
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [refId, setRefId] = useState('');
   const [serverError, setServerError] = useState('');
 
-  const validateStep1 = () => {
+  const validateStep = (currentStep: number): boolean => {
     const errs: FormErrors = {};
-    if (!formData.fullName.trim()) errs.fullName = 'Full name is required';
-    if (!formData.email.trim()) {
-      errs.email = 'Business email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      errs.email = 'Please enter a valid email address (e.g. name@company.com)';
+
+    if (currentStep === 1) {
+      if (!formData.fullName.trim()) errs.fullName = 'Please enter your full name.';
+      if (!formData.email.trim()) {
+        errs.email = 'Please enter a valid email.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+        errs.email = 'Please enter a valid email address.';
+      }
+      if (!formData.phone.trim()) {
+        errs.phone = 'Please enter a valid phone number.';
+      } else if (formData.phone.replace(/[^0-9]/g, '').length < 7) {
+        errs.phone = 'Please enter a valid phone number.';
+      }
+      if (!formData.company.trim()) errs.company = 'Please enter your company name.';
+    } else if (currentStep === 2) {
+      if (!formData.industry) errs.industry = 'Please select your industry.';
+      if (!formData.companySize) errs.companySize = 'Please select a company size.';
+    } else if (currentStep === 4) {
+      if (!formData.contactMethod) errs.contactMethod = 'Please choose a contact method.';
     }
-    if (formData.phone && !/^[0-9+\s-()]{7,17}$/.test(formData.phone.trim())) {
-      errs.phone = 'Please enter a valid phone number';
-    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const handleNext = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (step === 1) {
-      if (validateStep1()) {
-        setStep(2);
-      }
-    } else if (step === 2) {
-      setStep(3);
+    if (e) e.preventDefault();
+    if (validateStep(step)) {
+      if (step < 4) setStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
     }
   };
 
   const handleBack = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+    if (e) e.preventDefault();
     if (step > 1) {
-      setStep((prev) => (prev - 1) as 1 | 2);
+      setStep((prev) => (prev - 1) as 1 | 2 | 3 | 4);
     }
+  };
+
+  const toggleNeed = (need: string) => {
+    setFormData((prev) => {
+      const exists = prev.needs.includes(need);
+      return {
+        ...prev,
+        needs: exists ? prev.needs.filter((n) => n !== need) : [...prev.needs, need],
+      };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step === 1) {
-      if (validateStep1()) setStep(2);
+    if (step < 4) {
+      handleNext();
       return;
     }
-    if (step === 2) {
-      setStep(3);
-      return;
-    }
+
+    if (!validateStep(4)) return;
 
     setSubmitting(true);
     setServerError('');
     try {
-      const selectedGoalObj = GOALS.find((g) => g.id === formData.primaryGoal);
-      const compositeMessage = `[Primary Goal: ${selectedGoalObj?.title || formData.primaryGoal}] [Team Size: ${formData.teamSize}] [Budget: ${formData.budget}]\n${formData.message.trim() || 'No notes specified.'}`;
+      const compositeMessage = `[Company: ${formData.company}] [Website: ${formData.website || 'N/A'}] [Industry: ${formData.industry}] [Company Size: ${formData.companySize}] [Needs: ${formData.needs.join(', ') || 'None selected'}] [Monthly Volume: ${formData.callVolume || 'N/A'}] [Preferred Method: ${formData.contactMethod}] [Preferred Time: ${formData.preferredTime || 'N/A'}]\nChallenge / Notes: ${formData.challenge.trim() || 'None specified.'}`;
 
       const res = await contactService.submit({
         name: formData.fullName.trim(),
@@ -151,14 +189,18 @@ export function ContactAdPage() {
         message: compositeMessage,
       });
 
-      const generatedRef = res.data.contactId
-        ? `ATN-${res.data.contactId.slice(-6).toUpperCase()}`
-        : `ATN-${Math.floor(100000 + Math.random() * 900000)}`;
+      const generatedRef = res.data?.contactId
+        ? `AUT-${res.data.contactId.slice(-6).toUpperCase()}`
+        : `AUT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
       setRefId(generatedRef);
       setSubmitted(true);
-    } catch (err: any) {
-      setServerError(err.response?.data?.message || 'Failed to submit request. Please check your connection and try again.');
+      trackLeadFormConversion();
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err)
+        ? err.response?.data?.message
+        : 'Failed to submit request. Please check your connection and try again.';
+      setServerError(message || 'Failed to submit request. Please check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -170,10 +212,14 @@ export function ContactAdPage() {
       email: '',
       phone: '',
       company: '',
-      primaryGoal: 'voice_agent',
-      teamSize: '1 - 10',
-      budget: '₹25k - ₹75k mo',
-      message: '',
+      website: '',
+      industry: '',
+      companySize: '',
+      needs: ['AI Voice Agent'],
+      callVolume: '',
+      challenge: '',
+      contactMethod: 'Phone Call',
+      preferredTime: '',
     });
     setErrors({});
     setStep(1);
@@ -181,12 +227,12 @@ export function ContactAdPage() {
     setRefId('');
   };
 
-  const progressPercent = step === 1 ? '33%' : step === 2 ? '66%' : '100%';
+  const progressPercent = step === 1 ? 25 : step === 2 ? 50 : step === 3 ? 75 : 100;
 
   return (
     <div 
       className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col selection:bg-[#2563EB] selection:text-white pt-[36px] relative"
-      style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}
+      style={{ fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
     >
       {/* STRICT NOINDEX META TAG FOR ADS LANDING PAGE */}
       <MetaRobots content={PRIVATE_ROBOTS} />
@@ -195,131 +241,160 @@ export function ContactAdPage() {
       <PublicNavbar />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-20 lg:py-30 relative z-20">
-        
-        {/* Top Campaign Header */}
-        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-[#2563EB] text-xs font-bold uppercase tracking-wider mb-4 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-            Ad Campaign Priority Desk
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
           
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight">
-            Automate Sales & Support With <span className="bg-gradient-to-r from-[#2563EB] to-[#10B981] bg-clip-text text-transparent">Autonomous AI Agents</span>
-          </h1>
-          
-          <p className="mt-4 text-base sm:text-lg text-[#64748B] leading-relaxed">
-            Deploy 24/7 intelligent AI Voice & Chat Assistants to handle calls, qualify leads, schedule appointments, and resolve customer inquiries in 20+ languages.
-          </p>
-        </div>
+          {/* LEFT BRAND PANEL */}
+          <div className="lg:col-span-5 space-y-8 lg:sticky lg:top-12">
+            <div>
+              {/* Eyebrow */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-[#2563EB] text-xs font-bold uppercase tracking-wider mb-5 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                AI Automation
+              </div>
 
-        {/* Main Content Container */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
-          {/* Left Specs */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Stats Card */}
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-md space-y-5">
-              <h3 className="text-sm font-extrabold text-[#0F172A] uppercase tracking-wider">Why Enterprise Teams Choose Autoniv</h3>
-              
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="text-2xl font-black bg-gradient-to-r from-[#2563EB] to-[#10B981] bg-clip-text text-transparent block">99.8%</span>
-                  <span className="text-xs font-bold text-[#0F172A] mt-1 block">Uptime SLA</span>
-                  <span className="text-[10px] text-[#94A3B8]">Carrier-grade stack</span>
+              {/* Heading */}
+              <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-extrabold text-[#0F172A] leading-[1.15] tracking-tight mb-5">
+                Let's automate <br className="hidden sm:block" />
+                <span className="inline-block bg-gradient-to-r from-[#2563EB] to-[#10B981] bg-clip-text text-transparent italic font-extrabold pr-3 py-1">
+                  your business.
+                </span>
+              </h1>
+
+              <p className="text-[#64748B] text-sm sm:text-base leading-relaxed max-w-prose mb-8 font-medium">
+                Fill out the form and one of our AI automation specialists will reach out within 24 hours with a tailored plan for your business.
+              </p>
+
+              {/* Social Proof with Real Avatar Images */}
+              <div className="flex items-center gap-3.5 mb-9">
+                <div className="flex -space-x-2.5 overflow-hidden">
+                  <img
+                    className="inline-block h-9 w-9 rounded-full ring-2 ring-white object-cover shadow-sm"
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
+                    alt="Client"
+                  />
+                  <img
+                    className="inline-block h-9 w-9 rounded-full ring-2 ring-white object-cover shadow-sm"
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80"
+                    alt="Client"
+                  />
+                  <img
+                    className="inline-block h-9 w-9 rounded-full ring-2 ring-white object-cover shadow-sm"
+                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80"
+                    alt="Client"
+                  />
+                  <img
+                    className="inline-block h-9 w-9 rounded-full ring-2 ring-white object-cover shadow-sm"
+                    src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80"
+                    alt="Client"
+                  />
                 </div>
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="text-2xl font-black bg-gradient-to-r from-[#2563EB] to-[#10B981] bg-clip-text text-transparent block">&lt; 200ms</span>
-                  <span className="text-xs font-bold text-[#0F172A] mt-1 block">Voice Latency</span>
-                  <span className="text-[10px] text-[#94A3B8]">Human conversational</span>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="text-2xl font-black bg-gradient-to-r from-[#2563EB] to-[#10B981] bg-clip-text text-transparent block">20+</span>
-                  <span className="text-xs font-bold text-[#0F172A] mt-1 block">Languages</span>
-                  <span className="text-[10px] text-[#94A3B8]">Global & regional accents</span>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="text-2xl font-black bg-gradient-to-r from-[#2563EB] to-[#10B981] bg-clip-text text-transparent block">70%</span>
-                  <span className="text-xs font-bold text-[#0F172A] mt-1 block">Cost Reduction</span>
-                  <span className="text-[10px] text-[#94A3B8]">Lower overhead cost</span>
+                <div className="text-xs sm:text-sm text-[#64748B] font-medium leading-snug">
+                  <b className="text-[#0F172A] font-extrabold">120+</b> businesses already automated with Autoniv
                 </div>
               </div>
-            </div>
 
-            {/* Feature Highlights */}
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-md space-y-4">
-              <h3 className="text-sm font-extrabold text-[#0F172A] uppercase tracking-wider">What You Get</h3>
-              
-              <div className="space-y-3.5 text-xs sm:text-sm text-[#64748B]">
+              {/* Side Stats */}
+              <div className="flex flex-wrap gap-7 sm:gap-9 mb-9">
+                <div>
+                  <b className="text-2xl sm:text-[28px] font-extrabold bg-gradient-to-r from-[#2563EB] to-[#10B981] bg-clip-text text-transparent inline-block whitespace-nowrap pr-1">
+                    24h
+                  </b>
+                  <span className="text-[11px] text-[#94A3B8] uppercase tracking-wider font-bold block mt-0.5">
+                    RESPONSE TIME
+                  </span>
+                </div>
+                <div>
+                  <b className="text-2xl sm:text-[28px] font-extrabold bg-gradient-to-r from-[#2563EB] to-[#10B981] bg-clip-text text-transparent inline-block whitespace-nowrap pr-1">
+                    0 ₹
+                  </b>
+                  <span className="text-[11px] text-[#94A3B8] uppercase tracking-wider font-bold block mt-0.5">
+                    CONSULTATION COST
+                  </span>
+                </div>
+                <div>
+                  <b className="text-2xl sm:text-[28px] font-extrabold bg-gradient-to-r from-[#2563EB] to-[#10B981] bg-clip-text text-transparent inline-block whitespace-nowrap pr-1">
+                    100%
+                  </b>
+                  <span className="text-[11px] text-[#94A3B8] uppercase tracking-wider font-bold block mt-0.5">
+                    CUSTOM BUILT
+                  </span>
+                </div>
+              </div>
+
+              {/* Trust List */}
+              <div className="pt-6 border-t border-slate-200/80 space-y-3.5">
                 {[
-                  'Instant 1-Line Embed Script & CRM Sync (HubSpot, Salesforce, Zoho, Custom Webhooks)',
-                  'Human-Like AI Voice Agents in 20+ Languages with < 200ms Latency',
-                  'Flexible Monthly Plans — No Lock-in Contracts with Risk-Free Trial',
-                  'Enterprise-Grade HMAC SHA-256 Signature Security & End-to-End Encryption',
-                  'Dedicated Technical Solutions Manager & 24/7 Priority Onboarding Support',
+                  'Free consultation, no strings attached',
+                  'Custom AI strategy for your industry',
+                  'No obligation to proceed',
+                  'We reply within 24 hours, guaranteed',
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-[#10B981] flex-shrink-0 font-bold text-xs mt-0.5">
+                  <div key={idx} className="flex items-center gap-3 text-xs sm:text-sm text-[#64748B]">
+                    <div className="w-5 h-5 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center flex-shrink-0 text-[#10B981] font-bold text-xs">
                       ✓
                     </div>
-                    <span className="font-medium text-[#334155] leading-snug">{item}</span>
+                    <span className="font-semibold text-[#334155]">{item}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Right Form Card */}
+          {/* RIGHT FORM CARD */}
           <div className="lg:col-span-7">
-            <div className="p-6 sm:p-10 rounded-3xl bg-white border border-slate-200/90 shadow-xl shadow-slate-200/50 relative overflow-hidden">
+            <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-10 relative overflow-hidden shadow-xl shadow-slate-200/50">
+              {/* Top Gradient Border */}
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#2563EB] via-teal-500 to-[#10B981]" />
 
               {!submitted ? (
                 <div>
-                  {/* Step Tracker */}
-                  <div className="space-y-3 mb-8">
-                    <div className="flex items-center justify-between text-xs font-mono text-[#64748B]">
-                      <span className="font-semibold text-[#0F172A]">
-                        Step <strong className="text-[#2563EB] font-extrabold">{step}</strong> of 3
+                  <form onSubmit={handleSubmit} noValidate>
+                    {/* Progress Row */}
+                    <div className="flex items-center justify-between text-xs font-mono text-[#64748B] mb-2 mt-1">
+                      <span className="font-semibold">
+                        Step <b className="text-[#2563EB] font-extrabold">{String(step).padStart(2, '0')}</b> / 04 <span className="text-[#94A3B8] font-normal">· ~60 sec</span>
                       </span>
-                      <span className="text-xs text-[#94A3B8]">Est. time: 30 secs</span>
+                      <span className="font-bold text-[#10B981]">{progressPercent}%</span>
                     </div>
 
-                    {/* Progress Fill */}
-                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    {/* Progress Track */}
+                    <div className="h-2 w-full bg-slate-100 rounded-full mb-6 overflow-hidden">
                       <motion.div
                         className="h-full bg-gradient-to-r from-[#2563EB] to-[#10B981] rounded-full"
-                        initial={{ width: '33%' }}
-                        animate={{ width: progressPercent }}
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        initial={{ width: '25%' }}
+                        animate={{ width: `${progressPercent}%` }}
+                        transition={{ duration: 0.35, ease: 'easeInOut' }}
                       />
                     </div>
 
-                    {/* Step Pills */}
-                    <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] pt-1">
-                      <span className={`flex items-center gap-1.5 py-1 ${step === 1 ? 'text-[#2563EB] font-extrabold' : 'text-[#64748B]'}`}>
-                        <span className={`w-2.5 h-2.5 rounded-full ${step === 1 ? 'bg-[#2563EB]' : 'bg-slate-300'}`} />
-                        1. Contact Info
+                    {/* Step Names */}
+                    <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-8 pt-1">
+                      <span className={`flex items-center gap-1.5 ${step === 1 ? 'text-[#0F172A] font-extrabold' : step > 1 ? 'text-[#10B981]' : ''}`}>
+                        <span className={`w-2.5 h-2.5 rounded-full ${step === 1 ? 'bg-[#2563EB]' : step > 1 ? 'bg-[#10B981]' : 'bg-slate-300'}`} />
+                        Contact
                       </span>
-                      <span className={`flex items-center gap-1.5 py-1 ${step === 2 ? 'text-[#2563EB] font-extrabold' : 'text-[#64748B]'}`}>
-                        <span className={`w-2.5 h-2.5 rounded-full ${step === 2 ? 'bg-[#2563EB]' : 'bg-slate-300'}`} />
-                        2. AI Goal
+                      <span className={`flex items-center gap-1.5 ${step === 2 ? 'text-[#0F172A] font-extrabold' : step > 2 ? 'text-[#10B981]' : ''}`}>
+                        <span className={`w-2.5 h-2.5 rounded-full ${step === 2 ? 'bg-[#2563EB]' : step > 2 ? 'bg-[#10B981]' : 'bg-slate-300'}`} />
+                        Business
                       </span>
-                      <span className={`flex items-center gap-1.5 py-1 ${step === 3 ? 'text-[#2563EB] font-extrabold' : 'text-[#64748B]'}`}>
-                        <span className={`w-2.5 h-2.5 rounded-full ${step === 3 ? 'bg-[#2563EB]' : 'bg-slate-300'}`} />
-                        3. Requirements
+                      <span className={`flex items-center gap-1.5 ${step === 3 ? 'text-[#0F172A] font-extrabold' : step > 3 ? 'text-[#10B981]' : ''}`}>
+                        <span className={`w-2.5 h-2.5 rounded-full ${step === 3 ? 'bg-[#2563EB]' : step > 3 ? 'bg-[#10B981]' : 'bg-slate-300'}`} />
+                        Needs
+                      </span>
+                      <span className={`flex items-center gap-1.5 ${step === 4 ? 'text-[#0F172A] font-extrabold' : ''}`}>
+                        <span className={`w-2.5 h-2.5 rounded-full ${step === 4 ? 'bg-[#2563EB]' : 'bg-slate-300'}`} />
+                        Preferences
                       </span>
                     </div>
-                  </div>
 
-                  {serverError && (
-                    <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-mono">
-                      {serverError}
-                    </div>
-                  )}
+                    {serverError && (
+                      <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-semibold" role="alert">
+                        {serverError}
+                      </div>
+                    )}
 
-                  <form onSubmit={handleSubmit} noValidate>
                     <AnimatePresence mode="wait">
-                      {/* STEP 1 */}
+                      {/* STEP 1: Contact information */}
                       {step === 1 && (
                         <motion.div
                           key="step1"
@@ -330,56 +405,71 @@ export function ContactAdPage() {
                           className="space-y-5"
                         >
                           <div>
-                            <h2 className="text-xl font-extrabold text-[#0F172A]">Let's start with your contact details</h2>
-                            <p className="text-xs text-[#64748B] mt-1">Fill in your contact info to continue to solution selection.</p>
+                            <h2 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] mb-1">
+                              Contact information
+                            </h2>
+                            <p className="text-xs sm:text-sm text-[#64748B]">
+                              Tell us who we're speaking with.
+                            </p>
                           </div>
 
+                          {/* Full Name */}
                           <div>
                             <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
                               Full Name <span className="text-[#2563EB]">*</span>
                             </label>
                             <input
                               type="text"
-                              placeholder="e.g. Alex Morgan"
+                              placeholder="Jordan Michaels"
                               value={formData.fullName}
                               onChange={(e) => {
                                 setFormData({ ...formData, fullName: e.target.value });
                                 if (errors.fullName) setErrors({ ...errors, fullName: undefined });
                               }}
-                              className={`w-full px-4 py-3.5 rounded-xl border text-sm transition-all outline-none ${
+                              className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none transition-all font-medium ${
                                 errors.fullName
-                                  ? 'border-red-400 bg-red-50/40 text-[#0F172A] ring-2 ring-red-200'
-                                  : 'border-slate-200 bg-slate-50/50 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white'
+                                  ? 'border-red-400 bg-red-50/40 ring-2 ring-red-200'
+                                  : 'border-slate-200 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white'
                               }`}
                             />
-                            {errors.fullName && <p className="text-xs text-red-600 mt-1.5 font-mono font-semibold">⚠️ {errors.fullName}</p>}
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
-                              Business Email <span className="text-[#2563EB]">*</span>
-                            </label>
-                            <input
-                              type="email"
-                              placeholder="alex@company.com"
-                              value={formData.email}
-                              onChange={(e) => {
-                                setFormData({ ...formData, email: e.target.value });
-                                if (errors.email) setErrors({ ...errors, email: undefined });
-                              }}
-                              className={`w-full px-4 py-3.5 rounded-xl border text-sm transition-all outline-none ${
-                                errors.email
-                                  ? 'border-red-400 bg-red-50/40 text-[#0F172A] ring-2 ring-red-200'
-                                  : 'border-slate-200 bg-slate-50/50 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white'
-                              }`}
-                            />
-                            {errors.email && <p className="text-xs text-red-600 mt-1.5 font-mono font-semibold">⚠️ {errors.email}</p>}
+                            {errors.fullName && (
+                              <p className="text-xs text-red-600 font-mono font-semibold mt-1">
+                                ⚠️ {errors.fullName}
+                              </p>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Work Email */}
                             <div>
                               <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
-                                Phone Number <span className="text-[#94A3B8] font-normal lowercase">(optional)</span>
+                                Work Email <span className="text-[#2563EB]">*</span>
+                              </label>
+                              <input
+                                type="email"
+                                placeholder="you@company.com"
+                                value={formData.email}
+                                onChange={(e) => {
+                                  setFormData({ ...formData, email: e.target.value });
+                                  if (errors.email) setErrors({ ...errors, email: undefined });
+                                }}
+                                className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none transition-all font-medium ${
+                                  errors.email
+                                    ? 'border-red-400 bg-red-50/40 ring-2 ring-red-200'
+                                    : 'border-slate-200 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white'
+                                }`}
+                              />
+                              {errors.email && (
+                                <p className="text-xs text-red-600 font-mono font-semibold mt-1">
+                                  ⚠️ {errors.email}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Phone Number */}
+                            <div>
+                              <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+                                Phone Number <span className="text-[#2563EB]">*</span>
                               </label>
                               <input
                                 type="tel"
@@ -389,32 +479,69 @@ export function ContactAdPage() {
                                   setFormData({ ...formData, phone: e.target.value });
                                   if (errors.phone) setErrors({ ...errors, phone: undefined });
                                 }}
-                                className={`w-full px-4 py-3.5 rounded-xl border text-sm outline-none transition-all ${
+                                className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none transition-all font-medium ${
                                   errors.phone
-                                    ? 'border-red-400 bg-red-50/40 text-[#0F172A]'
-                                    : 'border-slate-200 bg-slate-50/50 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white'
+                                    ? 'border-red-400 bg-red-50/40 ring-2 ring-red-200'
+                                    : 'border-slate-200 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white'
                                 }`}
                               />
-                              {errors.phone && <p className="text-xs text-red-600 mt-1 font-mono font-semibold">⚠️ {errors.phone}</p>}
+                              {errors.phone ? (
+                                <p className="text-xs text-red-600 font-mono font-semibold mt-1">
+                                  ⚠️ {errors.phone}
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-[#94A3B8] mt-1 font-medium">
+                                  🔒 We'll only use this to reach you. No spam, ever.
+                                </p>
+                              )}
                             </div>
+                          </div>
 
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Company Name */}
                             <div>
                               <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
-                                Company Name <span className="text-[#94A3B8] font-normal lowercase">(optional)</span>
+                                Company Name <span className="text-[#2563EB]">*</span>
                               </label>
                               <input
                                 type="text"
                                 placeholder="Acme Inc."
                                 value={formData.company}
-                                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                                className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white outline-none transition-all"
+                                onChange={(e) => {
+                                  setFormData({ ...formData, company: e.target.value });
+                                  if (errors.company) setErrors({ ...errors, company: undefined });
+                                }}
+                                className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none transition-all font-medium ${
+                                  errors.company
+                                    ? 'border-red-400 bg-red-50/40 ring-2 ring-red-200'
+                                    : 'border-slate-200 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white'
+                                }`}
+                              />
+                              {errors.company && (
+                                <p className="text-xs text-red-600 font-mono font-semibold mt-1">
+                                  ⚠️ {errors.company}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Website */}
+                            <div>
+                              <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+                                Website <span className="text-[#94A3B8] font-normal lowercase">(optional)</span>
+                              </label>
+                              <input
+                                type="url"
+                                placeholder="acme.com"
+                                value={formData.website}
+                                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                                className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all font-medium"
                               />
                             </div>
                           </div>
                         </motion.div>
                       )}
 
-                      {/* STEP 2 */}
+                      {/* STEP 2: Business information */}
                       {step === 2 && (
                         <motion.div
                           key="step2"
@@ -425,79 +552,93 @@ export function ContactAdPage() {
                           className="space-y-6"
                         >
                           <div>
-                            <h2 className="text-xl font-extrabold text-[#0F172A]">AI Solution Goal</h2>
-                            <p className="text-xs text-[#64748B] mt-1">Select what solution best fits your business requirement.</p>
+                            <h2 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] mb-1">
+                              Business information
+                            </h2>
+                            <p className="text-xs sm:text-sm text-[#64748B]">
+                              Help us understand your business better.
+                            </p>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                            {GOALS.map((goal) => {
-                              const isSelected = formData.primaryGoal === goal.id;
-                              return (
-                                <button
-                                  key={goal.id}
-                                  type="button"
-                                  onClick={() => setFormData({ ...formData, primaryGoal: goal.id })}
-                                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                                    isSelected
-                                      ? 'border-[#2563EB] bg-blue-50/50 ring-2 ring-blue-500/20 shadow-xs'
-                                      : 'border-slate-200 bg-slate-50/40 hover:border-slate-300'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-3 mb-1">
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isSelected ? 'bg-[#2563EB] text-white' : 'bg-slate-100'}`}>
-                                      {goal.icon}
-                                    </div>
-                                    <span className="font-extrabold text-sm text-[#0F172A]">{goal.title}</span>
-                                  </div>
-                                  <p className="text-xs text-[#64748B] leading-snug">{goal.desc}</p>
-                                </button>
-                              );
-                            })}
-                          </div>
-
+                          {/* Industry */}
                           <div>
-                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">Team Scale</label>
-                            <div className="flex flex-wrap gap-2">
-                              {TEAM_SIZES.map((size) => (
-                                <button
-                                  key={size}
-                                  type="button"
-                                  onClick={() => setFormData({ ...formData, teamSize: size })}
-                                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                                    formData.teamSize === size
-                                      ? 'bg-gradient-to-r from-[#2563EB] to-teal-600 text-white shadow-xs'
-                                      : 'bg-slate-100 text-[#64748B] hover:bg-slate-200'
-                                  }`}
-                                >
-                                  {size}
-                                </button>
-                              ))}
+                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">
+                              Industry <span className="text-[#2563EB]">*</span>
+                            </label>
+                            <div className="relative">
+                              <select
+                                value={formData.industry}
+                                onChange={(e) => {
+                                  setFormData({ ...formData, industry: e.target.value });
+                                  if (errors.industry) setErrors({ ...errors, industry: undefined });
+                                }}
+                                className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none appearance-none cursor-pointer transition-all pr-10 font-medium ${
+                                  errors.industry
+                                    ? 'border-red-400 bg-red-50/40 ring-2 ring-red-200'
+                                    : 'border-slate-200 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white'
+                                }`}
+                              >
+                                <option value="" disabled>Select your industry</option>
+                                {INDUSTRIES.map((ind) => (
+                                  <option key={ind} value={ind}>
+                                    {ind}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#94A3B8]">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
                             </div>
+                            {errors.industry && (
+                              <p className="text-xs text-red-600 font-mono font-semibold mt-1">
+                                ⚠️ {errors.industry}
+                              </p>
+                            )}
                           </div>
 
+                          {/* Company Size */}
                           <div>
-                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">Target Budget</label>
-                            <div className="flex flex-wrap gap-2">
-                              {BUDGET_RANGES.map((b) => (
-                                <button
-                                  key={b}
-                                  type="button"
-                                  onClick={() => setFormData({ ...formData, budget: b })}
-                                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                                    formData.budget === b
-                                      ? 'bg-gradient-to-r from-[#10B981] to-teal-600 text-white shadow-xs'
-                                      : 'bg-slate-100 text-[#64748B] hover:bg-slate-200'
-                                  }`}
-                                >
-                                  {b}
-                                </button>
-                              ))}
+                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">
+                              Company Size <span className="text-[#2563EB]">*</span>
+                            </label>
+                            <div className="relative">
+                              <select
+                                value={formData.companySize}
+                                onChange={(e) => {
+                                  setFormData({ ...formData, companySize: e.target.value });
+                                  if (errors.companySize) setErrors({ ...errors, companySize: undefined });
+                                }}
+                                className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none appearance-none cursor-pointer transition-all pr-10 font-medium ${
+                                  errors.companySize
+                                    ? 'border-red-400 bg-red-50/40 ring-2 ring-red-200'
+                                    : 'border-slate-200 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white'
+                                }`}
+                              >
+                                <option value="" disabled>Select company size</option>
+                                {COMPANY_SIZES.map((size) => (
+                                  <option key={size} value={size}>
+                                    {size}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#94A3B8]">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
                             </div>
+                            {errors.companySize && (
+                              <p className="text-xs text-red-600 font-mono font-semibold mt-1">
+                                ⚠️ {errors.companySize}
+                              </p>
+                            )}
                           </div>
                         </motion.div>
                       )}
 
-                      {/* STEP 3 */}
+                      {/* STEP 3: What are you looking for? */}
                       {step === 3 && (
                         <motion.div
                           key="step3"
@@ -505,109 +646,255 @@ export function ContactAdPage() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -10 }}
                           transition={{ duration: 0.2 }}
-                          className="space-y-5"
+                          className="space-y-6"
                         >
                           <div>
-                            <h2 className="text-xl font-extrabold text-[#0F172A]">Project Requirements</h2>
-                            <p className="text-xs text-[#64748B] mt-1">Briefly share your use-case or specific questions.</p>
+                            <h2 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] mb-1">
+                              What are you looking for?
+                            </h2>
+                            <p className="text-xs sm:text-sm text-[#64748B]">
+                              Select all that apply.
+                            </p>
                           </div>
 
-                          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex justify-between items-center text-[#64748B]">
-                            <span>Goal: <strong className="text-[#0F172A]">{GOALS.find(g => g.id === formData.primaryGoal)?.title}</strong></span>
-                            <button
-                              type="button"
-                              onClick={() => setStep(2)}
-                              className="text-[#2563EB] font-bold underline text-[11px]"
-                            >
-                              Edit
-                            </button>
-                          </div>
-
+                          {/* Needs Grid Checkboxes */}
                           <div>
-                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
-                              Message / Requirements <span className="text-[#94A3B8] font-normal lowercase">(optional)</span>
+                            <div className="flex flex-wrap gap-2.5">
+                              {NEEDS_OPTIONS.map((needOption) => {
+                                const isChecked = formData.needs.includes(needOption);
+                                return (
+                                  <label
+                                    key={needOption}
+                                    onClick={() => toggleNeed(needOption)}
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm border cursor-pointer select-none transition-all ${
+                                      isChecked
+                                        ? 'border-[#2563EB] bg-blue-50 text-[#2563EB] font-bold shadow-xs'
+                                        : 'border-slate-200 bg-slate-50/50 text-[#64748B] hover:border-slate-300 hover:text-[#0F172A]'
+                                    }`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full transition-all ${isChecked ? 'bg-[#2563EB]' : 'bg-slate-300'}`} />
+                                    {needOption}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Monthly Call Volume */}
+                          <div>
+                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">
+                              Monthly Call Volume
+                            </label>
+                            <div className="relative">
+                              <select
+                                value={formData.callVolume}
+                                onChange={(e) => setFormData({ ...formData, callVolume: e.target.value })}
+                                className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white appearance-none cursor-pointer transition-all pr-10 font-medium"
+                              >
+                                <option value="" disabled>Select call volume</option>
+                                {CALL_VOLUMES.map((vol) => (
+                                  <option key={vol} value={vol}>
+                                    {vol}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#94A3B8]">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Current Challenge */}
+                          <div>
+                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">
+                              Current Challenge
                             </label>
                             <textarea
-                              rows={4}
-                              placeholder="e.g. We get around 50 inbound calls daily for appointment bookings. We want an AI Voice Agent to answer calls, handle FAQs, and sync bookings..."
-                              value={formData.message}
-                              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                              className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white outline-none transition-all"
+                              rows={3}
+                              placeholder="Tell us about your business and what you'd like to automate."
+                              value={formData.challenge}
+                              onChange={(e) => setFormData({ ...formData, challenge: e.target.value })}
+                              className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all resize-y min-h-[90px] font-medium"
                             />
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* STEP 4: Preferences */}
+                      {step === 4 && (
+                        <motion.div
+                          key="step4"
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="space-y-6"
+                        >
+                          <div>
+                            <h2 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] mb-1">
+                              Preferences
+                            </h2>
+                            <p className="text-xs sm:text-sm text-[#64748B]">
+                              How and when should we reach you?
+                            </p>
+                          </div>
+
+                          {/* Preferred Contact Method */}
+                          <div>
+                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">
+                              Preferred Contact Method <span className="text-[#2563EB]">*</span>
+                            </label>
+                            <div className="flex flex-wrap gap-2.5">
+                              {CONTACT_METHODS.map((method) => {
+                                const isSelected = formData.contactMethod === method.id;
+                                return (
+                                  <label
+                                    key={method.id}
+                                    onClick={() => {
+                                      setFormData({ ...formData, contactMethod: method.id });
+                                      if (errors.contactMethod) setErrors({ ...errors, contactMethod: undefined });
+                                    }}
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm border cursor-pointer select-none transition-all ${
+                                      isSelected
+                                        ? 'border-[#2563EB] bg-blue-50 text-[#2563EB] font-bold shadow-xs'
+                                        : 'border-slate-200 bg-slate-50/50 text-[#64748B] hover:border-slate-300 hover:text-[#0F172A]'
+                                    }`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full transition-all ${isSelected ? 'bg-[#2563EB]' : 'bg-slate-300'}`} />
+                                    {method.label}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                            {errors.contactMethod && (
+                              <p className="text-xs text-red-600 font-mono font-semibold mt-1.5">
+                                ⚠️ {errors.contactMethod}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Preferred Time */}
+                          <div>
+                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">
+                              Preferred Time
+                            </label>
+                            <div className="relative">
+                              <select
+                                value={formData.preferredTime}
+                                onChange={(e) => setFormData({ ...formData, preferredTime: e.target.value })}
+                                className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-[#0F172A] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 focus:bg-white appearance-none cursor-pointer transition-all pr-10 font-medium"
+                              >
+                                <option value="" disabled>Select a time window</option>
+                                {PREFERRED_TIMES.map((timeOption) => (
+                                  <option key={timeOption} value={timeOption}>
+                                    {timeOption}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#94A3B8]">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </div>
                           </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
 
-                    {/* Nav Buttons */}
+                    {/* Nav Buttons Row */}
                     <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 gap-4">
                       {step > 1 ? (
                         <button
                           type="button"
                           onClick={handleBack}
                           disabled={submitting}
-                          className="px-6 py-3 rounded-xl border border-slate-200 text-[#64748B] text-xs font-bold hover:bg-slate-50 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+                          className="px-6 py-3 rounded-xl border border-slate-200 text-[#64748B] text-xs sm:text-sm font-bold hover:bg-slate-50 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
                         >
                           ← Back
                         </button>
                       ) : <div />}
 
-                      {step < 3 ? (
+                      {step < 4 ? (
                         <button
                           type="button"
                           onClick={handleNext}
-                          className="ml-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#10B981] text-white text-xs font-extrabold hover:brightness-105 active:scale-98 transition-all shadow-md shadow-blue-500/20 cursor-pointer relative z-30"
+                          className="ml-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#10B981] text-white text-xs sm:text-sm font-extrabold hover:brightness-105 active:scale-98 transition-all shadow-md shadow-blue-500/20 cursor-pointer"
                         >
                           Continue →
                         </button>
                       ) : (
-                        <button
-                          type="submit"
-                          disabled={submitting}
-                          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#10B981] text-white text-sm font-extrabold hover:brightness-105 active:scale-98 transition-all shadow-lg shadow-blue-500/25 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 relative z-30"
-                        >
-                          {submitting ? 'Submitting Request...' : 'Submit Request & Get Free Consultation'}
-                        </button>
+                        <div className="w-full space-y-3">
+                          <button
+                            type="submit"
+                            disabled={submitting}
+                            className="w-full py-4 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#10B981] text-white text-sm sm:text-base font-extrabold hover:brightness-105 active:scale-98 transition-all shadow-lg shadow-blue-500/25 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                          >
+                            {submitting ? 'Submitting Request...' : 'Get My Free AI Consultation →'}
+                          </button>
+                          <div className="text-center text-xs text-[#94A3B8] font-medium">
+                            🔒 Your information is 100% secure. No spam. No obligation.
+                          </div>
+                        </div>
                       )}
                     </div>
                   </form>
+
+                  {/* Card Footer Trust */}
+                  <div className="flex flex-wrap justify-center gap-5 sm:gap-7 mt-7 pt-5 border-t border-slate-100 text-xs text-[#94A3B8] font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <strong className="text-[#10B981] font-extrabold">✓</strong> Free Consultation
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <strong className="text-[#10B981] font-extrabold">✓</strong> Custom AI Strategy
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <strong className="text-[#10B981] font-extrabold">✓</strong> No Obligation
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <strong className="text-[#10B981] font-extrabold">✓</strong> Response within 24 Hours
+                    </span>
+                  </div>
                 </div>
               ) : (
-                /* SUCCESS STATE */
+                /* SUCCESS PANEL */
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.35 }}
-                  className="text-center py-8 space-y-6"
+                  className="text-center py-6 sm:py-8 space-y-6"
                 >
                   <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-300 flex items-center justify-center mx-auto text-[#10B981] shadow-md">
                     <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 12.5L9.5 18L20 6" />
                     </svg>
                   </div>
 
                   <div>
-                    <span className="text-xs font-mono font-bold tracking-widest text-[#2563EB] uppercase block mb-1">
-                      Reference #{refId}
-                    </span>
                     <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A]">
-                      Thank You, {formData.fullName}!
+                      🎉 Thank you!
                     </h2>
-                    <p className="text-sm text-[#64748B] mt-2 max-w-md mx-auto leading-relaxed">
-                      Your priority request has been received. Our AI Strategy Specialist will review your details and reach out at <strong className="text-[#0F172A]">{formData.email}</strong> within 24 hours.
+                    <p className="text-sm sm:text-base text-[#64748B] mt-3 max-w-md mx-auto leading-relaxed font-medium">
+                      We've received your request. One of our <b className="text-[#0F172A] font-bold">AI automation specialists</b> will contact you within 24 hours to discuss how Autoniv can automate your customer interactions and help your business grow.
                     </p>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+                  <div className="font-mono text-xs text-[#94A3B8] font-bold tracking-wider">
+                    Reference ID: <span className="text-[#2563EB]">{refId}</span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
                     <button
                       onClick={resetForm}
-                      className="px-6 py-2.5 rounded-xl border border-slate-200 text-[#64748B] text-xs font-bold hover:bg-slate-50 transition-all cursor-pointer w-full sm:w-auto"
+                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl border border-slate-200 text-[#64748B] text-xs font-bold hover:bg-slate-50 transition-all cursor-pointer"
                     >
                       Submit Another Inquiry
                     </button>
                     <a
                       href="/"
-                      className="px-6 py-2.5 rounded-xl bg-[#2563EB] text-white text-xs font-bold hover:bg-blue-700 transition-all shadow-md cursor-pointer w-full sm:w-auto inline-block text-center"
+                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#2563EB] text-white text-xs font-bold hover:bg-blue-700 transition-all shadow-md inline-block text-center cursor-pointer"
                     >
                       Explore Autoniv Platform →
                     </a>
@@ -616,6 +903,7 @@ export function ContactAdPage() {
               )}
             </div>
           </div>
+
         </div>
       </main>
 

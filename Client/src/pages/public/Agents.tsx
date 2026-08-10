@@ -239,10 +239,7 @@ function CallPreview() {
   const reduced = useReducedMotion() ?? false;
   const mode = PREVIEW_MODES[activeTab];
 
-  // Restart the playback whenever the visitor switches mode.
-  useEffect(() => {
-    setCount(2);
-  }, [activeTab]);
+  // State resets automatically via key={activeTab} on the container below.
 
   useEffect(() => {
     if (reduced) {
@@ -257,6 +254,7 @@ function CallPreview() {
 
   return (
     <motion.div
+      key={activeTab}
       initial={reduced ? { opacity: 0 } : { opacity: 0, y: 20 }}
       animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: EASE, delay: 0.2 }}

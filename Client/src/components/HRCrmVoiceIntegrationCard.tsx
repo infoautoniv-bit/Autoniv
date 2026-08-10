@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { isGreaterThanStarter } from '../utils/plan';
 import { apiKeyService, agentService } from '../services/api';
+import { API_BASE_URL } from '../config/api';
 import type { User, Agent } from '../types';
+import { Modal } from './Modal';
 
 interface HRCrmVoiceIntegrationCardProps {
   user: User | null;
@@ -12,6 +14,7 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
   const [apiKey, setApiKey] = useState<string>(user?.apiKey || 'ak_live_autoniv_sample_key');
   const [loadingKey, setLoadingKey] = useState<boolean>(false);
   const [keyGenerated, setKeyGenerated] = useState<boolean>(false);
+  const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
@@ -21,16 +24,7 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
   const [copiedScript, setCopiedScript] = useState<boolean>(false);
 
   const unlocked = isGreaterThanStarter(user);
-  const apiBase = window.location.origin;
-
-  useEffect(() => {
-    if (unlocked) {
-      if (!user?.apiKey) {
-        fetchApiKey();
-      }
-      fetchAgents();
-    }
-  }, [unlocked, user]);
+  const apiBase = API_BASE_URL.replace(/\/api\/?$/, '');
 
   const fetchApiKey = async () => {
     try {
@@ -39,7 +33,8 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
       if (res.data?.apiKey) {
         setApiKey(res.data.apiKey);
       }
-    } catch (_) {
+    } catch {
+      // ignored
     } finally {
       setLoadingKey(false);
     }
@@ -53,10 +48,23 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
         setAgents(list);
         setSelectedAgentId(list[0].id || list[0]._id || '');
       }
-    } catch (_) {}
+    } catch {
+      // ignored
+    }
   };
 
-  const handleRegenerateKey = async () => {
+  useEffect(() => {
+    if (unlocked) {
+      if (!user?.apiKey) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchApiKey();
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchAgents();
+    }
+  }, [unlocked, user]);
+
+  const executeRegenerateKey = async () => {
     try {
       setLoadingKey(true);
       const res = await apiKeyService.regenerate();
@@ -65,7 +73,8 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
         setKeyGenerated(true);
         setTimeout(() => setKeyGenerated(false), 4000);
       }
-    } catch (_) {
+    } catch {
+      // ignored
     } finally {
       setLoadingKey(false);
     }
@@ -148,9 +157,9 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
             </button>
           </div>
           <button
-            onClick={handleRegenerateKey}
+            onClick={() => setConfirmOpen(true)}
             disabled={loadingKey}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition-colors disabled:opacity-50"
+            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition-colors disabled:opacity-50 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             {loadingKey ? 'Generating...' : '🔑 Generate New Key'}
           </button>
@@ -231,6 +240,38 @@ export const HRCrmVoiceIntegrationCard: React.FC<HRCrmVoiceIntegrationCardProps>
           All post-call candidate screening results and transcripts sent to your CRM webhook URL include header <code className="bg-white px-1.5 py-0.5 rounded text-blue-700 font-mono">X-Autoniv-Signature: t=timestamp,v1=hash</code> for cryptographically verified candidate PII.
         </div>
       </div>
+
+      <Modal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Regenerate API Key?"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate-600 leading-relaxed font-medium">
+            Are you sure you want to regenerate your API key? Existing webhooks and integrations using the old key will stop working immediately until updated.
+          </p>
+          <div className="flex items-center justify-end gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors focus:ring-2 focus:ring-slate-400 focus:outline-none"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmOpen(false);
+                executeRegenerateKey();
+              }}
+              className="px-4 py-2 text-xs font-extrabold text-white bg-rose-600 rounded-xl hover:bg-rose-700 transition-all shadow-md shadow-rose-600/20 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+            >
+              Regenerate Key
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

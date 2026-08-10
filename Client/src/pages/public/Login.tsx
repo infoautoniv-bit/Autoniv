@@ -1,39 +1,11 @@
-import { type FormEvent, useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import type React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
-import { authService } from '../../services/api';
+import { authService } from '../../services/api.public';
 import logoAutonivFull from '../../assets/autoniv-full-logo.webp';
 import logoAutonivBrand from '../../assets/autoniv-brand-logo.webp';
-
-/*
-interface GoogleCredentialResponse {
-  credential: string;
-}
-
-interface GoogleAccounts {
-  accounts: {
-    id: {
-      initialize: (opts: {
-        client_id: string;
-        callback: (response: GoogleCredentialResponse) => void;
-      }) => void;
-      prompt: () => void;
-    };
-  };
-}
-
-declare global {
-  interface Window {
-    google?: GoogleAccounts;
-  }
-}
-
-const GOOGLE_CLIENT_ID =
-  import.meta.env.VITE_GOOGLE_CLIENT_ID || '235489562479-placeholder.apps.googleusercontent.com';
-*/
-
-// const ICE = '#64ddff';
 
 function getStoredUser(): { role?: string } {
   try {
@@ -137,7 +109,7 @@ export function Login() {
   };
   */
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -176,7 +148,7 @@ export function Login() {
     [email, verifyOtp, goToDashboard, loading]
   );
 
-  const handleVerifyOtp = (e: FormEvent) => {
+  const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join('');
     if (code.length !== 6) {
@@ -273,7 +245,7 @@ export function Login() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[350px] h-[350px] rounded-full bg-[var(--secondary)]/[0.06] blur-[100px] pointer-events-none" />
 
         <Link to="/" className="z-10 -ml-5 relative inline-block">
-          <img src={logoAutonivFull} alt="Autoniv" className="h-32 w-auto object-contain -mb-20" />
+          <img src={logoAutonivFull} alt="Autoniv" width={315} height={210} decoding="async" className="h-32 w-auto object-contain -mb-20" />
         </Link>
 
         <div className="my-auto space-y-8 z-10 relative">
@@ -506,7 +478,6 @@ export function Login() {
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                      tabIndex={-1}
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOffIcon /> : <EyeIcon />}

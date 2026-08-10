@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppSelector, useAppDispatch } from '../../hooks/useStore';
 import { userChatService, chatHistoryService } from '../../services/api';
@@ -237,6 +238,7 @@ const UserAvatar = () => (
 );
 
 export function MyChat() {
+  const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
   const chatLimit = user?.chatLimit || 100;
@@ -266,13 +268,21 @@ export function MyChat() {
 
   const endRef   = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 150);
+    timersRef.current.push(setTimeout(() => inputRef.current?.focus(), 150));
   }, []);
 
   useEffect(() => {
@@ -395,22 +405,23 @@ export function MyChat() {
       }
 
       // Save to backend after bot reply
-      setTimeout(() => {
+      timersRef.current.push(setTimeout(() => {
         setMessages(prev => {
           saveToBackend(prev);
           return prev;
         });
-      }, 100);
+      }, 100));
     } catch {
       addMessage('bot', 'Sorry, something went wrong. Please try again.');
       setContext({ step: 'idle', data: {} });
     } finally {
       setLoading(false);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      timersRef.current.push(setTimeout(() => inputRef.current?.focus(), 50));
     }
   }, [input, loading, context, addMessage, saveToBackend, dispatch]);
 
   const handleReset = useCallback(() => {
+    clearTimers();
     const welcome = { ...WELCOME_MESSAGE, id: `welcome-${Date.now()}`, timestamp: new Date() };
     setMessages([welcome]);
     saveMessages([welcome]);
@@ -419,8 +430,8 @@ export function MyChat() {
     historyRef.current = [];
     setShowFaqTopics(false);
     setInput('');
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, []);
+    timersRef.current.push(setTimeout(() => inputRef.current?.focus(), 100));
+  }, [clearTimers]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -431,7 +442,7 @@ export function MyChat() {
   const placeholder      = STEP_PLACEHOLDERS[context.step] ?? 'Message your assistant...';
 
   return (
-    <div style={{ height: isMobile ? 'calc(100vh - 4rem)' : 'calc(100vh - 7rem)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ height: isMobile ? 'calc(100dvh - 9rem)' : 'calc(100vh - 7.5rem)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
       {/* ── Header ── */}
       <motion.div
@@ -516,7 +527,7 @@ export function MyChat() {
               {isUnlimited ? 'Unlimited' : over ? 'Limit reached' : `${Math.round(pct)}% used`}
             </span>
             {over && (
-              <button type="button" onClick={() => window.location.href = '/dashboard/billing'} style={{ fontSize: 10, fontWeight: 600, background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+              <button type="button" onClick={() => navigate('/dashboard/billing')} className="text-[10px] font-semibold text-[var(--primary)] hover:underline cursor-pointer bg-transparent border-none p-0 whitespace-nowrap">
                 Upgrade
               </button>
             )}

@@ -23,19 +23,23 @@ export const ORGANIZATION_SCHEMA: SchemaBase = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Autoniv',
-  url: 'https://autoniv.com',
-  logo: 'https://autoniv.com/logo.png',
+  url: 'https://autoniv.com/',
+  logo: 'https://autoniv.com/logo.webp',
+  image: 'https://autoniv.com/og-image.webp',
   description: 'AI-powered voice agents, chatbots, and phone answering services for businesses.',
+  email: 'hello@autoniv.com',
+  telephone: '+91-7065990307',
   sameAs: [
-    'https://twitter.com/autoniv',
-    'https://linkedin.com/company/autoniv',
-    'https://facebook.com/autoniv',
+    'https://www.linkedin.com/company/autoniv',
+    'https://www.instagram.com/autoniv_',
+    'https://www.facebook.com/profile.php?id=61577457813652',
+    'https://x.com/Autoniv_',
   ],
   contactPoint: {
     '@type': 'ContactPoint',
     contactType: 'customer support',
-    email: 'support@autoniv.com',
-    telephone: '+91-98765-43210',
+    email: 'hello@autoniv.com',
+    telephone: '+91-7065990307',
     availableLanguage: ['English', 'Hindi', 'Spanish', 'French'],
   },
   address: {
@@ -48,12 +52,9 @@ export const WEBSITE_SCHEMA: SchemaBase = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Autoniv',
-  url: 'https://autoniv.com',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: 'https://autoniv.com/search?q={search_term_string}',
-    'query-input': 'required name=search_term_string',
-  },
+  alternateName: ['Autoniv', 'autoniv', 'Autoniv AI', 'Autoniv.com'],
+  url: 'https://autoniv.com/',
+  inLanguage: 'en',
 };
 
 export const SOFTWARE_APPLICATION_SCHEMA: SchemaBase = {
@@ -63,44 +64,14 @@ export const SOFTWARE_APPLICATION_SCHEMA: SchemaBase = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   description: 'Build AI voice agents, chatbots, and automated phone answering systems for your business.',
-  url: 'https://autoniv.com',
+  url: 'https://autoniv.com/',
   offers: {
     '@type': 'Offer',
     price: '0',
     priceCurrency: 'USD',
+    availability: 'https://schema.org/InStock',
     description: 'Free trial available',
   },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    ratingCount: '150',
-  },
-};
-
-export const LOCAL_BUSINESS_SCHEMA: SchemaBase = {
-  '@context': 'https://schema.org',
-  '@type': 'LocalBusiness',
-  name: 'Autoniv',
-  image: 'https://autoniv.com/logo.png',
-  url: 'https://autoniv.com',
-  telephone: '+91-98765-43210',
-  email: 'support@autoniv.com',
-  address: {
-    '@type': 'PostalAddress',
-    addressCountry: 'IN',
-  },
-  geo: {
-    '@type': 'GeoCoordinates',
-    latitude: '28.6139',
-    longitude: '77.2090',
-  },
-  openingHoursSpecification: {
-    '@type': 'OpeningHoursSpecification',
-    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-    opens: '09:00',
-    closes: '18:00',
-  },
-  priceRange: '$$',
 };
 
 export const SERVICE_SCHEMAS = {
@@ -195,7 +166,7 @@ export const ARTICLE_SCHEMA = (article: {
     name: 'Autoniv',
     logo: {
       '@type': 'ImageObject',
-      url: 'https://autoniv.com/logo.png',
+      url: 'https://autoniv.com/logo.webp',
     },
   },
 });
@@ -224,7 +195,7 @@ export const BLOG_POSTING_SCHEMA = (post: {
     name: 'Autoniv',
     logo: {
       '@type': 'ImageObject',
-      url: 'https://autoniv.com/logo.png',
+      url: 'https://autoniv.com/logo.webp',
     },
   },
 });
@@ -247,27 +218,4 @@ export const VIDEO_OBJECT_SCHEMA = (video: {
   duration: video.duration || 'PT5M',
   contentUrl: video.contentUrl,
   embedUrl: video.embedUrl,
-});
-
-export const REVIEW_SCHEMA = (reviews: Array<{
-  author: string;
-  rating: number;
-  reviewBody: string;
-  datePublished: string;
-}>) => ({
-  '@context': 'https://schema.org',
-  '@type': 'Product',
-  name: 'Autoniv AI Platform',
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1),
-    reviewCount: reviews.length.toString(),
-  },
-  review: reviews.map((review) => ({
-    '@type': 'Review',
-    author: { '@type': 'Person', name: review.author },
-    reviewRating: { '@type': 'Rating', ratingValue: review.rating },
-    reviewBody: review.reviewBody,
-    datePublished: review.datePublished,
-  })),
 });

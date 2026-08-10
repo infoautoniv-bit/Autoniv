@@ -182,11 +182,12 @@ export function GoogleTranslate() {
         const rawLang = navigator.language || (navigator as any).userLanguage || 'en';
         const code = rawLang.split('-')[0].toLowerCase();
         if (code && code !== 'en') {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setCurrentLang(code);
           setLanguageCookie(code);
         }
-      } catch (err) {
-        console.error(err);
+      } catch {
+        // Translation lookup failed — silent in production
       }
     }
 
@@ -241,16 +242,17 @@ export function GoogleTranslate() {
 
   return (
     <div className="relative inline-block text-left notranslate" ref={dropdownRef}>
-      {/* Sleek Globe Button */}
+      {/* Sleek Globe Button — fixed width to prevent CLS */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         type="button"
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50/90 hover:bg-blue-50/90 border border-slate-200/90 hover:border-blue-300 transition-all duration-200 cursor-pointer shadow-xs group"
         aria-label="Select Language"
+        style={{ minWidth: '72px', height: '34px' }}
       >
-        <span className="text-sm leading-none">{activeLangObj.flag}</span>
+        <span className="text-sm leading-none w-4 h-4 flex items-center justify-center">{activeLangObj.flag}</span>
         <svg
-          className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition-colors"
+          className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition-colors flex-shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -262,7 +264,7 @@ export function GoogleTranslate() {
             d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
           />
         </svg>
-        <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 uppercase tracking-wider">
+        <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 uppercase tracking-wider w-5 text-center">
           {activeLangObj.code.split('-')[0]}
         </span>
       </button>

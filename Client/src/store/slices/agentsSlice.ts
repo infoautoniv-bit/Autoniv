@@ -1,7 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { Agent } from '../../types';
-import { agentService, type PaginationParams } from '../../services/api';
+import { agentService } from '../../services/api.agents';
+import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
+import { loadFromSession, saveToSession } from '../../utils/storage';
 
 interface AgentsState {
   items: Agent[];
@@ -10,21 +12,6 @@ interface AgentsState {
   myPagination: PaginationMeta;
   loading: boolean;
   error: string | null;
-}
-
-function loadFromSession<T>(key: string): T | null {
-  try {
-    const raw = sessionStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveToSession(key: string, value: unknown) {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch { /* quota exceeded — ignore */ }
 }
 
 const defaultPagination: PaginationMeta = { total: 0, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false };
@@ -38,11 +25,13 @@ const initialState: AgentsState = {
   error: null,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const normalize = (agent: any): Agent => ({
   ...agent,
   id: agent._id ?? agent.id,
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const normalizeList = (agents: any[]): Agent[] => agents.map(normalize);
 
 export const fetchAllAgents = createAsyncThunk(
@@ -128,6 +117,7 @@ export const updateAgentConfig = createAsyncThunk(
     id: string;
     data: { name?: string; prompt?: string; phoneNumberId?: string };
   }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await agentService.update(id, data as any);
     return normalize(res.data.agent);
   }
@@ -162,6 +152,7 @@ export const unlinkPhone = createAsyncThunk(
 );
 
 const matchId = (agent: Agent, id: string) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   agent.id === id || (agent as any)._id === id;
 
 const agentsSlice = createSlice({
@@ -189,7 +180,16 @@ const agentsSlice = createSlice({
       })
       .addCase(fetchMyAgents.fulfilled, (state, action) => {
         state.loading = false;
-        state.myAgents = action.payload.items ?? [];
+        const items = action.payload.items ?? [];
+        const pendingTemps = state.myAgents.filter((a) => typeof a.id === 'string' && a.id.startsWith('temp-'));
+        const map = new Map<string, Agent>();
+        for (const item of items) {
+          map.set(item.id || (item as any)._id, item);
+        }
+        for (const temp of pendingTemps) {
+          if (!map.has(temp.id)) map.set(temp.id, temp);
+        }
+        state.myAgents = Array.from(map.values());
         state.myPagination = action.payload.pagination ?? defaultPagination;
         saveToSession('cache:myAgents', state.myAgents);
       })
@@ -197,9 +197,48 @@ const agentsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch agents';
       })
+      .addCase(createAgent.pending, (state, action) => {
+        const arg = action.meta.arg;
+        const tempId = 'temp-' + action.meta.requestId;
+        const optimisticAgent = {
+          id: tempId,
+          _id: tempId,
+          userId: 'temp',
+          name: arg.name || 'New Agent',
+          type: (arg.type as any) || 'receptionist',
+          prompt: arg.prompt || '',
+          language: arg.language || 'en',
+          voiceId: arg.voiceId || '',
+          isActive: true,
+          callCount: 0,
+          useCustomEngine: arg.useCustomEngine ?? true,
+          customEngineModel: arg.customEngineModel || 'groq:llama-3.3-70b',
+          phoneNumber: arg.phoneNumber || '',
+          phoneNumberId: arg.phoneNumberId || '',
+          createdAt: new Date().toISOString(),
+        } as unknown as Agent;
+        if (!state.myAgents.some((a) => a.id === tempId)) {
+          state.myAgents.unshift(optimisticAgent);
+          saveToSession('cache:myAgents', state.myAgents);
+        }
+      })
       .addCase(createAgent.fulfilled, (state, action) => {
-        state.myAgents.push(action.payload);
-        state.items.push(action.payload);
+        const tempId = 'temp-' + action.meta.requestId;
+        const realAgent = action.payload;
+        const realId = realAgent.id || (realAgent as any)._id;
+        const filtered = state.myAgents.filter(
+          (a) => a.id !== tempId && (a as any)._id !== tempId && a.id !== realId && (a as any)._id !== realId
+        );
+        state.myAgents = [realAgent, ...filtered];
+        const filteredItems = state.items.filter(
+          (a) => a.id !== tempId && (a as any)._id !== tempId && a.id !== realId && (a as any)._id !== realId
+        );
+        state.items = [realAgent, ...filteredItems];
+        saveToSession('cache:myAgents', state.myAgents);
+      })
+      .addCase(createAgent.rejected, (state, action) => {
+        const tempId = 'temp-' + action.meta.requestId;
+        state.myAgents = state.myAgents.filter((a) => a.id !== tempId);
         saveToSession('cache:myAgents', state.myAgents);
       })
       .addCase(updateAgent.fulfilled, (state, action) => {

@@ -185,6 +185,9 @@ const CallDetailsDrawer = ({ call, onClose }: DrawerProps) => {
           />
           {/* Drawer deck */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Call details drawer"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}

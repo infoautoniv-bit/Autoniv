@@ -1,7 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { Call } from '../../types';
-import { callService, type PaginationParams } from '../../services/api';
+import { callService } from '../../services/api.calls';
+import type { PaginationParams } from '../../services/api.base';
 import type { PaginationMeta } from '../../components/Pagination';
+import { loadFromSession, saveToSession } from '../../utils/storage';
 
 interface CallsState {
   items: Call[];
@@ -10,21 +12,6 @@ interface CallsState {
   myPagination: PaginationMeta;
   loading: boolean;
   error: string | null;
-}
-
-function loadFromSession<T>(key: string): T | null {
-  try {
-    const raw = sessionStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveToSession(key: string, value: unknown) {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch { /* quota exceeded — ignore */ }
 }
 
 const defaultPagination: PaginationMeta = { total: 0, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false };

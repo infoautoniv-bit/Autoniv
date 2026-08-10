@@ -11,7 +11,7 @@ const callSchema = new mongoose.Schema({
   status:             {
     type: String,
     enum: ['queued', 'initiating', 'in-progress', 'completed', 'missed', 'failed'],
-    default: 'completed',
+    default: 'initiating',
   },
   recordingUrl:       { type: String, default: null },
   transcript:         { type: String, default: null },
@@ -25,6 +25,9 @@ const callSchema = new mongoose.Schema({
 callSchema.index({ userId: 1 });
 callSchema.index({ agentId: 1 });
 callSchema.index({ orchestratorCallId: 1 }, { sparse: true });
+callSchema.index({ orchestratorCallId: 1, status: 1 });
+callSchema.index({ vapiCallId: 1 }, { unique: true, sparse: true });
+callSchema.index({ vapiCallId: 1, billed: 1 });
 callSchema.index({ startedAt: -1 });
 callSchema.index({ userId: 1, startedAt: -1 });
 callSchema.index({ status: 1, startedAt: -1 });

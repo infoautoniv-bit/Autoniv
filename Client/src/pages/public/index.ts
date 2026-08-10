@@ -15,3 +15,4 @@ export { Pricing } from './Pricing';
 export { VoiceAssistancePricing } from './VoiceAssistancePricing';
 export { AiChatbotPricing } from './AiChatbotPricing';
 export { News } from './News';
+export { DemoRecordings } from './DemoRecordings';
