@@ -184,7 +184,9 @@ router.put('/:id', requireAdmin, async (req, res) => {
       }
     }
 
-    await UpgradeRequest.findByIdAndDelete(id);
+    request.status = status;
+    request.updatedAt = new Date();
+    await request.save();
 
     const result = { ...request.toObject(), id: request._id, status };
     res.json({ request: result });
