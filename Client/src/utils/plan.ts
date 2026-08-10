@@ -73,6 +73,12 @@ const PLAN_CONFIG: Record<string, PlanConfig> = {
   enterprise: { name: 'Enterprise',  monthlyPrice: 0,     monthlyPriceUSD: 0,   setupFee: 0,     extraMinuteRateINR: 0,  extraMinuteRateUSD: 0,    supportSla: '24×7 Premium Support', limits: { chatbots: -1,  conversations: -1,    calls: 99999, minutes: -1  }, features: { whatsapp: true, removeBranding: true, hindiSupport: true, allChannels: true, crmIntegration: true, analytics: true, customAI: true, dpdpCompliance: true, dedicatedManager: true, leadCapture: true, whatsappDelivery: true, upgradePath: true, customScripts: true, prioritySupport: true, customReporting: true, whiteLabel: true, advancedAutomation: true } },
 };
 
+// Aliases for user-friendly keys
+PLAN_CONFIG.voice_scale = PLAN_CONFIG.voice_growth;
+PLAN_CONFIG.voice_launch = PLAN_CONFIG.voice_free;
+PLAN_CONFIG.scale = PLAN_CONFIG.voice_growth;
+PLAN_CONFIG.launch = PLAN_CONFIG.voice_free;
+
 // ─── Plan resolution helpers ──────────────────────────────────────────────────
 
 const TIER_ORDER: Record<string, number> = { free: 0, starter: 1, growth: 2, enterprise: 3 };
@@ -91,7 +97,15 @@ export function getTierOrder(tier: string): number {
 
 /** Resolve a user's effective plan to a PLAN_CONFIG key */
 export function resolvePlanKey(user: Pick<User, 'plan' | 'chatPlan' | 'voicePlan'>): string {
-  return user.plan || user.chatPlan || 'chat_free';
+  if (user.voicePlan && user.voicePlan !== 'none') {
+    const key = PLAN_CONFIG[user.voicePlan] ? user.voicePlan : `voice_${user.voicePlan}`;
+    if (PLAN_CONFIG[key]) return key;
+  }
+  if (user.chatPlan && user.chatPlan !== 'none') {
+    const key = PLAN_CONFIG[user.chatPlan] ? user.chatPlan : `chat_${user.chatPlan}`;
+    if (PLAN_CONFIG[key]) return key;
+  }
+  return user.plan && PLAN_CONFIG[user.plan] ? user.plan : 'voice_free';
 }
 
 /** Get the PLAN_CONFIG for a user */

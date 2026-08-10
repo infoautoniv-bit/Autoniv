@@ -412,12 +412,13 @@ export function MyAgents() {
         {/* ── Voice minutes usage bar ── */}
         {(() => {
           const minutesUsed = user?.minutesUsed ?? 0;
-          const minutesLimit = user?.minutesLimit ?? 0;
+          const configMins = user ? getMaxMinutes(user) : 0;
+          const minutesLimit = (user?.minutesLimit && user.minutesLimit > 0) ? user.minutesLimit : (configMins > 0 ? configMins : 0);
           // -1 = unlimited (enterprise). 0 = no voice plan / chat-only.
           const isUnlimited = minutesLimit === -1;
           const hasVoicePlan = isUnlimited || minutesLimit > 0 || (user ? isVoicePlan(user) : false);
-          const isAtLimit = !isUnlimited && hasVoicePlan && minutesUsed >= minutesLimit;
-          const pct = isUnlimited ? 100 : hasVoicePlan ? Math.min((minutesUsed / minutesLimit) * 100, 100) : 0;
+          const isAtLimit = !isUnlimited && hasVoicePlan && minutesLimit > 0 && minutesUsed >= minutesLimit;
+          const pct = isUnlimited ? 100 : (hasVoicePlan && minutesLimit > 0) ? Math.min((minutesUsed / minutesLimit) * 100, 100) : 0;
           const barColor = isUnlimited ? '#10b981' : isAtLimit ? '#ef4444' : '#10b981';
 
           return (
