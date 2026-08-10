@@ -124,7 +124,8 @@ router.put('/:id', requireAdmin, async (req, res) => {
     }
 
     if (request.status !== 'pending') {
-      return res.status(400).json({ message: `Request was already ${request.status}` });
+      const result = { ...request.toObject(), id: request._id, status: request.status };
+      return res.json({ request: result });
     }
 
     if (status === 'approved') {

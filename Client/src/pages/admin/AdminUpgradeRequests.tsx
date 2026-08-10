@@ -132,11 +132,13 @@ export function AdminUpgradeRequests() {
     setProcessing(id);
     try {
       await dispatch(processUpgradeRequest({ id, status })).unwrap();
-      dispatch(fetchAllUpgradeRequests({ status: filter || undefined, page, limit: 20 }));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to process request';
-      alert(msg);
+      if (!msg.toLowerCase().includes('already')) {
+        alert(msg);
+      }
     } finally {
+      dispatch(fetchAllUpgradeRequests({ status: filter || undefined, page, limit: 20 }));
       setProcessing(null);
     }
   };
@@ -393,6 +395,67 @@ export function AdminUpgradeRequests() {
             </motion.button>
           </div>
         );
+      },
+      card: {
+        label: 'Actions',
+        render: (req) => {
+          if (req.status === 'approved') {
+            return (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Approved
+              </span>
+            );
+          }
+          if (req.status === 'rejected') {
+            return (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200">
+                Rejected
+              </span>
+            );
+          }
+          return (
+            <div className="flex items-center gap-2 w-full pt-1" onClick={(e) => e.stopPropagation()}>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProcess(req.id, 'rejected');
+                }}
+                disabled={processing === req.id}
+                className="flex-1 py-2 bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold transition-all disabled:opacity-50 text-center cursor-pointer"
+              >
+                Reject
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProcess(req.id, 'approved');
+                }}
+                disabled={processing === req.id}
+                className="flex-1 py-2 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-none"
+                style={{ background: 'var(--gg)' }}
+              >
+                {processing === req.id ? (
+                  <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                Approve
+              </motion.button>
+            </div>
+          );
+        },
       },
     },
   ];
