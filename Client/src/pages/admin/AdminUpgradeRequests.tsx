@@ -139,7 +139,6 @@ export function AdminUpgradeRequests() {
         alert(msg);
       }
     } finally {
-      dispatch(fetchAllUpgradeRequests({ status: filter || undefined, page, limit: 20 }));
       setProcessing(null);
     }
   };

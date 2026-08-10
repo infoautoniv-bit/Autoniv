@@ -186,8 +186,15 @@ router.put('/:id', requireAdmin, async (req, res) => {
       }
     }
 
-    // Delete ALL upgrade requests for this user upon processing so it is completely removed
-    await UpgradeRequest.deleteMany({ userId: request.userId });
+    // Mark all pending requests for this user as resolved (approved/rejected) and persist record in DB
+    await UpgradeRequest.updateMany(
+      { userId: request.userId, status: 'pending' },
+      { $set: { status, updatedAt: new Date() } }
+    );
+
+    request.status = status;
+    request.updatedAt = new Date();
+    await request.save();
 
     const result = { ...request.toObject(), id: request._id, status };
     res.json({ request: result });
