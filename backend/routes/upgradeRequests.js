@@ -141,13 +141,14 @@ router.put('/:id', requireAdmin, async (req, res) => {
         } else if (plan.startsWith('both_')) {
           chatPlan = plan.replace('both_', 'chat_');
           voicePlan = plan.replace('both_', 'voice_');
-        } else if (User.VALID_PLANS.includes(plan)) {
+        } else if (VALID_UPGRADE_PLANS.includes(plan)) {
           chatPlan = `chat_${plan}`;
           voicePlan = `voice_${plan}`;
         }
 
-        const chatConfig = (chatPlan !== 'none' && User.PLAN_CONFIG[chatPlan]) ? User.PLAN_CONFIG[chatPlan] : null;
-        const voiceConfig = (voicePlan !== 'none' && User.PLAN_CONFIG[voicePlan]) ? User.PLAN_CONFIG[voicePlan] : null;
+        const planConfigMap = User.PLAN_CONFIG || {};
+        const chatConfig = (chatPlan !== 'none' && planConfigMap[chatPlan]) ? planConfigMap[chatPlan] : null;
+        const voiceConfig = (voicePlan !== 'none' && planConfigMap[voicePlan]) ? planConfigMap[voicePlan] : null;
 
         let planLegacy = plan;
         if (plan.startsWith('both_')) {
