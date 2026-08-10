@@ -675,13 +675,10 @@ export function UserBilling() {
             </div>
 
             {/* Chat Upgrade Button */}
-            {pendingRequest ? (
-              <div className="w-full py-3 rounded-xl font-bold text-center text-[10px] bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center gap-2">
-                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Upgrade pending admin review
+            {pendingRequest && (pendingRequest.requestedPlan.startsWith('chat_') || pendingRequest.requestedPlan.startsWith('both_')) ? (
+              <div className="w-full py-3 rounded-xl font-bold text-center text-[11px] bg-amber-50/90 border border-amber-200 text-amber-700 flex items-center justify-center gap-2 px-3">
+                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                Upgrade pending — Please wait for admin approval
               </div>
             ) : canUpgradeChat ? (
               <motion.button
@@ -786,13 +783,10 @@ export function UserBilling() {
             )}
 
             {/* Voice Upgrade Button */}
-            {pendingRequest ? (
-              <div className="w-full py-3 rounded-xl font-bold text-center text-[10px] bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center gap-2">
-                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Upgrade pending admin review
+            {pendingRequest && (pendingRequest.requestedPlan.startsWith('voice_') || pendingRequest.requestedPlan.startsWith('both_')) ? (
+              <div className="w-full py-3 rounded-xl font-bold text-center text-[11px] bg-amber-50/90 border border-amber-200 text-amber-700 flex items-center justify-center gap-2 px-3">
+                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                Upgrade pending — Please wait for admin approval
               </div>
             ) : canUpgradeVoice ? (
               <motion.button
