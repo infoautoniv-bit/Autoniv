@@ -33,7 +33,7 @@ const createAgentSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be 100 characters or less').trim(),
   type: z.enum(['receptionist', 'appointment', 'faq'], { errorMap: () => ({ message: `type must be one of: ${VALID_TYPES.join(', ')}` }) }),
   prompt: z.string().max(10000, 'Prompt too long').optional().nullable(),
-  language: z.string().max(10).optional().nullable(),
+  language: z.string().max(50).optional().nullable(),
   voiceId: z.string().max(100).optional().nullable(),
   useCustomEngine: z.boolean().optional(),
   customEngineModel: z.string().max(100).optional().nullable(),
@@ -41,26 +41,30 @@ const createAgentSchema = z.object({
   phoneNumber: z.string().max(20).optional().nullable(),
   twilioAccountSid: z.string().max(100).optional().nullable(),
   twilioAuthToken: z.string().max(100).optional().nullable(),
+  hubspotToken: z.string().optional().nullable(),
+  webhookUrl: z.string().optional().nullable(),
+  webhookSecret: z.string().optional().nullable(),
+  fieldMapping: z.unknown().optional().nullable(),
+  customHeaders: z.unknown().optional().nullable(),
+  payloadTemplate: z.string().optional().nullable(),
   crmIntegrations: z.record(z.unknown()).optional(),
-}).strict();
+}).passthrough();
 
 function sanitizeCrmIntegrations(obj) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return {};
   const sanitized = {};
-  const SAFE_KEYS = ['enabled', 'provider', 'apiKey', 'webhookUrl', 'syncLeads', 'syncCalls', 'fieldMapping', 'customHeaders'];
+  const SAFE_KEYS = [
+    'enabled', 'provider', 'apiKey', 'webhookUrl', 'webhookSecret',
+    'syncLeads', 'syncCalls', 'fieldMapping', 'customHeaders',
+    'hubspotToken', 'payloadTemplate'
+  ];
   for (const key of Object.keys(obj)) {
     if (SAFE_KEYS.includes(key)) {
       const val = obj[key];
       if (typeof val === 'string' || typeof val === 'boolean' || typeof val === 'number' || val === null) {
         sanitized[key] = val;
       } else if (typeof val === 'object' && !Array.isArray(val)) {
-        // Recursively sanitize nested objects, but only allow safe keys
-        sanitized[key] = {};
-        for (const k of Object.keys(val)) {
-          if (SAFE_KEYS.includes(k) && (typeof val[k] === 'string' || typeof val[k] === 'boolean' || typeof val[k] === 'number' || val[k] === null)) {
-            sanitized[key][k] = val[k];
-          }
-        }
+        sanitized[key] = val;
       }
     }
   }
@@ -296,6 +300,17 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
 
     const isDirectNumber = phoneNumberId ? (phoneNumberId.startsWith('+') || /^\d+$/.test(phoneNumberId)) : false;
 
+    const incomingCrm = req.body.crmIntegrations
+      ? sanitizeCrmIntegrations(req.body.crmIntegrations)
+      : sanitizeCrmIntegrations({
+          hubspotToken: req.body.hubspotToken,
+          webhookUrl: req.body.webhookUrl,
+          webhookSecret: req.body.webhookSecret,
+          fieldMapping: req.body.fieldMapping,
+          customHeaders: req.body.customHeaders,
+          payloadTemplate: req.body.payloadTemplate,
+        });
+
     const agent = await Agent.create({
       userId: user._id,
       vapiId: null,
@@ -311,7 +326,8 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       twilioAuthToken: twilioAuthToken ? encrypt(twilioAuthToken) : null,
       phoneNumberId: isDirectNumber ? null : (phoneNumberId || null),
       phoneNumber: isDirectNumber ? phoneNumberId : (phoneNumber || null),
-      crmIntegrations: req.body.crmIntegrations ? sanitizeCrmIntegrations(req.body.crmIntegrations) : undefined,
+      crmIntegrations: incomingCrm,
+      webhookUrl: req.body.webhookUrl || incomingCrm?.webhookUrl || null,
     });
 
     if (agent.phoneNumber || agent.phoneNumberId) {
@@ -425,11 +441,33 @@ router.put('/:id', contentFilter('name', 'prompt'), async (req, res) => {
     if (twilioAuthToken !== undefined) updates.twilioAuthToken = twilioAuthToken ? encrypt(twilioAuthToken) : null;
     if (req.body.phoneNumber !== undefined) updates.phoneNumber = req.body.phoneNumber;
     if (req.body.phoneNumberId !== undefined) updates.phoneNumberId = req.body.phoneNumberId;
-    if (req.body.crmIntegrations !== undefined) {
+    if (
+      req.body.crmIntegrations !== undefined ||
+      req.body.hubspotToken !== undefined ||
+      req.body.webhookUrl !== undefined ||
+      req.body.webhookSecret !== undefined ||
+      req.body.fieldMapping !== undefined ||
+      req.body.customHeaders !== undefined ||
+      req.body.payloadTemplate !== undefined
+    ) {
+      const incomingCrm = req.body.crmIntegrations
+        ? sanitizeCrmIntegrations(req.body.crmIntegrations)
+        : sanitizeCrmIntegrations({
+            hubspotToken: req.body.hubspotToken,
+            webhookUrl: req.body.webhookUrl,
+            webhookSecret: req.body.webhookSecret,
+            fieldMapping: req.body.fieldMapping,
+            customHeaders: req.body.customHeaders,
+            payloadTemplate: req.body.payloadTemplate,
+          });
+
       updates.crmIntegrations = {
-        ...agent.crmIntegrations,
-        ...sanitizeCrmIntegrations(req.body.crmIntegrations),
+        ...(agent.crmIntegrations || {}),
+        ...incomingCrm,
       };
+      if (req.body.webhookUrl !== undefined) {
+        updates.webhookUrl = req.body.webhookUrl;
+      }
     }
 
     const updated = await Agent.findByIdAndUpdate(id, updates, { new: true }).lean();
