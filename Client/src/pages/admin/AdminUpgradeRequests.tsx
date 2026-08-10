@@ -70,6 +70,7 @@ const fallbackStatus = {
 };
 
 const FILTERS = [
+  { value: '', label: 'All' },
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
