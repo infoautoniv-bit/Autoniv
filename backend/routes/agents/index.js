@@ -44,6 +44,8 @@ const createAgentSchema = z.object({
   hubspotToken: z.string().optional().nullable(),
   webhookUrl: z.string().optional().nullable(),
   webhookSecret: z.string().optional().nullable(),
+  googleSheetId: z.string().optional().nullable(),
+  googleSheetUrl: z.string().optional().nullable(),
   fieldMapping: z.unknown().optional().nullable(),
   customHeaders: z.unknown().optional().nullable(),
   payloadTemplate: z.string().optional().nullable(),
@@ -56,7 +58,7 @@ function sanitizeCrmIntegrations(obj) {
   const SAFE_KEYS = [
     'enabled', 'provider', 'apiKey', 'webhookUrl', 'webhookSecret',
     'syncLeads', 'syncCalls', 'fieldMapping', 'customHeaders',
-    'hubspotToken', 'payloadTemplate'
+    'hubspotToken', 'payloadTemplate', 'googleSheetId', 'googleSheetUrl'
   ];
   for (const key of Object.keys(obj)) {
     if (SAFE_KEYS.includes(key)) {
@@ -306,6 +308,8 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
           hubspotToken: req.body.hubspotToken,
           webhookUrl: req.body.webhookUrl,
           webhookSecret: req.body.webhookSecret,
+          googleSheetId: req.body.googleSheetId,
+          googleSheetUrl: req.body.googleSheetUrl,
           fieldMapping: req.body.fieldMapping,
           customHeaders: req.body.customHeaders,
           payloadTemplate: req.body.payloadTemplate,
@@ -328,6 +332,8 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       phoneNumber: isDirectNumber ? phoneNumberId : (phoneNumber || null),
       crmIntegrations: incomingCrm,
       webhookUrl: req.body.webhookUrl || incomingCrm?.webhookUrl || null,
+      googleSheetId: req.body.googleSheetId || incomingCrm?.googleSheetId || null,
+      googleSheetUrl: req.body.googleSheetUrl || incomingCrm?.googleSheetUrl || null,
     });
 
     if (agent.phoneNumber || agent.phoneNumberId) {
@@ -446,6 +452,8 @@ router.put('/:id', contentFilter('name', 'prompt'), async (req, res) => {
       req.body.hubspotToken !== undefined ||
       req.body.webhookUrl !== undefined ||
       req.body.webhookSecret !== undefined ||
+      req.body.googleSheetId !== undefined ||
+      req.body.googleSheetUrl !== undefined ||
       req.body.fieldMapping !== undefined ||
       req.body.customHeaders !== undefined ||
       req.body.payloadTemplate !== undefined
@@ -456,6 +464,8 @@ router.put('/:id', contentFilter('name', 'prompt'), async (req, res) => {
             hubspotToken: req.body.hubspotToken,
             webhookUrl: req.body.webhookUrl,
             webhookSecret: req.body.webhookSecret,
+            googleSheetId: req.body.googleSheetId,
+            googleSheetUrl: req.body.googleSheetUrl,
             fieldMapping: req.body.fieldMapping,
             customHeaders: req.body.customHeaders,
             payloadTemplate: req.body.payloadTemplate,
@@ -467,6 +477,12 @@ router.put('/:id', contentFilter('name', 'prompt'), async (req, res) => {
       };
       if (req.body.webhookUrl !== undefined) {
         updates.webhookUrl = req.body.webhookUrl;
+      }
+      if (req.body.googleSheetId !== undefined) {
+        updates.googleSheetId = req.body.googleSheetId;
+      }
+      if (req.body.googleSheetUrl !== undefined) {
+        updates.googleSheetUrl = req.body.googleSheetUrl;
       }
     }
 

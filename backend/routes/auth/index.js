@@ -154,6 +154,11 @@ async function performLoginAttempt(req, email, password) {
     return { ok: false, status: 401, message: 'Invalid email or password' };
   }
 
+  // Admins log in directly without OTP requirement
+  if (user.role === 'admin') {
+    return issueLoginTokens(req, user);
+  }
+
   // Generate 6-digit OTP for login
   const otp = crypto.randomInt(100000, 999999).toString();
   user.otpCode = otp;

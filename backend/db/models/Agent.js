@@ -23,8 +23,12 @@ const agentSchema = new mongoose.Schema({
     fieldMapping: { type: mongoose.Schema.Types.Mixed, default: null },
     customHeaders: { type: mongoose.Schema.Types.Mixed, default: null },
     payloadTemplate: { type: String, default: null },
+    googleSheetId: { type: String, default: null },
+    googleSheetUrl: { type: String, default: null },
   },
   webhookUrl: { type: String, default: null },
+  googleSheetId: { type: String, default: null },
+  googleSheetUrl: { type: String, default: null },
 }, { timestamps: true });
 
 agentSchema.index({ userId: 1 });
