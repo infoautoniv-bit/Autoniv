@@ -706,7 +706,7 @@ export default function UnifiedAssistantWidget() {
       };
 
       socket.onerror = () => {
-        setCallErrorMsg('Call stream error. Verify server connection.');
+        setCallErrorMsg('Voice demo is temporarily unavailable. The server may be down or WebSocket is not configured.');
         stopCall();
       };
 

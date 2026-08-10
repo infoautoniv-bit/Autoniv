@@ -156,7 +156,8 @@ async function performLoginAttempt(req, email, password) {
 
   // Admins log in directly without OTP requirement
   if (user.role === 'admin') {
-    return issueLoginTokens(req, user);
+    const loginTokens = await issueLoginTokens(req, user);
+    return { ok: true, directLogin: true, ...loginTokens };
   }
 
   // Generate 6-digit OTP for login
@@ -268,7 +269,12 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const result = await performLoginAttempt(req, email, password);
     if (!result.ok) {
-      return res.status(result.status).json({ message: result.message });
+      return res.status(result.status || 401).json({ message: result.message || 'Login failed' });
+    }
+
+    if (result.directLogin) {
+      const { ok, directLogin, ...authPayload } = result;
+      return res.json(authPayload);
     }
 
     return res.json({
