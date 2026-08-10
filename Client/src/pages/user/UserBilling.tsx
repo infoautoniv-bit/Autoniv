@@ -265,7 +265,7 @@ function WhiteLabelSection({ user, onUnlockPlan }: { user: any; onUnlockPlan: ()
   const legacyCfg = user?.plan ? getPlanConfigByKey(user.plan) : null;
   const isWhiteLabelEligible = user?.role === 'admin' ||
     Boolean(chatCfg?.features?.whiteLabel || voiceCfg?.features?.whiteLabel || legacyCfg?.features?.whiteLabel ||
-    chatCfg?.features?.removeBranding || voiceCfg?.features?.removeBranding || legacyCfg?.features?.removeBranding);
+      chatCfg?.features?.removeBranding || voiceCfg?.features?.removeBranding || legacyCfg?.features?.removeBranding);
 
   const [companyName, setCompanyName] = useState(user?.whiteLabelSettings?.companyName || '');
   const [logoUrl, setLogoUrl] = useState(user?.whiteLabelSettings?.logoUrl || '');
@@ -576,8 +576,8 @@ export function UserBilling() {
               <button
                 onClick={() => setCurrency('usd')}
                 className={`px-3.5 py-2 text-xs font-bold transition-all cursor-pointer border-none ${currency === 'usd'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-slate-500 hover:bg-slate-50'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
                   }`}
               >
                 USD
@@ -585,8 +585,8 @@ export function UserBilling() {
               <button
                 onClick={() => setCurrency('inr')}
                 className={`px-3.5 py-2 text-xs font-bold transition-all cursor-pointer border-none ${currency === 'inr'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-slate-500 hover:bg-slate-50'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
                   }`}
               >
                 INR
@@ -1129,11 +1129,10 @@ export function UserBilling() {
                     <button
                       key={tab}
                       onClick={() => { setModalTab(tab); setSelectedPlan(null); }}
-                      className={`py-3.5 px-5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer bg-transparent border-t-0 border-l-0 border-r-0 ${
-                        modalTab === tab
+                      className={`py-3.5 px-5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer bg-transparent border-t-0 border-l-0 border-r-0 ${modalTab === tab
                           ? 'border-blue-600 text-blue-600'
                           : 'border-transparent text-slate-400 hover:text-slate-600'
-                      }`}
+                        }`}
                     >
                       {tab === 'chat' ? '💬 Chat Plans' : tab === 'voice' ? '🎙️ Voice Plans' : '⚡ Combined Plans'}
                     </button>
@@ -1249,12 +1248,11 @@ export function UserBilling() {
                               whileTap={!isCurrent ? { scale: 0.98 } : undefined}
                               onClick={() => !isCurrent && setSelectedPlan(p.id)}
                               disabled={isCurrent}
-                              className={`relative p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col h-full ${
-                                isCurrent ? 'border-emerald-200 bg-emerald-50/20 opacity-70 cursor-default'
-                                : isSelected ? 'border-blue-500 bg-blue-50/20 shadow-md ring-2 ring-blue-500/20'
-                                : isFeatured ? 'border-indigo-200 bg-indigo-50/5 hover:border-indigo-300'
-                                : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
-                              }`}
+                              className={`relative p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col h-full ${isCurrent ? 'border-emerald-200 bg-emerald-50/20 opacity-70 cursor-default'
+                                  : isSelected ? 'border-blue-500 bg-blue-50/20 shadow-md ring-2 ring-blue-500/20'
+                                    : isFeatured ? 'border-indigo-200 bg-indigo-50/5 hover:border-indigo-300'
+                                      : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                                }`}
                             >
                               {p.badge && !isCurrent && (
                                 <div className="btn-cta absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[9px] font-black text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-md uppercase tracking-wider whitespace-nowrap">
@@ -1334,10 +1332,10 @@ export function UserBilling() {
                           Selected: <span className="font-extrabold text-blue-900">{getPlanConfig(selectedPlan).plan.name}</span>
                           {' — '}
                           <span className="font-extrabold text-blue-900">
-                            {selectedPlan.endsWith('enterprise') 
-                              ? 'Custom pricing' 
-                              : currency === 'usd' 
-                                ? `$${(getPlanConfig(selectedPlan).plan.priceUSD || 0).toLocaleString()}/mo (approx. ₹${getPlanConfig(selectedPlan).plan.price.toLocaleString()}/mo)` 
+                            {selectedPlan.endsWith('enterprise')
+                              ? 'Custom pricing'
+                              : currency === 'usd'
+                                ? `$${(getPlanConfig(selectedPlan).plan.priceUSD || 0).toLocaleString()}/mo (approx. ₹${getPlanConfig(selectedPlan).plan.price.toLocaleString()}/mo)`
                                 : `₹${getPlanConfig(selectedPlan).plan.price.toLocaleString()}/mo (approx. $${(getPlanConfig(selectedPlan).plan.priceUSD || 0).toLocaleString()}/mo)`}
                           </span>
                         </p>
