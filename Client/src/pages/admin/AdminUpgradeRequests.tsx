@@ -103,7 +103,7 @@ export function AdminUpgradeRequests() {
   const requests = useAppSelector((state) => state.upgradeRequests.all);
   const loading = useAppSelector((state) => state.upgradeRequests.loading);
   const pagination = useAppSelector((state) => state.upgradeRequests.pagination);
-  const [filter, setFilter] = useState<string>('pending');
+  const [filter, setFilter] = useState<string>('');
   const [search, setSearch] = useState('');
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
