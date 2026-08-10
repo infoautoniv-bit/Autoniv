@@ -172,10 +172,11 @@ function resolveSessionId(req) {
     // Ignore verification errors
   }
 
-  // Fallback to cookie-based session ID
+  // Fallback to cookie-based session ID (never fall back to IP — causes CSRF bypass behind NAT)
   let cookieSession = req.cookies?.csrfSessionId;
   if (!cookieSession) {
-    cookieSession = req.ip || 'anonymous';
+    // Generate a random session ID for unauthenticated requests
+    cookieSession = crypto.randomBytes(16).toString('hex');
   }
   return cookieSession;
 }

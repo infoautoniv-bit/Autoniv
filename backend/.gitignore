@@ -1,2 +1,13 @@
 node_modules/
 .env
+.env.*
+!.env.example
+*.log
+csrf-debug.log
+pinggy_output.txt
+get_tunnel.js
+fix-telegram-webhooks.js
+recordings/
+coverage/
+.vscode/
+.idea/

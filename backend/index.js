@@ -55,6 +55,7 @@ import {
 } from './middleware/security.js';
 import { globalLimiter } from './middleware/rateLimiters.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { authenticate } from './middleware/auth.js';
 import { requestIdMiddleware } from './services/crypto.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { IS_PROD, log } from './services/logger.js';
@@ -206,6 +207,28 @@ app.get(['/health/readiness', '/api/health/readiness'], (req, res) => {
 });
 
 app.get('/metrics', async (req, res) => {
+  // In production, require a valid admin JWT or a metrics secret token
+  const metricsSecret = process.env.METRICS_SECRET;
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (IS_PROD) {
+    if (metricsSecret && token === metricsSecret) {
+      // Authorized via secret token
+    } else {
+      // Try admin JWT
+      try {
+        const { verifyAccessToken } = await import('./services/tokenService.js');
+        const decoded = token ? verifyAccessToken(token) : null;
+        if (!decoded || decoded.role !== 'admin') {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+      } catch {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+    }
+  }
+
   try {
     const { register } = await import('prom-client');
     res.set('Content-Type', register.contentType);
@@ -217,7 +240,7 @@ app.get('/metrics', async (req, res) => {
 
 app.get('/api/csrf-token', csrfTokenEndpoint);
 
-app.use('/api/recordings', express.static('recordings'));
+app.use('/api/recordings', authenticate, express.static('recordings'));
 app.use('/api/vapi', vapiProxy);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -250,6 +273,18 @@ app.use('/api/webhooks/tts', ttsRoutes);
 app.use('/api/bulk-calls', bulkCallRoutes);
 app.use('/api/phone-numbers', phoneNumberRoutes);
 app.use('/api/team', teamRoutes);
+
+// ── API v1 aliases (backward-compatible /api/v1/* prefix) ────────────────
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/agents', agentRoutes);
+app.use('/api/v1/calls', callRoutes);
+app.use('/api/v1/leads', leadRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/appointments', appointmentRoutes);
+app.use('/api/v1/add-ons', addOnRoutes);
+app.use('/api/v1/chat', chatRoutes);
+app.use('/api/v1/reports', reportRoutes);
 
 app.use(notFoundHandler);
 

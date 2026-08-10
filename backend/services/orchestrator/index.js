@@ -34,10 +34,14 @@ export function initOrchestrator(server) {
       const agentId = parsedUrl.searchParams.get('agentId');
       const token = parsedUrl.searchParams.get('token') || parsedUrl.searchParams.get('amp;token');
       log.info('websocket_debug', { agentId, hasToken: Boolean(token), path: urlPath });
-      if (agentId || token) {
-        if (!verifyMediaStreamToken(agentId, token)) {
-          log.warn('websocket_token_verification_failed', { agentId });
-        }
+      if (!agentId) {
+        ws.close(4003, 'Missing agentId');
+        return;
+      }
+      if (!verifyMediaStreamToken(agentId, token)) {
+        log.warn('websocket_token_verification_failed', { agentId });
+        ws.close(4001, 'Unauthorized');
+        return;
       }
       handleTwilioStream(ws, agentId);
     } else if (urlPath === '/web-call') {

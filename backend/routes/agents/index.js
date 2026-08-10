@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import express from 'express';
+import { z } from 'zod';
 import Agent from '../../db/models/Agent.js';
 import User from '../../db/models/User.js';
 import Call from '../../db/models/Call.js';
@@ -8,7 +9,7 @@ import Appointment from '../../db/models/Appointment.js';
 import PhoneNumber from '../../db/models/PhoneNumber.js';
 import { authenticate, requireAdmin, requireFeature } from '../../middleware/auth.js';
 import { contentFilter } from '../../services/contentModeration.js';
-import { log } from '../../services/logger.js';
+import { log, IS_PROD } from '../../services/logger.js';
 import { parsePage, paginatedResponse } from '../../services/pagination.js';
 import { deleteRecordings } from '../../services/cloudinary.js';
 import {
@@ -27,6 +28,44 @@ router.use(authenticate);
 router.use(requireFeature('voice'));
 
 const VALID_TYPES = ['receptionist', 'appointment', 'faq'];
+
+const createAgentSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name must be 100 characters or less').trim(),
+  type: z.enum(['receptionist', 'appointment', 'faq'], { errorMap: () => ({ message: `type must be one of: ${VALID_TYPES.join(', ')}` }) }),
+  prompt: z.string().max(10000, 'Prompt too long').optional().nullable(),
+  language: z.string().max(10).optional().nullable(),
+  voiceId: z.string().max(100).optional().nullable(),
+  useCustomEngine: z.boolean().optional(),
+  customEngineModel: z.string().max(100).optional().nullable(),
+  phoneNumberId: z.string().max(100).optional().nullable(),
+  phoneNumber: z.string().max(20).optional().nullable(),
+  twilioAccountSid: z.string().max(100).optional().nullable(),
+  twilioAuthToken: z.string().max(100).optional().nullable(),
+  crmIntegrations: z.record(z.unknown()).optional(),
+}).strict();
+
+function sanitizeCrmIntegrations(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return {};
+  const sanitized = {};
+  const SAFE_KEYS = ['enabled', 'provider', 'apiKey', 'webhookUrl', 'syncLeads', 'syncCalls', 'fieldMapping', 'customHeaders'];
+  for (const key of Object.keys(obj)) {
+    if (SAFE_KEYS.includes(key)) {
+      const val = obj[key];
+      if (typeof val === 'string' || typeof val === 'boolean' || typeof val === 'number' || val === null) {
+        sanitized[key] = val;
+      } else if (typeof val === 'object' && !Array.isArray(val)) {
+        // Recursively sanitize nested objects, but only allow safe keys
+        sanitized[key] = {};
+        for (const k of Object.keys(val)) {
+          if (SAFE_KEYS.includes(k) && (typeof val[k] === 'string' || typeof val[k] === 'boolean' || typeof val[k] === 'number' || val[k] === null)) {
+            sanitized[key][k] = val[k];
+          }
+        }
+      }
+    }
+  }
+  return sanitized;
+}
 
 function normalizeAgent(agent) {
   if (!agent) return null;
@@ -208,6 +247,12 @@ router.post('/phone-numbers', requireAdmin, async (req, res) => {
 
 router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
   try {
+    const parsed = createAgentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const errors = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+      return res.status(400).json({ message: errors.join('; ') });
+    }
+
     const {
       name,
       type,
@@ -220,14 +265,7 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       twilioAuthToken,
       phoneNumberId,
       phoneNumber,
-    } = req.body;
-
-    if (!name || !type) {
-      return res.status(400).json({ message: 'name and type are required' });
-    }
-    if (!VALID_TYPES.includes(type)) {
-      return res.status(400).json({ message: `type must be one of: ${VALID_TYPES.join(', ')}` });
-    }
+    } = parsed.data;
 
     if (!mongoose.Types.ObjectId.isValid(req.user.userId)) {
       return res.status(400).json({ message: 'Invalid user ID in token' });
@@ -273,7 +311,7 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       twilioAuthToken: twilioAuthToken ? encrypt(twilioAuthToken) : null,
       phoneNumberId: isDirectNumber ? null : (phoneNumberId || null),
       phoneNumber: isDirectNumber ? phoneNumberId : (phoneNumber || null),
-      crmIntegrations: req.body.crmIntegrations || undefined,
+      crmIntegrations: req.body.crmIntegrations ? sanitizeCrmIntegrations(req.body.crmIntegrations) : undefined,
     });
 
     if (agent.phoneNumber || agent.phoneNumberId) {
@@ -390,7 +428,7 @@ router.put('/:id', contentFilter('name', 'prompt'), async (req, res) => {
     if (req.body.crmIntegrations !== undefined) {
       updates.crmIntegrations = {
         ...agent.crmIntegrations,
-        ...req.body.crmIntegrations,
+        ...sanitizeCrmIntegrations(req.body.crmIntegrations),
       };
     }
 

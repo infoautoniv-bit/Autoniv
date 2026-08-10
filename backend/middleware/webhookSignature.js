@@ -45,10 +45,13 @@ export function verifyVapiSignature(req, res, next) {
     req.headers['vapi-signature'] ||
     req.headers['x-signature'];
 
-  // If Vapi isn't sending a signature, allow through (secret may not be
-  // configured on the Vapi dashboard side).  Only reject when a signature
-  // IS present but doesn't match — that indicates tampering.
+  // If Vapi isn't sending a signature, reject in production (must be configured
+  // on the Vapi dashboard side). In development, allow through for convenience.
   if (!headerSig) {
+    if (IS_PROD) {
+      securityEvent('webhook_no_signature_rejected', { ip: req.ip, path: req.originalUrl });
+      return res.status(401).json({ message: 'Missing webhook signature' });
+    }
     log.warn('vapi_webhook_no_signature_header', { ip: req.ip });
     return next();
   }
