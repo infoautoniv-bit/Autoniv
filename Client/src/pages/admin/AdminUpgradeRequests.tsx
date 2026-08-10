@@ -233,18 +233,18 @@ export function AdminUpgradeRequests() {
       card: {
         label: 'Plan Upgrade',
         render: (req) => (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 max-w-full overflow-hidden">
             <span 
-              className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium text-white shadow-sm capitalize"
+              className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10.5px] font-medium text-white shadow-sm capitalize truncate max-w-[110px]"
               style={{ background: planGradients[req.currentPlan] || 'var(--gg)' }}
             >
               {req.currentPlan}
             </span>
-            <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/>
             </svg>
             <span 
-              className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium text-white shadow-sm capitalize"
+              className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10.5px] font-medium text-white shadow-sm capitalize truncate max-w-[110px]"
               style={{ background: planGradients[req.requestedPlan] || 'var(--gg)' }}
             >
               {req.requestedPlan}
