@@ -196,7 +196,14 @@ router.put('/:id', requireAdmin, async (req, res) => {
     request.updatedAt = new Date();
     await request.save();
 
-    const result = { ...request.toObject(), id: request._id, status };
+    const userDoc = await User.findById(request.userId).lean();
+    const result = {
+      ...request.toObject(),
+      id: request._id,
+      status,
+      userName: userDoc?.name || null,
+      userEmail: userDoc?.email || null,
+    };
     res.json({ request: result });
   } catch (error) {
     log.error('process_upgrade_request_error', { error: error.message, userId: req.user?.userId });
