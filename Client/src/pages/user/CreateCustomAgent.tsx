@@ -77,6 +77,8 @@ const DEFAULT_FORM_DATA = {
   hubspotToken: '',
   webhookUrl: '',
   webhookSecret: '',
+  googleSheetId: '',
+  googleSheetUrl: '',
   fieldMapping: '',
   customHeaders: '',
   payloadTemplate: '',
@@ -290,6 +292,8 @@ export function CreateCustomAgent() {
           hubspotToken: '',
           webhookUrl: '',
           webhookSecret: '',
+          googleSheetId: '',
+          googleSheetUrl: '',
           fieldMapping: '',
           customHeaders: '',
           payloadTemplate: '',
@@ -340,10 +344,14 @@ export function CreateCustomAgent() {
         phoneNumber: phoneNumberVal,
         twilioAccountSid: phoneMode === 'direct' ? formData.twilioAccountSid : '',
         twilioAuthToken: phoneMode === 'direct' ? formData.twilioAuthToken : '',
+        googleSheetId: formData.googleSheetId || undefined,
+        googleSheetUrl: formData.googleSheetUrl || undefined,
         crmIntegrations: {
           hubspotToken: formData.hubspotToken || undefined,
           webhookUrl: formData.webhookUrl || undefined,
           webhookSecret: formData.webhookSecret || undefined,
+          googleSheetId: formData.googleSheetId || undefined,
+          googleSheetUrl: formData.googleSheetUrl || undefined,
           fieldMapping: formData.fieldMapping ? JSON.parse(formData.fieldMapping) : undefined,
           customHeaders: formData.customHeaders ? JSON.parse(formData.customHeaders) : undefined,
           payloadTemplate: formData.payloadTemplate || undefined,
@@ -384,7 +392,38 @@ export function CreateCustomAgent() {
   ];
   const readinessPct = Math.round(readinessItems.filter(r => r.done).length / readinessItems.length * 100);
 
-  const patch = (v: Partial<typeof formData>) => setFormData(p => ({ ...p, ...v }));
+  const patch = useCallback((fields: Partial<typeof formData>) => {
+    setFormData(p => ({ ...p, ...fields }));
+  }, []);
+
+  const handleSheetFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (file.name.endsWith('.json')) {
+          const json = JSON.parse(text);
+          const sheetUrl = json.spreadsheet_url || json.spreadsheetUrl || json.sheet_url || '';
+          const sheetId = json.spreadsheet_id || json.spreadsheetId || json.sheet_id || json.client_email || file.name;
+          if (sheetUrl) {
+            patch({ googleSheetUrl: sheetUrl, googleSheetId: sheetId });
+          } else if (sheetId && sheetId.length > 10) {
+            patch({ googleSheetId: sheetId, googleSheetUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/edit` });
+          } else {
+            patch({ googleSheetId: file.name, payloadTemplate: text });
+          }
+        } else {
+          patch({ googleSheetId: file.name, googleSheetUrl: `https://docs.google.com/spreadsheets/d/${file.name}/edit` });
+        }
+      } catch {
+        patch({ googleSheetId: file.name });
+      }
+    };
+    reader.readAsText(file);
+  }, [patch]);
 
   const focusStyle = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.target.style.borderColor = 'rgba(37,99,235,0.5)';
@@ -874,6 +913,41 @@ export function CreateCustomAgent() {
                     onFocus={focusStyle}
                     onBlur={blurStyle}
                   />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label style={fieldLabel}>Google Sheet Link / Spreadsheet ID</label>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      LIVE GOOGLE SHEET SYNC
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={formData.googleSheetUrl}
+                      onChange={e => patch({ googleSheetUrl: e.target.value })}
+                      placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRm53LnX.../edit"
+                      style={{ ...inputBase, flex: 1 }}
+                      onFocus={focusStyle}
+                      onBlur={blurStyle}
+                    />
+                    <label className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl cursor-pointer transition-colors whitespace-nowrap shadow-sm">
+                      <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      Upload File from Computer
+                      <input
+                        type="file"
+                        accept=".json,.csv,.txt"
+                        className="hidden"
+                        onChange={handleSheetFileUpload}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Paste your Google Sheets URL or click <strong>Upload File from Computer</strong> to load Google Credentials (.json) or Sheet files (.csv) directly.
+                  </p>
                 </div>
 
                 <details className="group">

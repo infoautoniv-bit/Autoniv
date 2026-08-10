@@ -222,6 +222,8 @@ export interface AgentPanelProps {
     hubspotToken?: string;
     webhookUrl?: string;
     webhookSecret?: string;
+    googleSheetId?: string;
+    googleSheetUrl?: string;
     fieldMapping?: string;
     customHeaders?: string;
     payloadTemplate?: string;
@@ -229,6 +231,8 @@ export interface AgentPanelProps {
       hubspotToken?: string;
       webhookUrl?: string;
       webhookSecret?: string;
+      googleSheetId?: string;
+      googleSheetUrl?: string;
       fieldMapping?: string;
       customHeaders?: string;
       payloadTemplate?: string;
@@ -379,7 +383,7 @@ export function AgentPanel({
     prompt: formData.prompt.trim().length > 20,
     engine: !!formData.useCustomEngine,
     connect: hasPhoneLinked,
-    crm: !!(formData.hubspotToken || formData.webhookUrl || formData.crmIntegrations?.hubspotToken || formData.crmIntegrations?.webhookUrl),
+    crm: !!(formData.hubspotToken || formData.webhookUrl || formData.googleSheetUrl || formData.crmIntegrations?.hubspotToken || formData.crmIntegrations?.webhookUrl || formData.crmIntegrations?.googleSheetUrl),
   };
   const readyCount = (['identity', 'voice', 'prompt'] as TabId[]).filter((k) => completion[k]).length;
 
@@ -711,6 +715,57 @@ export function AgentPanel({
                         placeholder="Optional — signs webhook payloads with HMAC SHA-256"
                         mono
                       />
+                    </div>
+
+                    <div>
+                      <FieldLabel hint="Auto-sync calls & leads">Google Sheet Link / Spreadsheet ID</FieldLabel>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <TextInput
+                            value={formData.googleSheetUrl || formData.crmIntegrations?.googleSheetUrl || ''}
+                            onChange={(v) => setFormData((p: any) => ({ ...p, googleSheetUrl: v, crmIntegrations: { ...(p.crmIntegrations || {}), googleSheetUrl: v } }))}
+                            placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRm53LnX.../edit"
+                            mono
+                          />
+                        </div>
+                        <label className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg cursor-pointer transition-colors whitespace-nowrap shadow-sm">
+                          <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                          </svg>
+                          Upload File
+                          <input
+                            type="file"
+                            accept=".json,.csv,.txt"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                try {
+                                  const text = evt.target?.result as string;
+                                  if (file.name.endsWith('.json')) {
+                                    const json = JSON.parse(text);
+                                    const sheetUrl = json.spreadsheet_url || json.spreadsheetUrl || json.sheet_url || '';
+                                    const sheetId = json.spreadsheet_id || json.spreadsheetId || json.sheet_id || json.client_email || file.name;
+                                    const finalUrl = sheetUrl || (sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}/edit` : file.name);
+                                    setFormData((p: any) => ({ ...p, googleSheetUrl: finalUrl, googleSheetId: sheetId, crmIntegrations: { ...(p.crmIntegrations || {}), googleSheetUrl: finalUrl, googleSheetId: sheetId } }));
+                                  } else {
+                                    const finalUrl = `https://docs.google.com/spreadsheets/d/${file.name}/edit`;
+                                    setFormData((p: any) => ({ ...p, googleSheetUrl: finalUrl, googleSheetId: file.name, crmIntegrations: { ...(p.crmIntegrations || {}), googleSheetUrl: finalUrl, googleSheetId: file.name } }));
+                                  }
+                                } catch {
+                                  setFormData((p: any) => ({ ...p, googleSheetId: file.name }));
+                                }
+                              };
+                              reader.readAsText(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
+                        Paste your Google Sheets URL or click <strong>Upload File</strong> to load Google Credentials (.json) or Sheet files (.csv) directly from your computer.
+                      </p>
                     </div>
 
                     <details className="group">

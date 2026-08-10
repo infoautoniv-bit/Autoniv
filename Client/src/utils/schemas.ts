@@ -18,6 +18,8 @@ export const agentFormSchema = z.object({
     .optional()
     .nullable(),
   webhookSecret: z.string().optional().nullable(),
+  googleSheetId: z.string().optional().nullable(),
+  googleSheetUrl: z.string().optional().nullable(),
   fieldMapping: z.string().optional().nullable(),
   customHeaders: z.string().optional().nullable(),
   payloadTemplate: z.string().optional().nullable(),

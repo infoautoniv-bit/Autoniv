@@ -474,6 +474,18 @@ export function UserBilling() {
     }
   }, [dispatch, isVoice]);
 
+  useEffect(() => {
+    if (pendingRequest && showUpgrade) {
+      setShowUpgrade(false);
+    }
+  }, [pendingRequest, showUpgrade]);
+
+  const openUpgradeModal = (tab?: 'chat' | 'voice' | 'both') => {
+    if (pendingRequest) return;
+    if (tab) setModalTab(tab);
+    setShowUpgrade(true);
+  };
+
   const { plan: activePlanConfig, type: activePlanType } = getPlanConfig(user?.plan);
 
   // Determine if user can upgrade chat or voice independently
@@ -675,7 +687,7 @@ export function UserBilling() {
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={() => { setModalTab('chat'); setShowUpgrade(true); }}
+                onClick={() => openUpgradeModal('chat')}
                 className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
               >
                 Upgrade Chat Plan
@@ -786,7 +798,7 @@ export function UserBilling() {
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={() => { setModalTab('voice'); setShowUpgrade(true); }}
+                onClick={() => openUpgradeModal('voice')}
                 className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
               >
                 Upgrade Voice Plan
@@ -798,7 +810,7 @@ export function UserBilling() {
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={() => { setModalTab('voice'); setShowUpgrade(true); }}
+                onClick={() => openUpgradeModal('voice')}
                 className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
               >
                 Activate Voice Plan
@@ -851,7 +863,7 @@ export function UserBilling() {
             <LockedSectionOverlay
               title="Chat Capabilities Locked"
               desc="Upgrade your plan to a Chat Plan or combined Chat + Voice Plan to access chatbot conversations."
-              onUnlock={() => setShowUpgrade(true)}
+              onUnlock={() => openUpgradeModal()}
             />
           )}
           <motion.div
@@ -931,7 +943,7 @@ export function UserBilling() {
             <LockedSectionOverlay
               title="Voice Agent Capabilities Locked"
               desc="Upgrade your plan to a Voice Plan or combined Chat + Voice Plan to build, test and deploy voice receptionists."
-              onUnlock={() => setShowUpgrade(true)}
+              onUnlock={() => openUpgradeModal()}
             />
           )}
           <motion.div
@@ -1066,7 +1078,7 @@ export function UserBilling() {
         </div>
 
         {/* ── White Label Settings ── */}
-        <WhiteLabelSection user={user} onUnlockPlan={() => setShowUpgrade(true)} />
+        <WhiteLabelSection user={user} onUnlockPlan={() => openUpgradeModal()} />
 
         {/* ── Upgrade Modal ── */}
         <AnimatePresence>

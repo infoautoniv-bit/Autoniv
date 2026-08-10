@@ -66,10 +66,14 @@ export interface Agent {
   customEngineModel?: string;
   twilioAccountSid?: string;
   twilioAuthToken?: string;
+  googleSheetId?: string;
+  googleSheetUrl?: string;
   crmIntegrations?: {
     hubspotToken?: string;
     webhookUrl?: string;
     webhookSecret?: string;
+    googleSheetId?: string;
+    googleSheetUrl?: string;
     fieldMapping?: Record<string, string> | string;
     customHeaders?: Record<string, string> | string;
     payloadTemplate?: string;
