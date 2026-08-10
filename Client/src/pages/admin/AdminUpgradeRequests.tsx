@@ -326,7 +326,33 @@ export function AdminUpgradeRequests() {
       header: '',
       className: 'text-right',
       render: (req) => {
-        if (req.status !== 'pending') return null;
+        if (req.status === 'approved') {
+          return (
+            <div className="flex items-center justify-end">
+              <button
+                disabled
+                className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-lg text-xs font-bold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Approved
+              </button>
+            </div>
+          );
+        }
+        if (req.status === 'rejected') {
+          return (
+            <div className="flex items-center justify-end">
+              <button
+                disabled
+                className="px-3.5 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-xs font-bold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5"
+              >
+                Rejected
+              </button>
+            </div>
+          );
+        }
         return (
           // ✅ Fixed action buttons for mobile - stacked on small screens
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-1.5 sm:gap-2">
