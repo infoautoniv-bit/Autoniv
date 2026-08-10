@@ -14,7 +14,7 @@ import { callService } from '../../services/api';
 import VapiModule from '@vapi-ai/web';
 import { logger } from '../../utils/logger';
 import type { Agent } from '../../types';
-import { getMaxChatbots, isVoicePlan } from '../../utils/plan';
+import { getMaxChatbots, isVoicePlan, getMaxMinutes } from '../../utils/plan';
 import ActiveAddOnsBanner from '../../components/ActiveAddOnsBanner';
 import { WebCallDialog, CallMeDialog } from '../../components/CallDialogs';
 
