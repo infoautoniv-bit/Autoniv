@@ -262,8 +262,30 @@ export function AdminLeads() {
       return (l.name || '').toLowerCase().includes(q)
         || (l.phone || '').toLowerCase().includes(q)
         || (l.email || '').toLowerCase().includes(q)
-        || (l.agentName || '').toLowerCase().includes(q);
     });
+
+  const exportToCSV = () => {
+    if (!filteredLeads || filteredLeads.length === 0) return;
+    const headers = ['ID', 'Name', 'Phone', 'Email', 'Status', 'UTM Source', 'UTM Campaign', 'Date'];
+    const rows = filteredLeads.map((l: any) => [
+      `"${l.id || l._id || ''}"`,
+      `"${(l.name || '').replace(/"/g, '""')}"`,
+      `"${(l.phone || '').replace(/"/g, '""')}"`,
+      `"${(l.email || '').replace(/"/g, '""')}"`,
+      `"${l.status || 'new'}"`,
+      `"${(l.utmSource || '').replace(/"/g, '""')}"`,
+      `"${(l.utmCampaign || '').replace(/"/g, '""')}"`,
+      `"${l.createdAt ? new Date(l.createdAt).toISOString() : ''}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `autoniv_leads_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const openDetail = (lead: Lead) => {
     setSelectedLead(lead);

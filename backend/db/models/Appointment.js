@@ -34,6 +34,7 @@ appointmentSchema.pre('save', function (next) {
 appointmentSchema.index({ userId: 1 });
 appointmentSchema.index({ agentId: 1 });
 appointmentSchema.index({ userId: 1, createdAt: -1 });
+appointmentSchema.index({ userId: 1, status: 1, preferredDate: -1 });
 appointmentSchema.index({ createdAt: -1 });
 
 appointmentSchema.post('save', async function (doc) {
