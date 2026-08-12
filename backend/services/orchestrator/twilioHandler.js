@@ -67,6 +67,11 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
     if (cleanedUp) return;
     cleanedUp = true;
     if (callTimeout) { clearTimeout(callTimeout); callTimeout = null; }
+    try {
+      if (twilioWs && (twilioWs.readyState === WebSocket.OPEN || twilioWs.readyState === WebSocket.CONNECTING)) {
+        twilioWs.close(1000, 'Normal closure');
+      }
+    } catch (_) {}
     await closeAndCleanup({
       callSid, agentObj, callStartTime, fullTranscript, deepgramWs,
       pendingLeadData: toolAlreadyExecuted.pendingLeadData, recorder,
@@ -100,7 +105,22 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
       if (base64Audio && !isInterrupted && twilioWs.readyState === WebSocket.OPEN && streamSid) {
         const agentAudio = Buffer.from(base64Audio, 'base64');
         recorder.writeMulaw8k(agentAudio, Date.now());
-        twilioWs.send(JSON.stringify({ event: 'media', streamSid, media: { payload: base64Audio } }));
+
+        const CHUNK_SIZE = 640;
+        const CHUNK_INTERVAL_MS = 80;
+        for (let offset = 0; offset < agentAudio.length; offset += CHUNK_SIZE) {
+          if (isInterrupted || twilioWs.readyState !== WebSocket.OPEN) break;
+          const chunk = agentAudio.subarray(offset, offset + CHUNK_SIZE);
+          twilioWs.send(JSON.stringify({
+            event: 'media',
+            streamSid,
+            media: { payload: chunk.toString('base64') }
+          }));
+          if (offset + CHUNK_SIZE < agentAudio.length) {
+            await new Promise((r) => setTimeout(r, CHUNK_INTERVAL_MS));
+          }
+        }
+
         const playbackMs = agentAudio.length / 8;
         muteInputUntil = Math.max(muteInputUntil, Date.now() + playbackMs + ECHO_TAIL_MS);
       }
@@ -223,6 +243,7 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
     conversationHistory.push({ role: 'assistant', content: greetingText });
     fullTranscript += `Agent: ${greetingText}\n`;
     isProcessing = true;
+    isInterrupted = false;
     try {
       await processSentenceForPlay(greetingText);
     } finally {
@@ -288,6 +309,11 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
     } catch (err) {
       log.error('twilio_message_error', { error: err.message });
     }
+  });
+
+  twilioWs.on('error', async (err) => {
+    log.error('twilio_ws_error', { error: err.message });
+    await runCleanup();
   });
 
   twilioWs.on('close', async () => {
