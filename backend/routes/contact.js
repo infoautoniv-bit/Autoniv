@@ -40,7 +40,7 @@ router.post('/', leadFormLimiter, contentFilter('name', 'message'), async (req, 
 
     log.info('contact_created', { contactId: String(contact._id), email, name });
 
-    const data = { name: name.trim(), email: email.trim(), phone, company, message: message.trim() };
+    const data = { name: name.trim(), email: email.trim(), phone, company, message: message.trim(), utmSource, utmMedium, utmCampaign };
     sendContactNotification(data).catch(err => log.error('contact_email_failed', { error: err.message }));
     sendContactWhatsApp(data).catch(err => log.error('contact_whatsapp_failed', { error: err.message }));
 

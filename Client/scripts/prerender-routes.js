@@ -201,6 +201,10 @@ function swapMeta(html, routePath, meta) {
     `<link rel="alternate" hreflang="en" href="${url}" />`
   );
   result = result.replace(
+    /<link\s+rel="alternate"\s+hreflang="hi"\s+href="[^"]*"\s*\/?>/,
+    `<link rel="alternate" hreflang="hi" href="${url}" />`
+  );
+  result = result.replace(
     /<link\s+rel="alternate"\s+hreflang="x-default"\s+href="[^"]*"\s*\/?>/,
     `<link rel="alternate" hreflang="x-default" href="${url}" />`
   );

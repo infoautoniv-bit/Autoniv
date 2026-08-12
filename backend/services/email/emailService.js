@@ -172,12 +172,14 @@ export async function sendOtpEmail({ to, otp, purpose }) {
   }
 }
 
-export async function sendContactNotification({ name, email, phone, company, message }) {
+export async function sendContactNotification({ name, email, phone, company, message, utmSource, utmMedium, utmCampaign }) {
   const safeName = escapeHtml(name || 'Anonymous');
   const safeEmail = escapeHtml(email || 'N/A');
   const safePhone = escapeHtml(phone || 'N/A');
   const safeCompany = escapeHtml(company || 'N/A');
   const safeMessage = escapeHtml(message || '');
+  const safeUtmSource = escapeHtml(utmSource || '');
+  const safeUtmCampaign = escapeHtml(utmCampaign || '');
 
   const contentHtml = `
     <div style="background-color: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 20px; margin-bottom: 20px;">
@@ -186,6 +188,7 @@ export async function sendContactNotification({ name, email, phone, company, mes
         <tr><td style="padding: 6px 0; color: #94a3b8;">Email Address</td><td style="padding: 6px 0; text-align: right; font-weight: 700; color: #3b82f6;">${safeEmail}</td></tr>
         <tr><td style="padding: 6px 0; color: #94a3b8;">Phone Number</td><td style="padding: 6px 0; text-align: right; font-weight: 700; color: #ffffff;">${safePhone}</td></tr>
         <tr><td style="padding: 6px 0; color: #94a3b8;">Company</td><td style="padding: 6px 0; text-align: right; font-weight: 700; color: #ffffff;">${safeCompany}</td></tr>
+        ${safeUtmSource ? `<tr><td style="padding: 6px 0; color: #94a3b8;">Ad Source</td><td style="padding: 6px 0; text-align: right; font-weight: 700; color: #10b981;">${safeUtmSource} (${safeUtmCampaign || 'Direct Ad'})</td></tr>` : ''}
       </table>
       <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
         <p style="color: #94a3b8; font-size: 12px; font-weight: 600; margin: 0 0 6px 0;">Message Payload:</p>

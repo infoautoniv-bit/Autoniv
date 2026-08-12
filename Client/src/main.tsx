@@ -28,6 +28,30 @@ if (SENTRY_DSN && import.meta.env.PROD) {
   });
 }
 
+// ─── Core Web Vitals Performance Tracking ──────────────────────────────
+if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
+  window.addEventListener('load', () => {
+    try {
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (typeof window.gtag === 'function') {
+            window.gtag('event', 'web_vitals', {
+              event_category: 'Web Vitals',
+              event_action: entry.name,
+              value: Math.round(entry.startTime || (entry as any).value || 0),
+              non_interaction: true,
+            });
+          }
+        }
+      });
+      observer.observe({ type: 'largest-contentful-paint', buffered: true });
+      observer.observe({ type: 'layout-shift', buffered: true });
+    } catch {
+      // Non-critical performance observer fallback
+    }
+  });
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
