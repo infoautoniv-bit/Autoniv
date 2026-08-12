@@ -14,6 +14,7 @@ const agentSchema = new mongoose.Schema({
   callCount: { type: Number, default: 0 },
   useCustomEngine: { type: Boolean, default: false },
   customEngineModel: { type: String, default: 'groq:llama-3.3-70b' },
+  maxConcurrentCalls: { type: Number, default: 1, min: 0 },
   twilioAccountSid: { type: String, default: null },
   twilioAuthToken: { type: String, default: null },
   crmIntegrations: {
@@ -32,6 +33,7 @@ const agentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 agentSchema.index({ userId: 1 });
+agentSchema.index({ userId: 1, createdAt: -1 });
 agentSchema.index({ vapiId: 1 });
 
 const Agent = mongoose.model('Agent', agentSchema);
