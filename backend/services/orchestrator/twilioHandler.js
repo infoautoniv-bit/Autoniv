@@ -191,6 +191,7 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
   };
 
   const handleStartCall = async () => {
+    recorder.startTime = Date.now();
     try {
       if (resolvedAgentId && mongoose.Types.ObjectId.isValid(resolvedAgentId)) {
         agentObj = await Agent.findById(resolvedAgentId).lean();

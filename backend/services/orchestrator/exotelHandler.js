@@ -210,6 +210,7 @@ export async function handleExotelStream(exotelWs) {
   };
 
   const handleStartCall = async () => {
+    recorder.startTime = Date.now();
     try {
       if (exotelToNumber) {
         const rawDigits = exotelToNumber.replace(/\D/g, '');
