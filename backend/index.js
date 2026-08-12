@@ -285,6 +285,12 @@ app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/add-ons', addOnRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/contact', contactRoutes);
+app.use('/api/v1/support', supportRoutes);
+app.use('/api/v1/chatbots', chatbotRoutes);
+app.use('/api/v1/bulk-calls', bulkCallRoutes);
+app.use('/api/v1/phone-numbers', phoneNumberRoutes);
+app.use('/api/v1/team', teamRoutes);
 
 app.use(notFoundHandler);
 
