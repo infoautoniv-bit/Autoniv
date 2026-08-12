@@ -162,6 +162,36 @@ function LeadDetailModal({
                 </div>
               )}
 
+              {/* Marketing Attribution (UTM Parameters) */}
+              {((lead as any).utmSource || (lead as any).utmCampaign) && (
+                <div className="border-t border-slate-100 pt-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-blue-600 mb-2.5 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    Ad Campaign Attribution (UTM)
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-blue-50/40 border border-blue-100 p-3">
+                    {(lead as any).utmSource && (
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Source</span>
+                        <span className="text-xs font-semibold text-slate-700 block truncate">{(lead as any).utmSource}</span>
+                      </div>
+                    )}
+                    {(lead as any).utmMedium && (
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Medium</span>
+                        <span className="text-xs font-semibold text-slate-700 block truncate">{(lead as any).utmMedium}</span>
+                      </div>
+                    )}
+                    {(lead as any).utmCampaign && (
+                      <div className="col-span-2">
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Campaign</span>
+                        <span className="text-xs font-bold text-blue-700 block truncate">{(lead as any).utmCampaign}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Close button for mobile */}
               <button
                 onClick={onClose}
