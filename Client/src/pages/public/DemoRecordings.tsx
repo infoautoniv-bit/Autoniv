@@ -65,6 +65,20 @@ export function DemoRecordings() {
     return () => clearInterval(sliderInterval);
   }, []);
 
+  useEffect(() => {
+    const unlockAudio = () => {
+      if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    };
+    window.addEventListener('touchstart', unlockAudio, { once: true });
+    window.addEventListener('click', unlockAudio, { once: true });
+    return () => {
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('click', unlockAudio);
+    };
+  }, []);
+
   const isPlayingRef = useRef<boolean>(false);
 
   const speakTurn = useCallback(async (item: TranscriptItem, agentVoiceId: string, userVoiceId: string = selectedUserVoice) => {

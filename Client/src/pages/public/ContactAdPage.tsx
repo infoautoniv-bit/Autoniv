@@ -181,13 +181,19 @@ export function ContactAdPage() {
     try {
       const compositeMessage = `[Company: ${formData.company}] [Website: ${formData.website || 'N/A'}] [Industry: ${formData.industry}] [Company Size: ${formData.companySize}] [Needs: ${formData.needs.join(', ') || 'None selected'}] [Monthly Volume: ${formData.callVolume || 'N/A'}] [Preferred Method: ${formData.contactMethod}] [Preferred Time: ${formData.preferredTime || 'N/A'}]\nChallenge / Notes: ${formData.challenge.trim() || 'None specified.'}`;
 
+      const searchParams = new URLSearchParams(window.location.search);
       const res = await contactService.submit({
         name: formData.fullName.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim() || undefined,
         company: formData.company.trim() || undefined,
         message: compositeMessage,
-      });
+        utmSource: searchParams.get('utm_source') || undefined,
+        utmMedium: searchParams.get('utm_medium') || undefined,
+        utmCampaign: searchParams.get('utm_campaign') || undefined,
+        utmContent: searchParams.get('utm_content') || undefined,
+        utmTerm: searchParams.get('utm_term') || undefined,
+      } as any);
 
       const generatedRef = res.data?.contactId
         ? `AUT-${res.data.contactId.slice(-6).toUpperCase()}`

@@ -7,6 +7,11 @@ const contactSchema = new mongoose.Schema({
   company: { type: String, default: null },
   message: { type: String, required: true },
   status: { type: String, default: 'new' },
+  utmSource: { type: String, default: null },
+  utmMedium: { type: String, default: null },
+  utmCampaign: { type: String, default: null },
+  utmContent: { type: String, default: null },
+  utmTerm: { type: String, default: null },
 }, { timestamps: { createdAt: 'createdAt', updatedAt: false } });
 
 contactSchema.index({ createdAt: -1 });

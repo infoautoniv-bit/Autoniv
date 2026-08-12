@@ -14,7 +14,7 @@ const router = express.Router();
 
 router.post('/', leadFormLimiter, contentFilter('name', 'message'), async (req, res) => {
   try {
-    const { name, email, phone, company, message } = req.body;
+    const { name, email, phone, company, message, utmSource, utmMedium, utmCampaign, utmContent, utmTerm } = req.body;
 
     if (!name || !email || !message) {
       return res.status(400).json({ message: 'Name, email, and message are required' });
@@ -31,6 +31,11 @@ router.post('/', leadFormLimiter, contentFilter('name', 'message'), async (req, 
       phone: phone?.trim() || null,
       company: company?.trim() || null,
       message: message.trim(),
+      utmSource: utmSource?.trim() || null,
+      utmMedium: utmMedium?.trim() || null,
+      utmCampaign: utmCampaign?.trim() || null,
+      utmContent: utmContent?.trim() || null,
+      utmTerm: utmTerm?.trim() || null,
     });
 
     log.info('contact_created', { contactId: String(contact._id), email, name });
