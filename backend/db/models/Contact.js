@@ -7,6 +7,8 @@ const contactSchema = new mongoose.Schema({
   company: { type: String, default: null },
   message: { type: String, required: true },
   status: { type: String, default: 'new' },
+  leadScore: { type: Number, default: 50 },
+  priority: { type: String, enum: ['high', 'medium', 'standard'], default: 'standard' },
   utmSource: { type: String, default: null },
   utmMedium: { type: String, default: null },
   utmCampaign: { type: String, default: null },

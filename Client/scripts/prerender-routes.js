@@ -227,6 +227,25 @@ function swapMeta(html, routePath, meta) {
     `<meta property="og:description" content="${escapedDesc}" />`
   );
 
+  // Determine route-specific Open Graph social preview image
+  const ogImage = routePath.includes('real-estate')
+    ? 'https://autoniv.com/og-realestate.webp'
+    : routePath.includes('healthcare')
+      ? 'https://autoniv.com/og-healthcare.webp'
+      : 'https://autoniv.com/og-image.webp';
+
+  // Replace og:image
+  result = result.replace(
+    /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:image" content="${ogImage}" />`
+  );
+
+  // Replace twitter:image
+  result = result.replace(
+    /<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/?>/,
+    `<meta name="twitter:image" content="${ogImage}" />`
+  );
+
   // Replace twitter:url
   result = result.replace(
     /<meta\s+name="twitter:url"\s+content="[^"]*"\s*\/?>/,

@@ -25,12 +25,25 @@ router.post('/', leadFormLimiter, contentFilter('name', 'message'), async (req, 
       return res.status(400).json({ message: 'Invalid email address' });
     }
 
+    let score = 50;
+    if (phone?.trim()) score += 15;
+    if (company?.trim()) score += 15;
+    if (utmSource?.trim()) score += 10;
+    const msgLower = (message || '').toLowerCase();
+    if (msgLower.includes('5,000') || msgLower.includes('1,000') || msgLower.includes('enterprise') || msgLower.includes('healthcare') || msgLower.includes('real estate')) {
+      score += 20;
+    }
+    score = Math.min(100, score);
+    const priority = score >= 75 ? 'high' : score >= 60 ? 'medium' : 'standard';
+
     const contact = await Contact.create({
       name: name.trim(),
       email: email.trim().toLowerCase(),
       phone: phone?.trim() || null,
       company: company?.trim() || null,
       message: message.trim(),
+      leadScore: score,
+      priority,
       utmSource: utmSource?.trim() || null,
       utmMedium: utmMedium?.trim() || null,
       utmCampaign: utmCampaign?.trim() || null,

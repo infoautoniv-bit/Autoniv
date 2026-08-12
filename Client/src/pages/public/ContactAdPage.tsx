@@ -141,6 +141,23 @@ export function ContactAdPage() {
     }
   }, [formData, step, submitted]);
 
+  // ── Tab Switch Attention Recovery ──
+  useEffect(() => {
+    const originalTitle = document.title;
+    const handleVisibilityChange = () => {
+      if (document.hidden && !submitted) {
+        document.title = '⚡ Wait! Get Your Free AI Voice Agent Demo...';
+      } else {
+        document.title = originalTitle;
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.title = originalTitle;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [submitted]);
+
   const validateStep = (currentStep: number): boolean => {
     const errs: FormErrors = {};
 
