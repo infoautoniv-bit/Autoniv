@@ -735,7 +735,7 @@ export function AgentPanel({
                           Upload File
                           <input
                             type="file"
-                            accept=".json,.csv,.txt"
+                            accept=".json,.csv,.txt,.xlsx,.xls"
                             className="hidden"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
@@ -764,7 +764,7 @@ export function AgentPanel({
                         </label>
                       </div>
                       <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-1.5">
-                        Paste your Google Sheets URL or click <strong>Upload File</strong> to load Google Credentials (.json) or Sheet files (.csv) directly from your computer.
+                        Paste your Google Sheets URL or click <strong>Upload File</strong> to load Excel (.xlsx), CSV (.csv), or JSON credentials directly.
                       </p>
                     </div>
 

@@ -49,7 +49,7 @@ const AboutUs = lazy(() => import('./pages/public/AboutUs').then(m => ({ default
 const Careers = lazy(() => import('./pages/public/Careers').then(m => ({ default: m.Careers })));
 const Blog = lazy(() => import('./pages/public/Blog').then(m => ({ default: m.Blog })));
 const Press = lazy(() => import('./pages/public/Press').then(m => ({ default: m.Press })));
-const Agents = lazy(() => import('./pages/public/Agents').then(m => ({ default: m.default })));
+const Agents = lazy(() => import('./pages/public/Agents').then(m => ({ default: m.Agents })));
 const AiVoiceAgent = lazy(() => import('./pages/public/AiVoiceAgent').then(m => ({ default: m.AiVoiceAgent })));
 const AiChatbot = lazy(() => import('./pages/public/AiChatbot').then(m => ({ default: m.AiChatbot })));
 const AiPhoneAnswering = lazy(() => import('./pages/public/AiPhoneAnswering').then(m => ({ default: m.AiPhoneAnswering })));
@@ -370,8 +370,9 @@ function AppRoutes() {
 
   useEffect(() => {
     const path = location.pathname;
-    const { title, description } = resolveMeta(path);
-    const url = path === '/' ? 'https://autoniv.com/' : `https://autoniv.com${path.startsWith('/') ? path : '/' + path}`;
+    const normalizedPath = path === '/' ? '/' : path.replace(/\/+$/, '');
+    const { title, description } = resolveMeta(normalizedPath);
+    const url = normalizedPath === '/' ? 'https://autoniv.com/' : `https://autoniv.com${normalizedPath.startsWith('/') ? normalizedPath : '/' + normalizedPath}`;
 
     document.title = title;
 
