@@ -154,6 +154,10 @@ const EXACT_META = {
     title: 'Latest News - Autoniv',
     description: 'Stay updated with product announcements, brand news, and major updates from the Autoniv team.',
   },
+  '/demos': {
+    title: 'Live AI Voice Agent Demos & Call Recordings | Autoniv',
+    description: 'Listen to live AI voice agent recordings and sample phone calls in English, Hindi, and 20+ languages. Experience low-latency conversational AI in action.',
+  },
 };
 
 function escapeAttr(str) {
