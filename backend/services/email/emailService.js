@@ -291,6 +291,47 @@ export async function sendLeadNotification({ name, email, phone, purpose, notes 
   return data;
 }
 
+export async function sendCustomerLeadConfirmationEmail({ to, name }) {
+  if (!to || !to.includes('@')) return null;
+  const safeName = escapeHtml(name || 'there');
+
+  const contentHtml = `
+    <p style="color: #e2e8f0; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+      Thank you for reaching out to <strong>Autoniv</strong>! We have received your request for a 24/7 AI Voice Agent & Chat Automation consultation.
+    </p>
+    <div style="background-color: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 20px; margin: 20px 0;">
+      <p style="color: #34d399; font-size: 13px; font-weight: 700; margin: 0 0 6px 0;">What happens next?</p>
+      <ul style="color: #cbd5e1; font-size: 13px; line-height: 1.6; margin: 0; padding-left: 20px;">
+        <li>Our AI Solutions Specialist will review your business requirements.</li>
+        <li>We will reach out to you within 24 hours to schedule your live voice agent demo.</li>
+      </ul>
+    </div>
+    <p style="color: #94a3b8; font-size: 13px; margin: 0;">Need immediate assistance? Feel free to reply directly to this email or call our team at <strong>+91-7065990307</strong>.</p>
+  `;
+
+  const html = renderEmailTemplate({
+    title: `We Received Your Request, ${safeName}! 🚀`,
+    subtitle: 'Your 24/7 AI Voice & Chat Solution inquiry has been registered.',
+    contentHtml,
+    footerNote: 'Autoniv — Empowering businesses with 24/7 AI calling and conversational automation.',
+  });
+
+  try {
+    if (!resend || !resend.emails) return null;
+    const { data, error } = await resend.emails.send({
+      from: `${fromName} <${fromEmail}>`,
+      to,
+      subject: 'Thank You for Reaching Out to Autoniv AI',
+      html,
+    });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Failed to send customer confirmation email:', error?.message || error);
+    return null;
+  }
+}
+
 export async function sendWelcomeEmail({ to, name }) {
   if (!to || !to.includes('@')) return null;
   const safeName = escapeHtml(name || 'Creator');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MetaRobots, PRIVATE_ROBOTS } from '../../components/MetaRobots';
@@ -116,6 +116,31 @@ export function ContactAdPage() {
   const [refId, setRefId] = useState('');
   const [serverError, setServerError] = useState('');
 
+  // ── Restore draft from sessionStorage on initial load ──
+  useEffect(() => {
+    try {
+      const savedDraft = sessionStorage.getItem('autoniv_ad_form_draft');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.formData) setFormData(parsed.formData);
+        if (parsed.step && [1, 2, 3, 4].includes(parsed.step)) setStep(parsed.step);
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
+
+  // ── Auto-save draft to sessionStorage on change ──
+  useEffect(() => {
+    if (!submitted) {
+      try {
+        sessionStorage.setItem('autoniv_ad_form_draft', JSON.stringify({ formData, step }));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [formData, step, submitted]);
+
   const validateStep = (currentStep: number): boolean => {
     const errs: FormErrors = {};
 
@@ -201,6 +226,7 @@ export function ContactAdPage() {
 
       setRefId(generatedRef);
       setSubmitted(true);
+      try { sessionStorage.removeItem('autoniv_ad_form_draft'); } catch {}
       trackLeadFormConversion();
     } catch (err: unknown) {
       const message = axios.isAxiosError(err)

@@ -1,7 +1,7 @@
 import express from 'express';
 import Contact from '../db/models/Contact.js';
 import { contentFilter } from '../services/contentModeration.js';
-import { sendContactNotification } from '../services/emailService.js';
+import { sendContactNotification, sendCustomerLeadConfirmationEmail } from '../services/emailService.js';
 import { sendContactWhatsApp } from '../services/whatsappService.js';
 import { log } from '../services/logger.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
@@ -43,6 +43,7 @@ router.post('/', leadFormLimiter, contentFilter('name', 'message'), async (req, 
     const data = { name: name.trim(), email: email.trim(), phone, company, message: message.trim(), utmSource, utmMedium, utmCampaign };
     sendContactNotification(data).catch(err => log.error('contact_email_failed', { error: err.message }));
     sendContactWhatsApp(data).catch(err => log.error('contact_whatsapp_failed', { error: err.message }));
+    sendCustomerLeadConfirmationEmail({ to: email.trim(), name: name.trim() }).catch(err => log.error('customer_confirmation_email_failed', { error: err.message }));
 
     return res.status(201).json({ message: 'Thank you! Our team will reach out within 24 hours.', contactId: contact._id });
   } catch (error) {
