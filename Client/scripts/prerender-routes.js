@@ -264,6 +264,13 @@ function swapMeta(html, routePath, meta) {
     `<meta name="twitter:description" content="${escapedDesc}" />`
   );
 
+  // Inject dynamic article freshness modification date
+  const todayISO = new Date().toISOString();
+  result = result.replace(
+    '</head>',
+    `  <meta property="article:modified_time" content="${todayISO}" />\n</head>`
+  );
+
   // Keep standard CSS stylesheet link in prerendered HTML for Googlebot compliance
 
   // Strip admin/dashboard modulepreload hints on public pages — they waste mobile bandwidth

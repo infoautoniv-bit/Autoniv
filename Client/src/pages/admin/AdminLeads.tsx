@@ -144,6 +144,7 @@ function LeadDetailModal({
                   { label: 'Purpose', value: lead.purpose || '—' },
                   { label: 'Agent', value: lead.agentName || '—' },
                   { label: 'Status', value: (statusConfig[lead.status || 'new'] ?? fallbackStatus).label },
+                  { label: 'Priority', value: (lead as any).priority === 'high' ? 'High Priority ⚡' : (lead as any).priority === 'medium' ? 'Medium Priority' : 'Standard' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl bg-slate-50/60 border border-slate-100 px-3.5 py-2.5">
                     <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">{item.label}</span>

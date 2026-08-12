@@ -48,3 +48,4 @@ ${xmlItems}
 const destPath = path.resolve(__dirname, '../public/sitemap.xml');
 fs.writeFileSync(destPath, sitemapXml, 'utf8');
 console.log('Sitemap generated successfully at:', destPath);
+console.log('Google Search Console sitemap URL:', `${DOMAIN}/sitemap.xml`);
