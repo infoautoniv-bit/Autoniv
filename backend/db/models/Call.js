@@ -30,6 +30,7 @@ callSchema.index({ vapiCallId: 1 }, { unique: true, sparse: true });
 callSchema.index({ vapiCallId: 1, billed: 1 });
 callSchema.index({ startedAt: -1 });
 callSchema.index({ userId: 1, startedAt: -1 });
+callSchema.index({ userId: 1, status: 1, startedAt: -1 });
 callSchema.index({ status: 1, startedAt: -1 });
 
 // Increment agent's callCount when a new call is created

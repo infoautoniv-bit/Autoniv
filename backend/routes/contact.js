@@ -8,9 +8,11 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { parsePage, paginatedResponse } from '../services/pagination.js';
 import { requireValidObjectId } from '../middleware/validators.js';
 
+import { leadFormLimiter } from '../middleware/rateLimiters.js';
+
 const router = express.Router();
 
-router.post('/', contentFilter('name', 'message'), async (req, res) => {
+router.post('/', leadFormLimiter, contentFilter('name', 'message'), async (req, res) => {
   try {
     const { name, email, phone, company, message } = req.body;
 
