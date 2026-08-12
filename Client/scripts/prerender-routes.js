@@ -159,33 +159,12 @@ const EXACT_META = {
     description: 'Listen to live AI voice agent recordings and sample phone calls in English, Hindi, and 20+ languages. Experience low-latency conversational AI in action.',
     schema: {
       '@context': 'https://schema.org',
-      '@type': 'ItemList',
-      name: 'Autoniv AI Voice Agent Live Audio Demos',
-      description: 'Sample voice call recordings demonstrating AI lead qualification, appointment booking, and customer support in English & Hindi.',
-      itemListElement: [
-        {
-          '@type': 'ListItem',
-          position: 1,
-          item: {
-            '@type': 'AudioObject',
-            name: 'Real Estate Inbound Lead Qualification AI Call',
-            description: 'AI Voice Agent qualifying property buyer requirements in natural English.',
-            encodingFormat: 'audio/mpeg',
-            contentUrl: 'https://autoniv.com/assets/demo-realestate.mp3'
-          }
-        },
-        {
-          '@type': 'ListItem',
-          position: 2,
-          item: {
-            '@type': 'AudioObject',
-            name: 'Healthcare Patient Intake & Appointment Scheduling AI Call',
-            description: 'AI Voice Agent scheduling a clinic appointment with patient verification.',
-            encodingFormat: 'audio/mpeg',
-            contentUrl: 'https://autoniv.com/assets/demo-healthcare.mp3'
-          }
-        }
-      ]
+      '@type': 'Service',
+      serviceType: 'AI Voice Agent Demos',
+      provider: { '@type': 'Organization', name: 'Autoniv' },
+      name: 'Autoniv AI Voice Agent Live Interactive Demos',
+      description: 'Interactive voice call demonstrations showcasing AI lead qualification, appointment booking, and customer support across healthcare, real estate, and finance.',
+      areaServed: 'Global'
     }
   },
 };
