@@ -11,7 +11,7 @@ export function Contact() {
       '@context': 'https://schema.org',
       '@type': 'ContactPoint',
       contactType: 'customer support',
-      email: 'hello@autoniv.com',
+      email: 'info.autoniv@gmail.com',
       telephone: '+91-7065990307',
       availableLanguage: ['English', 'Hindi', 'Spanish', 'French'],
       areaServed: 'Global',
