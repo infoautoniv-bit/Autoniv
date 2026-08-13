@@ -587,7 +587,7 @@ export function DataTable<T extends Record<string, any>>({
                   </tr>
                 </thead>
                 <tbody>
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence mode="popLayout">
                     {pageData.map((item, i) => {
                       const itemKey = keyExtractor(item);
                       const isSelected = selectedKeys.has(itemKey);

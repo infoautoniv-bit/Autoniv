@@ -50,9 +50,13 @@ export const fetchAllUpgradeRequests = createAsyncThunk(
 
 export const processUpgradeRequest = createAsyncThunk(
   'upgradeRequests/process',
-  async ({ id, status }: { id: string; status: 'approved' | 'rejected' }) => {
-    const res = await upgradeRequestService.process(id, status);
-    return res.data.request as UpgradeRequest;
+  async ({ id, status }: { id: string; status: 'approved' | 'rejected' }, { rejectWithValue }) => {
+    try {
+      const res = await upgradeRequestService.process(id, status);
+      return res.data.request as UpgradeRequest;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || err.message || 'Failed to process request');
+    }
   }
 );
 
@@ -79,7 +83,9 @@ const upgradeRequestsSlice = createSlice({
         state.myPagination = action.payload.pagination;
       })
       .addCase(fetchAllUpgradeRequests.pending, (state) => {
-        state.loading = true;
+        if (state.all.length === 0) {
+          state.loading = true;
+        }
         state.error = null;
       })
       .addCase(fetchAllUpgradeRequests.fulfilled, (state, action) => {
@@ -91,15 +97,27 @@ const upgradeRequestsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch upgrade requests';
       })
+      .addCase(processUpgradeRequest.pending, (state, action) => {
+        const targetId = String(action.meta.arg.id);
+        const target = state.all.find((r) => String(r.id) === targetId || String((r as any)._id) === targetId);
+        if (target) {
+          target.status = action.meta.arg.status;
+        }
+        const myTarget = state.my.find((r) => String(r.id) === targetId || String((r as any)._id) === targetId);
+        if (myTarget) {
+          myTarget.status = action.meta.arg.status;
+        }
+      })
       .addCase(processUpgradeRequest.fulfilled, (state, action) => {
         const updated = action.payload;
-        const index = state.all.findIndex((r) => r.id === updated.id);
+        const targetId = String(updated?.id || (updated as any)?._id || action.meta.arg.id);
+        const index = state.all.findIndex((r) => String(r.id) === targetId || String((r as any)._id) === targetId);
         if (index !== -1) {
-          state.all[index] = updated;
+          state.all[index] = { ...state.all[index], ...updated, status: updated?.status || action.meta.arg.status };
         }
-        const myIndex = state.my.findIndex((r) => r.id === updated.id);
+        const myIndex = state.my.findIndex((r) => String(r.id) === targetId || String((r as any)._id) === targetId);
         if (myIndex !== -1) {
-          state.my[myIndex] = updated;
+          state.my[myIndex] = { ...state.my[myIndex], ...updated, status: updated?.status || action.meta.arg.status };
         }
       });
   },

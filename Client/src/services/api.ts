@@ -27,5 +27,6 @@ export {
   phoneNumberService,
   contactService,
   supportService,
+  paymentService,
 } from './api.misc';
 export type { TeamMember, TeamData, ChatSessionSummary, ChatMessage, ChatSessionDetail } from './api.misc';

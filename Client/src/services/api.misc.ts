@@ -151,3 +151,10 @@ export const supportService = {
   }) =>
     api.post('/support', data),
 };
+
+export const paymentService = {
+  createCheckoutSession: (data: { planKey: string; billingCycle?: string; provider?: string }) =>
+    api.post<{ checkoutUrl: string; sessionId: string; plan: string; amount: number }>('/payments/checkout-session', data),
+  confirmPayment: (data: { planKey: string; sessionId?: string }) =>
+    api.post<{ message: string; user: any }>('/payments/confirm', data),
+};

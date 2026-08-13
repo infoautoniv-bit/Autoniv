@@ -2,9 +2,10 @@ import express from 'express';
 import UpgradeRequest from '../db/models/UpgradeRequest.js';
 import User from '../db/models/User.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
-import { log } from '../services/logger.js';
+import log from '../services/logger.js';
 import { parsePage, paginatedResponse } from '../services/pagination.js';
 import { notifyPlanChange } from '../services/planNotifier.js';
+import { PLAN_CONFIG } from '../services/planResolver.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -13,75 +14,90 @@ const VALID_UPGRADE_PLANS = [
   'chat_free', 'chat_starter', 'chat_growth', 'chat_enterprise',
   'voice_free', 'voice_starter', 'voice_growth', 'voice_enterprise',
   'both_free', 'both_starter', 'both_growth', 'both_enterprise',
-  'free', 'starter', 'growth', 'enterprise' // backward compatibility
+  'free', 'starter', 'growth', 'enterprise'
 ];
 
+/**
+  * POST /api/upgrade-requests - Submit a new upgrade request
+  */
 router.post('/', async (req, res) => {
   try {
     const { requestedPlan } = req.body;
-    if (!VALID_UPGRADE_PLANS.includes(requestedPlan)) {
-      return res.status(400).json({ message: `Plan must be one of: ${VALID_UPGRADE_PLANS.join(', ')}` });
+    if (!requestedPlan || !VALID_UPGRADE_PLANS.includes(requestedPlan)) {
+      return res.status(400).json({ message: `Invalid plan. Must be one of: ${VALID_UPGRADE_PLANS.join(', ')}` });
     }
 
-    const user = await User.findById(req.user.userId).lean();
+    const userId = req.user?.userId || req.user?._id;
+    const user = await User.findById(userId).lean();
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'User account not found' });
     }
 
-    // Determine the user's current plan for the requested type (chat/voice/both)
+    // Determine current plan for channel (chat/voice/both)
     const userChatPlan = user.chatPlan || 'chat_free';
-    const userVoicePlan = user.voicePlan || 'none';
-    let currentPlanForType = user.plan;
+    const userVoicePlan = user.voicePlan && user.voicePlan !== 'none' ? user.voicePlan : 'voice_free';
+    
+    let currentPlanForCategory = user.plan || 'chat_free';
     if (requestedPlan.startsWith('chat_')) {
-      currentPlanForType = userChatPlan;
+      currentPlanForCategory = userChatPlan;
     } else if (requestedPlan.startsWith('voice_')) {
-      currentPlanForType = userVoicePlan;
+      currentPlanForCategory = userVoicePlan;
     } else if (requestedPlan.startsWith('both_')) {
-      const reqChat = requestedPlan.replace('both_', 'chat_');
-      const reqVoice = requestedPlan.replace('both_', 'voice_');
-      if (userChatPlan === reqChat && userVoicePlan === reqVoice) {
-        currentPlanForType = requestedPlan;
-      }
+      currentPlanForCategory = user.plan || 'both_free';
     }
 
-    if (currentPlanForType === requestedPlan) {
+    if (currentPlanForCategory === requestedPlan) {
       return res.status(400).json({ message: `You are already on the ${requestedPlan} plan` });
     }
 
-    const existing = await UpgradeRequest.findOne({ userId: user._id, status: 'pending' });
-    if (existing) {
-      return res.status(400).json({ message: 'You already have a pending upgrade request' });
+    // Check for existing pending upgrade request
+    const existingPending = await UpgradeRequest.findOne({ userId: user._id, status: 'pending' });
+    if (existingPending) {
+      return res.status(400).json({ message: 'You already have an upgrade request pending admin approval.' });
     }
 
+    // Create upgrade request record
     const request = await UpgradeRequest.create({
       userId: user._id,
-      currentPlan: user.plan,
+      currentPlan: currentPlanForCategory,
       requestedPlan,
       status: 'pending',
     });
 
-    res.status(201).json({ request: { ...request.toObject(), id: request._id } });
+    log.info(`[Upgrade Requests] Created new request for user ${user._id} (${user.email}): ${currentPlanForCategory} -> ${requestedPlan}`);
+
+    res.status(201).json({
+      message: 'Upgrade request submitted successfully. Awaiting admin review.',
+      request: { ...request.toObject(), id: request._id },
+    });
   } catch (error) {
-    log.error('create_upgrade_request_error', { error: error.message, userId: req.user?.userId });
+    log.error('create_upgrade_request_error', { error: error.message, userId: req.user?.userId || req.user?._id });
     res.status(500).json({ message: 'Failed to create upgrade request' });
   }
 });
 
+/**
+  * GET /api/upgrade-requests/my - Get upgrade request history for current user
+  */
 router.get('/my', async (req, res) => {
   try {
     const { page, limit, skip } = parsePage(req.query);
-    const filter = { userId: req.user.userId };
+    const userId = req.user?.userId || req.user?._id;
+    const filter = { userId };
     const [requests, total] = await Promise.all([
       UpgradeRequest.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       UpgradeRequest.countDocuments(filter),
     ]);
     res.json(paginatedResponse({ items: requests, total, page, limit }));
   } catch (error) {
-    log.error('get_my_upgrade_requests_error', { error: error.message, userId: req.user?.userId });
+    log.error('get_my_upgrade_requests_error', { error: error.message, userId: req.user?.userId || req.user?._id });
     res.status(500).json({ message: 'Failed to fetch upgrade requests' });
   }
 });
 
+/**
+  * GET /api/upgrade-requests - List upgrade requests for Admin Dashboard
+  */
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const { page, limit, skip } = parsePage(req.query);
@@ -90,7 +106,7 @@ router.get('/', requireAdmin, async (req, res) => {
     if (status) filter.status = status;
 
     const [requests, total] = await Promise.all([
-      UpgradeRequest.find(filter).populate('userId', 'name email').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      UpgradeRequest.find(filter).populate('userId', 'name email company').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       UpgradeRequest.countDocuments(filter),
     ]);
 
@@ -99,20 +115,25 @@ router.get('/', requireAdmin, async (req, res) => {
       id: r._id,
       userName: r.userId?.name || null,
       userEmail: r.userId?.email || null,
-      userId: r.userId?._id || r.userId,
+      userCompany: r.userId?.company || null,
+      userId: r.userId?._id || r.userId || null,
     }));
 
     res.json(paginatedResponse({ items: result, total, page, limit }));
   } catch (error) {
-    log.error('get_upgrade_requests_error', { error: error.message, userId: req.user?.userId });
+    log.error('get_upgrade_requests_error', { error: error.message, userId: req.user?.userId || req.user?._id });
     res.status(500).json({ message: 'Failed to fetch upgrade requests' });
   }
 });
 
+/**
+  * PUT /api/upgrade-requests/:id - Admin Approve or Reject an upgrade request
+  */
 router.put('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    const adminId = req.user?.userId || req.user?._id;
 
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ message: 'Status must be "approved" or "rejected"' });
@@ -123,91 +144,101 @@ router.put('/:id', requireAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Upgrade request not found' });
     }
 
+    // Idempotency check: if already processed, return clean response
     if (request.status !== 'pending') {
       const result = { ...request.toObject(), id: request._id, status: request.status };
-      return res.json({ request: result });
+      return res.json({ message: `Request is already ${request.status}`, request: result });
     }
 
-    if (status === 'approved') {
-      const plan = request.requestedPlan;
-      const user = await User.findById(request.userId).lean();
-      if (user) {
-        let chatPlan = user.chatPlan || 'chat_free';
-        let voicePlan = user.voicePlan || 'none';
+    // Process plan upgrade on Admin Approval
+    if (status === 'approved' && request.userId) {
+      try {
+        const plan = request.requestedPlan;
+        const user = await User.findById(request.userId).lean();
+        if (user) {
+          let chatPlan = user.chatPlan || 'chat_free';
+          let voicePlan = user.voicePlan || 'none';
 
-        if (plan.startsWith('chat_')) {
-          chatPlan = plan;
-        } else if (plan.startsWith('voice_')) {
-          voicePlan = plan;
-        } else if (plan.startsWith('both_')) {
-          chatPlan = plan.replace('both_', 'chat_');
-          voicePlan = plan.replace('both_', 'voice_');
-        } else if (VALID_UPGRADE_PLANS.includes(plan)) {
-          chatPlan = `chat_${plan}`;
-          voicePlan = `voice_${plan}`;
+          if (plan.startsWith('chat_')) {
+            chatPlan = plan;
+          } else if (plan.startsWith('voice_')) {
+            voicePlan = plan;
+          } else if (plan.startsWith('both_')) {
+            chatPlan = plan.replace('both_', 'chat_');
+            voicePlan = plan.replace('both_', 'voice_');
+          } else if (VALID_UPGRADE_PLANS.includes(plan)) {
+            chatPlan = `chat_${plan}`;
+            voicePlan = `voice_${plan}`;
+          }
+
+          const chatConfig = (chatPlan !== 'none' && PLAN_CONFIG[chatPlan]) ? PLAN_CONFIG[chatPlan] : null;
+          const voiceConfig = (voicePlan !== 'none' && PLAN_CONFIG[voicePlan]) ? PLAN_CONFIG[voicePlan] : null;
+
+          let planLegacy = plan;
+          if (plan.startsWith('both_')) {
+            const chatTier = chatPlan.replace('chat_', '');
+            const voiceTier = voicePlan.replace('voice_', '');
+            planLegacy = chatTier === voiceTier ? `both_${chatTier}` : plan;
+          } else if (plan.startsWith('chat_')) {
+            planLegacy = chatPlan;
+          } else if (plan.startsWith('voice_')) {
+            planLegacy = voicePlan;
+          }
+
+          // Atomic update of user account plan and quota limits
+          await User.findByIdAndUpdate(request.userId, {
+            plan: planLegacy,
+            chatPlan,
+            voicePlan,
+            chatEnabled: chatPlan !== 'none',
+            voiceEnabled: voicePlan !== 'none',
+            callsLimit: voiceConfig?.limits?.calls ?? 100,
+            minutesLimit: voiceConfig?.limits?.minutes ?? 100,
+            chatLimit: chatConfig?.limits?.conversations ?? 1000,
+            planUpdatedAt: new Date(),
+          });
+
+          // Dispatch real-time plan change event
+          notifyPlanChange(request.userId, {
+            plan: planLegacy,
+            chatPlan,
+            voicePlan,
+            chatEnabled: chatPlan !== 'none',
+            voiceEnabled: voicePlan !== 'none',
+          }).catch((err) => log.warn('notifyPlanChange error', { error: err.message }));
+
+          log.info(`[Upgrade Requests] Approved & updated user ${request.userId} to ${planLegacy} (${chatPlan}/${voicePlan})`);
         }
-
-        const planConfigMap = User.PLAN_CONFIG || {};
-        const chatConfig = (chatPlan !== 'none' && planConfigMap[chatPlan]) ? planConfigMap[chatPlan] : null;
-        const voiceConfig = (voicePlan !== 'none' && planConfigMap[voicePlan]) ? planConfigMap[voicePlan] : null;
-
-        let planLegacy = plan;
-        if (plan.startsWith('both_')) {
-          const chatTier = chatPlan.replace('chat_', '');
-          const voiceTier = voicePlan.replace('voice_', '');
-          planLegacy = chatTier === voiceTier ? `both_${chatTier}` : plan;
-        } else if (plan.startsWith('chat_')) {
-          planLegacy = chatPlan;
-        } else if (plan.startsWith('voice_')) {
-          planLegacy = voicePlan;
-        }
-
-        await User.findByIdAndUpdate(request.userId, {
-          plan: planLegacy,
-          chatPlan,
-          voicePlan,
-          chatEnabled: chatPlan !== 'none',
-          voiceEnabled: voicePlan !== 'none',
-          callsLimit: voiceConfig ? voiceConfig.limits.calls : 0,
-          minutesLimit: voiceConfig ? voiceConfig.limits.minutes : 0,
-          chatLimit: chatConfig ? chatConfig.limits.conversations : 0,
-        });
-
-        notifyPlanChange(request.userId, {
-          plan: planLegacy,
-          chatPlan,
-          voicePlan,
-          chatEnabled: chatPlan !== 'none',
-          voiceEnabled: voicePlan !== 'none',
-          callsLimit: voiceConfig ? voiceConfig.limits.calls : 0,
-          minutesLimit: voiceConfig ? voiceConfig.limits.minutes : 0,
-          chatLimit: chatConfig ? chatConfig.limits.conversations : 0,
-        });
+      } catch (userUpErr) {
+        log.warn('user_plan_upgrade_warning', { error: userUpErr.message, userId: request.userId });
       }
     }
 
-    // Mark all pending requests for this user as resolved (approved/rejected) and persist record in DB
-    await UpgradeRequest.updateMany(
-      { userId: request.userId, status: 'pending' },
-      { $set: { status, updatedAt: new Date() } }
+    // Atomic update of UpgradeRequest status
+    const updatedRequest = await UpgradeRequest.findByIdAndUpdate(
+      id,
+      {
+        status,
+        processedAt: new Date(),
+        processedBy: adminId,
+      },
+      { new: true }
     );
 
-    request.status = status;
-    request.updatedAt = new Date();
-    await request.save();
-
-    const userDoc = await User.findById(request.userId).lean();
-    const result = {
-      ...request.toObject(),
+    const responseRequest = {
+      ...(updatedRequest ? updatedRequest.toObject() : request.toObject()),
       id: request._id,
       status,
-      userName: userDoc?.name || null,
-      userEmail: userDoc?.email || null,
     };
-    res.json({ request: result });
+
+    log.info(`[Upgrade Requests] Admin ${adminId} marked request ${id} as ${status}`);
+    res.json({
+      message: `Upgrade request successfully ${status}.`,
+      request: responseRequest,
+    });
   } catch (error) {
-    log.error('process_upgrade_request_error', { error: error.message, userId: req.user?.userId });
-    res.status(500).json({ message: 'Failed to process request' });
+    log.error('process_upgrade_request_error', { error: error.message, id: req.params?.id });
+    res.status(500).json({ message: error.message || 'Failed to process request' });
   }
 });
 

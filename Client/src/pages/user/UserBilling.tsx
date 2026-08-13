@@ -469,9 +469,13 @@ export function UserBilling() {
 
   useEffect(() => {
     dispatch(fetchMyUpgradeRequests({}));
+    const timer = setInterval(() => {
+      dispatch(fetchMyUpgradeRequests({}));
+    }, 3000);
     if (isVoice) {
       dispatch(fetchMyAgents({ page: 1, limit: 50 }));
     }
+    return () => clearInterval(timer);
   }, [dispatch, isVoice]);
 
   useEffect(() => {
@@ -516,7 +520,10 @@ export function UserBilling() {
     return () => clearTimeout(handle);
   }, [showUpgrade, activePlanType, canUpgradeChat, canUpgradeVoice]);
 
-  const chatLimit = user?.chatLimit || activePlanConfig.callsPerMonth || 100;
+  const rawChatLimit = user?.chatLimit ?? activePlanConfig.callsPerMonth ?? 100;
+  const isUnlimitedChat = rawChatLimit === -1 || userChatPlan.endsWith('enterprise');
+  const chatLimit = isUnlimitedChat ? -1 : (rawChatLimit || 100);
+
   const rawMinutesLimit = user?.minutesLimit ?? activePlanConfig.minutesPerMonth ?? 0;
   const isUnlimitedMinutes = rawMinutesLimit === -1;
   const minutesLimit = isUnlimitedMinutes ? 0 : rawMinutesLimit || 50;
@@ -528,10 +535,10 @@ export function UserBilling() {
   const voiceCallsPct = isUnlimitedCalls ? 0 : voiceCallsLimit > 0 ? (voiceCallsUsed / voiceCallsLimit) * 100 : 0;
   const voiceCallsRemaining = isUnlimitedCalls ? Infinity : voiceCallsLimit - voiceCallsUsed;
 
-  const chatUsagePct = chatLimit > 0 ? ((user?.chatUsed || 0) / chatLimit) * 100 : 0;
+  const chatUsagePct = isUnlimitedChat ? 0 : chatLimit > 0 ? ((user?.chatUsed || 0) / chatLimit) * 100 : 0;
   const voiceUsagePct = isUnlimitedMinutes ? 0 : minutesLimit > 0 ? ((user?.minutesUsed || 0) / minutesLimit) * 100 : 0;
 
-  const chatRemaining = chatLimit - (user?.chatUsed || 0);
+  const chatRemaining = isUnlimitedChat ? Infinity : chatLimit - (user?.chatUsed || 0);
   const voiceRemaining = isUnlimitedMinutes ? Infinity : minutesLimit - (user?.minutesUsed || 0);
 
   const handleUpgrade = async () => {
@@ -654,7 +661,7 @@ export function UserBilling() {
                 <span className="text-xs font-extrabold text-slate-700 tabular-nums">
                   {user?.chatUsed || 0}
                   <span className="text-slate-400 font-medium">
-                    {userChatPlan.endsWith('enterprise') ? ' / ∞' : ` / ${chatLimit}`}
+                    {isUnlimitedChat ? ' / ∞' : ` / ${chatLimit}`}
                   </span>
                 </span>
               </div>
@@ -669,7 +676,7 @@ export function UserBilling() {
               <div className="flex justify-between text-[10px] text-slate-500 mt-1.5 font-bold">
                 <span>{chatUsagePct.toFixed(1)}%</span>
                 <span className="text-blue-600">
-                  {userChatPlan.endsWith('enterprise') ? 'Unlimited' : `${Math.max(0, chatRemaining).toLocaleString()} remaining`}
+                  {isUnlimitedChat ? 'Unlimited' : `${Math.max(0, chatRemaining).toLocaleString()} remaining`}
                 </span>
               </div>
             </div>
@@ -680,22 +687,18 @@ export function UserBilling() {
                 <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
                 Upgrade pending — Please wait for admin approval
               </div>
-            ) : canUpgradeChat ? (
+            ) : (
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => openUpgradeModal('chat')}
                 className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
               >
-                Upgrade Chat Plan
+                {canUpgradeChat ? 'Upgrade Chat Plan' : 'Manage Chat Plan ✨'}
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </motion.button>
-            ) : (
-              <div className="w-full py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-[10px] text-slate-500">
-                Enterprise — Contact support
-              </div>
             )}
           </motion.div>
 
@@ -788,34 +791,18 @@ export function UserBilling() {
                 <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
                 Upgrade pending — Please wait for admin approval
               </div>
-            ) : canUpgradeVoice ? (
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => openUpgradeModal('voice')}
-                className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
-              >
-                Upgrade Voice Plan
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </motion.button>
-            ) : userVoicePlan === 'none' ? (
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => openUpgradeModal('voice')}
-                className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
-              >
-                Activate Voice Plan
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </motion.button>
             ) : (
-              <div className="w-full py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-[10px] text-slate-500">
-                Enterprise — Contact support
-              </div>
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => openUpgradeModal('voice')}
+                className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
+              >
+                {canUpgradeVoice ? 'Upgrade Voice Plan' : userVoicePlan === 'none' ? 'Activate Voice Plan ✨' : 'Manage Voice Plan ✨'}
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </motion.button>
             )}
           </motion.div>
         </div>

@@ -40,9 +40,11 @@ import whatsappConnectRoutes from './routes/whatsappConnect.js';
 import bulkCallRoutes from './routes/bulkCalls.js';
 import phoneNumberRoutes from './routes/phoneNumbers.js';
 import teamRoutes from './routes/team.js';
+import paymentRoutes from './routes/payments.js';
 import { initOrchestrator } from './services/orchestrator.js';
 import { syncWebhookUrls } from './services/vapi.js';
 import { registerPlanWs } from './services/planNotifier.js';
+import { scheduleUsageReset } from './services/billing/usageReset.js';
 import { verifyAccessToken } from './services/tokenService.js';
 
 import {
@@ -273,6 +275,7 @@ app.use('/api/webhooks/tts', ttsRoutes);
 app.use('/api/bulk-calls', bulkCallRoutes);
 app.use('/api/phone-numbers', phoneNumberRoutes);
 app.use('/api/team', teamRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ── API v1 aliases (backward-compatible /api/v1/* prefix) ────────────────
 app.use('/api/v1/auth', authRoutes);
@@ -351,6 +354,9 @@ app.use(errorHandler);
       });
 
       log.info('plan_ws_initialized', { endpoint: '/ws/plan' });
+
+      // Start monthly usage reset scheduler
+      scheduleUsageReset();
     });
 
     function shutdown(signal) {
