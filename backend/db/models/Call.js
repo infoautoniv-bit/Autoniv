@@ -30,7 +30,23 @@ callSchema.index({ vapiCallId: 1 }, { unique: true, sparse: true });
 callSchema.index({ vapiCallId: 1, billed: 1 });
 callSchema.index({ startedAt: -1 });
 callSchema.index({ userId: 1, startedAt: -1 });
+callSchema.index({ userId: 1, status: 1, startedAt: -1 });
 callSchema.index({ status: 1, startedAt: -1 });
+
+// Increment agent's callCount when a new call is created
+callSchema.pre('save', async function (next) {
+  if (this.isNew && this.agentId) {
+    try {
+      await mongoose.model('Agent').updateOne(
+        { _id: this.agentId },
+        { $inc: { callCount: 1 } }
+      );
+    } catch {
+      // Non-critical — don't block call creation
+    }
+  }
+  next();
+});
 
 const Call = mongoose.model('Call', callSchema);
 export default Call;

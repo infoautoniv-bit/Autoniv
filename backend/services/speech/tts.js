@@ -162,7 +162,61 @@ function normalizeTelephonyFormat(fmt) {
   return { encoding: 'mulaw', sampleRate: 8000, isTelephony: true };
 }
 
+export function humanizeSpeechText(text) {
+  if (!text || typeof text !== 'string') return text || '';
+
+  let h = text;
+
+  // 1. Expand common titles & abbreviations
+  h = h.replace(/\bDr\.(?=\s|[A-Z])/gi, 'Doctor ');
+  h = h.replace(/\bMr\.(?=\s|[A-Z])/gi, 'Mister ');
+  h = h.replace(/\bMrs\.(?=\s|[A-Z])/gi, 'Missus ');
+  h = h.replace(/\bMs\.(?=\s|[A-Z])/gi, 'Miss ');
+  h = h.replace(/\bAppt\.?|\bapt\.?/gi, 'appointment');
+  h = h.replace(/\bRs\.?|₹/gi, 'Rupees ');
+  h = h.replace(/\bINR\b/g, 'Rupees');
+  h = h.replace(/\bvs\.?/gi, 'versus');
+  h = h.replace(/\be\.g\.?/gi, 'for example');
+  h = h.replace(/\bi\.e\.?/gi, 'that is');
+  h = h.replace(/\betc\.?/gi, 'et cetera');
+  h = h.replace(/\bapprox\.?/gi, 'approximately');
+  h = h.replace(/\bw\/o\b/gi, 'without');
+  h = h.replace(/\bw\//gi, 'with ');
+
+  // 2. Expand units & symbols
+  h = h.replace(/%/g, ' percent');
+  h = h.replace(/&/g, ' and ');
+  h = h.replace(/\bmin\b|\bmins\b|\bmin\./gi, ' minutes');
+  h = h.replace(/\bsec\b|\bsecs\b|\bsec\./gi, ' seconds');
+  h = h.replace(/\bhr\b|\bhrs\b|\bhr\./gi, ' hours');
+  h = h.replace(/\bms\b/gi, ' milliseconds');
+  h = h.replace(/\bp\.a\./gi, ' per annum');
+
+  // 3. Technical acronyms spelled out with clear character breaks for speech engines
+  h = h.replace(/\bCOD\b/g, 'C O D');
+  h = h.replace(/\bEMI\b/g, 'E M I');
+  h = h.replace(/\bCRM\b/g, 'C R M');
+  h = h.replace(/\bHIPAA\b/g, 'Hippa');
+  h = h.replace(/\bCSAT\b/g, 'Customer Satisfaction');
+  h = h.replace(/\bOTP\b/g, 'O T P');
+  h = h.replace(/\bKYC\b/g, 'K Y C');
+  h = h.replace(/\bSMS\b/g, 'S M S');
+
+  // 4. Time format: e.g. "10:30 AM" -> "10 30 A M"
+  h = h.replace(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)/g, (match, p1, p2, p3) => {
+    return `${p1} ${p2} ${p3.toUpperCase().split('').join(' ')}`;
+  });
+  h = h.replace(/\b(AM|PM)\b/gi, (m) => m.toUpperCase().split('').join(' '));
+
+  // 5. Conversational pauses: Replace abrupt em-dashes and dashes with soft commas
+  h = h.replace(/—|--/g, ', ');
+  h = h.replace(/;\s*/g, ', ');
+
+  return h.replace(/\s+/g, ' ').trim();
+}
+
 export async function synthesizeSpeech(text, telephonyOrFormat = true, language = 'en', voiceId = null) {
+  const speechText = humanizeSpeechText(text);
   const fmt = normalizeTelephonyFormat(telephonyOrFormat);
   const isTwilio = fmt.isTelephony;
   let provider = null;
@@ -181,13 +235,13 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
       provider = 'elevenlabs';
     }
   } else {
-    const detectedLang = detectLanguageOfText(text, language);
+    const detectedLang = detectLanguageOfText(speechText, language);
     const best = getBestMultilingualProvider(detectedLang, 'female');
     provider = best.provider;
     voiceModelOrId = best.voiceModelOrId;
   }
 
-  const detectedLang = detectLanguageOfText(text, language);
+  const detectedLang = detectLanguageOfText(speechText, language);
 
   if (detectedLang !== language) {
     language = detectedLang;
@@ -270,7 +324,7 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
 
   if (provider === 'deepgram' && !isDeepgramMissing) {
     const fallbackVoice = (voiceModelOrId && (voiceModelOrId.includes('male') || voiceModelOrId.includes('orion') || voiceModelOrId.includes('zeus') || voiceModelOrId.includes('arcas'))) ? 'aura-orion-en' : (voiceModelOrId && voiceModelOrId.startsWith('aura-') ? voiceModelOrId : 'aura-asteria-en');
-    return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
+    return synthesizeSpeechDirectDeepgram(speechText, fmt, fallbackVoice);
   }
 
   if (provider === 'elevenlabs' && !isElevenLabsMissing) {
@@ -285,12 +339,12 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
           'Accept': acceptHeader,
         },
         body: JSON.stringify({
-          text,
+          text: speechText,
           model_id: 'eleven_turbo_v2_5',
           voice_settings: {
-            stability: 0.65,
-            similarity_boost: 0.80,
-            style: 0.15,
+            stability: 0.50,
+            similarity_boost: 0.85,
+            style: 0.25,
             use_speaker_boost: true,
           },
         }),
@@ -306,14 +360,17 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     } catch (elevenErr) {
       log.warn('tts_elevenlabs_failed_fallback_deepgram', { error: elevenErr.message });
       const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
-      return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
+      return synthesizeSpeechDirectDeepgram(speechText, fmt, fallbackVoice);
     }
   }
 
+let sarvamQuotaExhausted = false;
+
   if (provider === 'sarvam') {
     const sarvamKey = process.env.SARVAM_API_KEY;
-    if (!sarvamKey || sarvamKey.startsWith('your-')) {
-      throw new Error('SARVAM_API_KEY is not set');
+    if (!sarvamKey || sarvamKey.startsWith('your-') || sarvamQuotaExhausted) {
+      const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
+      return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
     }
 
     const languageCodes = {
@@ -324,7 +381,7 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     if (!languageCodes[language]) {
       log.warn('tts_sarvam_unsupported_language_fallback', { language });
       const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
-      return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
+      return synthesizeSpeechDirectDeepgram(speechText, fmt, fallbackVoice);
     }
 
     const targetLangCode = languageCodes[language];
@@ -353,12 +410,13 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     const formattedSpeaker = speaker.toLowerCase();
 
     const requestBody = {
-      text,
+      text: speechText,
       model: sarvamModel,
       speaker: formattedSpeaker,
       target_language_code: targetLangCode,
       speech_sample_rate: sampleRate,
       output_audio_codec: outputCodec,
+      pace: 0.98,
     };
 
     let response = null;
@@ -408,6 +466,9 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     if (!response || !response.ok) {
       if (!errTxt && response) {
         errTxt = await response.text().catch(() => 'Unreadable body');
+      }
+      if (errTxt && (errTxt.includes('quota') || errTxt.includes('credits') || errTxt.includes('401') || errTxt.includes('403'))) {
+        sarvamQuotaExhausted = true;
       }
       log.warn('sarvam_tts_fully_failed_falling_back_to_deepgram', { error: errTxt || 'Network/API error' });
       const fallbackVoice = isMaleSpeaker ? 'aura-orion-en' : (fmt.encoding === 'mulaw' ? 'aura-stella-en' : 'aura-asteria-en');

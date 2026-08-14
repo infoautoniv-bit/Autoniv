@@ -46,13 +46,40 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
       if (recordingUrl) {
         updateData.recordingUrl = recordingUrl;
       }
+      if (agentObj) {
+        updateData.agentId = agentObj._id;
+        updateData.userId = agentObj.userId;
+      }
 
-      await Call.findOneAndUpdate({ vapiCallId: callSid }, updateData);
+      const matchFilter = {
+        $or: [
+          { vapiCallId: callSid },
+          { orchestratorCallId: callSid },
+          ...(mongoose.Types.ObjectId.isValid(callSid) ? [{ _id: callSid }] : [])
+        ]
+      };
+
+      const updatedCall = await Call.findOneAndUpdate(matchFilter, { $set: updateData }, { new: true });
+
+      if (!updatedCall && agentObj) {
+        await Call.create({
+          vapiCallId: callSid,
+          orchestratorCallId: callSid,
+          agentId: agentObj._id,
+          userId: agentObj.userId,
+          callerNumber: 'Unknown',
+          startedAt: callStartTime,
+          ...updateData,
+        });
+        log.info('incoming_call_record_created_in_cleanup', { callSid, recordingUrl });
+      } else {
+        log.info('incoming_call_record_updated_in_cleanup', { callSid, recordingUrl });
+      }
 
       if (agentObj && durationSeconds > 0) {
         const billingMinutes = Math.ceil(durationSeconds / 60);
         const flip = await Call.findOneAndUpdate(
-          { vapiCallId: callSid, billed: { $ne: true } },
+          { ...matchFilter, billed: { $ne: true } },
           { $set: { billed: true } }
         );
         if (flip) {

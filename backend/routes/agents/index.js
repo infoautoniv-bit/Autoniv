@@ -50,6 +50,7 @@ const createAgentSchema = z.object({
   customHeaders: z.unknown().optional().nullable(),
   payloadTemplate: z.string().optional().nullable(),
   crmIntegrations: z.record(z.unknown()).optional(),
+  maxConcurrentCalls: z.number().min(0).max(100).optional(),
 }).passthrough();
 
 function sanitizeCrmIntegrations(obj) {
@@ -111,21 +112,12 @@ router.get('/', requireAdmin, async (req, res) => {
       },
       { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
       {
-        $lookup: {
-          from: 'calls',
-          localField: '_id',
-          foreignField: 'agentId',
-          as: 'calls',
-        },
-      },
-      {
         $addFields: {
-          callCount: { $size: '$calls' },
           userName: '$user.name',
           userEmail: '$user.email',
         },
       },
-      { $project: { user: 0, calls: 0 } },
+      { $project: { user: 0 } },
       { $sort: { createdAt: -1 } },
     ];
 
@@ -159,20 +151,6 @@ router.get('/my', async (req, res) => {
 
     const pipeline = [
       { $match: matchStage },
-      {
-        $lookup: {
-          from: 'calls',
-          localField: '_id',
-          foreignField: 'agentId',
-          as: 'calls',
-        },
-      },
-      {
-        $addFields: {
-          callCount: { $size: '$calls' },
-        },
-      },
-      { $project: { calls: 0 } },
       { $sort: { createdAt: -1 } },
     ];
 
@@ -271,6 +249,7 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       twilioAuthToken,
       phoneNumberId,
       phoneNumber,
+      maxConcurrentCalls,
     } = parsed.data;
 
     if (!mongoose.Types.ObjectId.isValid(req.user.userId)) {
@@ -334,6 +313,7 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       webhookUrl: req.body.webhookUrl || incomingCrm?.webhookUrl || null,
       googleSheetId: req.body.googleSheetId || incomingCrm?.googleSheetId || null,
       googleSheetUrl: req.body.googleSheetUrl || incomingCrm?.googleSheetUrl || null,
+      maxConcurrentCalls: maxConcurrentCalls || 1,
     });
 
     if (agent.phoneNumber || agent.phoneNumberId) {
@@ -393,7 +373,7 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
 router.put('/:id', contentFilter('name', 'prompt'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, type, prompt, isActive, language, voiceId, useCustomEngine, customEngineModel, twilioAccountSid, twilioAuthToken } = req.body;
+    const { name, type, prompt, isActive, language, voiceId, useCustomEngine, customEngineModel, twilioAccountSid, twilioAuthToken, maxConcurrentCalls } = req.body;
 
     const { agent, forbidden } = await resolveAgentForUser(id, req.user);
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
@@ -445,6 +425,7 @@ router.put('/:id', contentFilter('name', 'prompt'), async (req, res) => {
     if (customEngineModel !== undefined) updates.customEngineModel = customEngineModel;
     if (twilioAccountSid !== undefined) updates.twilioAccountSid = twilioAccountSid ? encrypt(twilioAccountSid) : null;
     if (twilioAuthToken !== undefined) updates.twilioAuthToken = twilioAuthToken ? encrypt(twilioAuthToken) : null;
+    if (maxConcurrentCalls !== undefined) updates.maxConcurrentCalls = maxConcurrentCalls;
     if (req.body.phoneNumber !== undefined) updates.phoneNumber = req.body.phoneNumber;
     if (req.body.phoneNumberId !== undefined) updates.phoneNumberId = req.body.phoneNumberId;
     if (

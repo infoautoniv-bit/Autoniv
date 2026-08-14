@@ -70,6 +70,7 @@ const fallbackStatus = {
 };
 
 const FILTERS = [
+  { value: '', label: 'All' },
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
@@ -97,14 +98,26 @@ const planGradients: Record<string, string> = {
   both_enterprise: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
 };
 
+function getCategoryMatchingPlan(currentPlan: string, requestedPlan: string): string {
+  if (!currentPlan || !requestedPlan) return currentPlan || 'free';
+  if (requestedPlan.startsWith('voice_') && currentPlan.startsWith('chat_')) {
+    const tier = currentPlan.replace('chat_', '');
+    return `voice_${tier}`;
+  }
+  if (requestedPlan.startsWith('chat_') && currentPlan.startsWith('voice_')) {
+    const tier = currentPlan.replace('voice_', '');
+    return `chat_${tier}`;
+  }
+  return currentPlan;
+}
+
 export function AdminUpgradeRequests() {
   const dispatch = useAppDispatch();
   const requests = useAppSelector((state) => state.upgradeRequests.all);
   const loading = useAppSelector((state) => state.upgradeRequests.loading);
   const pagination = useAppSelector((state) => state.upgradeRequests.pagination);
-  const [filter, setFilter] = useState<string>('pending');
+  const [filter, setFilter] = useState<string>('');
   const [search, setSearch] = useState('');
-  const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>(() => typeof window !== 'undefined' && window.innerWidth < 640 ? 'cards' : 'table');
@@ -121,6 +134,10 @@ export function AdminUpgradeRequests() {
 
   useEffect(() => {
     dispatch(fetchAllUpgradeRequests({ status: filter || undefined, page, limit: 20 }));
+    const timer = setInterval(() => {
+      dispatch(fetchAllUpgradeRequests({ status: filter || undefined, page, limit: 20 }));
+    }, 3000);
+    return () => clearInterval(timer);
   }, [dispatch, filter, page]);
 
   useEffect(() => {
@@ -128,17 +145,16 @@ export function AdminUpgradeRequests() {
     return () => clearTimeout(handle);
   }, [filter, search]);
 
-  const handleProcess = async (id: string, status: 'approved' | 'rejected') => {
-    setProcessing(id);
-    try {
-      await dispatch(processUpgradeRequest({ id, status })).unwrap();
+  const handleProcess = (rawId: string | undefined, status: 'approved' | 'rejected') => {
+    const targetId = String(rawId || '');
+    if (!targetId || targetId === 'undefined') return;
+    dispatch(processUpgradeRequest({ id: targetId, status })).unwrap().catch((err) => {
       dispatch(fetchAllUpgradeRequests({ status: filter || undefined, page, limit: 20 }));
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to process request';
-      alert(msg);
-    } finally {
-      setProcessing(null);
-    }
+      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Failed to process request';
+      if (!msg.toLowerCase().includes('already')) {
+        alert(msg);
+      }
+    });
   };
 
   const filtered = requests
@@ -211,46 +227,52 @@ export function AdminUpgradeRequests() {
       key: 'plans',
       header: 'Plan Upgrade',
       sortable: true,
-      render: (req) => (
-        <div className="flex items-center gap-2">
-          <span 
-            className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium text-white shadow-sm capitalize"
-            style={{ background: planGradients[req.currentPlan] || 'var(--gg)' }}
-          >
-            {req.currentPlan}
-          </span>
-          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-          </svg>
-          <span 
-            className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium text-white shadow-sm capitalize"
-            style={{ background: planGradients[req.requestedPlan] || 'var(--gg)' }}
-          >
-            {req.requestedPlan}
-          </span>
-        </div>
-      ),
-      card: {
-        label: 'Plan Upgrade',
-        render: (req) => (
-          <div className="flex flex-wrap items-center gap-1.5 max-w-full overflow-hidden">
+      render: (req) => {
+        const displayCurrentPlan = getCategoryMatchingPlan(req.currentPlan, req.requestedPlan);
+        return (
+          <div className="flex items-center gap-2">
             <span 
-              className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10.5px] font-medium text-white shadow-sm capitalize truncate max-w-[110px]"
-              style={{ background: planGradients[req.currentPlan] || 'var(--gg)' }}
+              className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium text-white shadow-sm capitalize"
+              style={{ background: planGradients[displayCurrentPlan] || 'var(--gg)' }}
             >
-              {req.currentPlan}
+              {displayCurrentPlan}
             </span>
-            <svg className="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/>
             </svg>
             <span 
-              className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10.5px] font-medium text-white shadow-sm capitalize truncate max-w-[110px]"
+              className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium text-white shadow-sm capitalize"
               style={{ background: planGradients[req.requestedPlan] || 'var(--gg)' }}
             >
               {req.requestedPlan}
             </span>
           </div>
-        ),
+        );
+      },
+      card: {
+        label: 'Plan Upgrade',
+        render: (req) => {
+          const displayCurrentPlan = getCategoryMatchingPlan(req.currentPlan, req.requestedPlan);
+          return (
+            <div className="flex flex-wrap items-center gap-1.5 max-w-full overflow-hidden">
+              <span 
+                className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10.5px] font-medium text-white shadow-sm capitalize truncate max-w-[110px]"
+                style={{ background: planGradients[displayCurrentPlan] || 'var(--gg)' }}
+              >
+                {displayCurrentPlan}
+              </span>
+              <svg className="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+              <span 
+                className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10.5px] font-medium text-white shadow-sm capitalize truncate max-w-[110px]"
+                style={{ background: planGradients[req.requestedPlan] || 'var(--gg)' }}
+              >
+                {req.requestedPlan}
+              </span>
+            </div>
+          );
+        },
       },
     },
     {
@@ -326,32 +348,8 @@ export function AdminUpgradeRequests() {
       header: '',
       className: 'text-right',
       render: (req) => {
-        if (req.status === 'approved') {
-          return (
-            <div className="flex items-center justify-end">
-              <button
-                disabled
-                className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-lg text-xs font-bold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-                Approved
-              </button>
-            </div>
-          );
-        }
-        if (req.status === 'rejected') {
-          return (
-            <div className="flex items-center justify-end">
-              <button
-                disabled
-                className="px-3.5 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-xs font-bold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5"
-              >
-                Rejected
-              </button>
-            </div>
-          );
+        if (req.status !== 'pending') {
+          return null;
         }
         return (
           // ✅ Fixed action buttons for mobile - stacked on small screens
@@ -361,9 +359,8 @@ export function AdminUpgradeRequests() {
               whileTap={{ scale: 0.95 }}
               onClick={(e) => {
                 e.stopPropagation();
-                handleProcess(req.id, 'rejected');
+                handleProcess(req.id || (req as any)._id, 'rejected');
               }}
-              disabled={processing === req.id}
               className="px-3 py-2 sm:py-1.5 bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-xs font-bold transition-all disabled:opacity-50 w-full sm:w-auto"
             >
               Reject
@@ -373,26 +370,56 @@ export function AdminUpgradeRequests() {
               whileTap={{ scale: 0.95 }}
               onClick={(e) => {
                 e.stopPropagation();
-                handleProcess(req.id, 'approved');
+                handleProcess(req.id || (req as any)._id, 'approved');
               }}
-              disabled={processing === req.id}
               className="px-4 py-2 sm:py-1.5 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm w-full sm:w-auto"
               style={{ background: 'var(--gg)' }}
             >
-              {processing === req.id ? (
-                <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-              ) : (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-              Approve
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Approve</span>
             </motion.button>
           </div>
         );
+      },
+      card: {
+        label: 'Actions',
+        render: (req) => {
+          if (req.status !== 'pending') {
+            return null;
+          }
+          return (
+            <div className="flex items-center gap-2 w-full pt-1" onClick={(e) => e.stopPropagation()}>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProcess(req.id || (req as any)._id, 'rejected');
+                }}
+                className="flex-1 py-2 bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold transition-all disabled:opacity-50 text-center cursor-pointer"
+              >
+                Reject
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProcess(req.id || (req as any)._id, 'approved');
+                }}
+                className="flex-1 py-2 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-none"
+                style={{ background: 'var(--gg)' }}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Approve</span>
+              </motion.button>
+            </div>
+          );
+        },
       },
     },
   ];

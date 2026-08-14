@@ -66,6 +66,11 @@ export async function handleExotelStream(exotelWs) {
     if (cleanedUp) return;
     cleanedUp = true;
     if (callTimeout) { clearTimeout(callTimeout); callTimeout = null; }
+    try {
+      if (exotelWs && (exotelWs.readyState === WebSocket.OPEN || exotelWs.readyState === WebSocket.CONNECTING)) {
+        exotelWs.close(1000, 'Normal closure');
+      }
+    } catch (_) {}
     await closeAndCleanup({
       callSid, agentObj, callStartTime, fullTranscript, deepgramWs,
       pendingLeadData: toolAlreadyExecuted.pendingLeadData, recorder,
@@ -116,25 +121,40 @@ export async function handleExotelStream(exotelWs) {
   const processSentenceForPlay = async (sentence) => {
     if (isInterrupted) return;
     try {
-      const base64Audio = await synthesizeSpeech(sentence, { encoding: 'linear16', sampleRate: EXOTEL_SAMPLE_RATE }, agentObj.language || 'en', agentObj.voiceId);
+      const base64Audio = await synthesizeSpeech(sentence, { encoding: 'linear16', sampleRate: EXOTEL_SAMPLE_RATE }, agentObj?.language || 'en', agentObj?.voiceId);
       if (base64Audio && !isInterrupted) {
         const agentAudioBuffer = Buffer.from(base64Audio, 'base64');
         recorder.writeAudio(agentAudioBuffer, Date.now(), EXOTEL_SAMPLE_RATE);
+
         if (exotelWs.readyState === WebSocket.OPEN && streamSid) {
-          exotelWs.send(JSON.stringify({
-            event: 'media',
-            stream_sid: streamSid,
-            media: { payload: base64Audio },
-          }));
-          exotelWs.send(JSON.stringify({
-            event: 'mark',
-            stream_sid: streamSid,
-            mark: { name: `audio-${Date.now()}` },
-          }));
+          const CHUNK_SIZE = 1280; // 40ms of 16-bit 8kHz PCM (1280 bytes)
+          const CHUNK_INTERVAL_MS = 40;
+          for (let offset = 0; offset < agentAudioBuffer.length; offset += CHUNK_SIZE) {
+            if (isInterrupted || exotelWs.readyState !== WebSocket.OPEN) break;
+            const chunk = agentAudioBuffer.subarray(offset, offset + CHUNK_SIZE);
+            exotelWs.send(JSON.stringify({
+              event: 'media',
+              stream_sid: streamSid,
+              media: { payload: chunk.toString('base64') },
+            }));
+            if (offset + CHUNK_SIZE < agentAudioBuffer.length) {
+              await new Promise((r) => setTimeout(r, CHUNK_INTERVAL_MS));
+            }
+          }
+
+          if (exotelWs.readyState === WebSocket.OPEN) {
+            exotelWs.send(JSON.stringify({
+              event: 'mark',
+              stream_sid: streamSid,
+              mark: { name: 'sentence_played' },
+            }));
+          }
         }
+        const playbackMs = (agentAudioBuffer.length / 2) / (EXOTEL_SAMPLE_RATE / 1000);
+        muteInputUntil = Math.max(muteInputUntil, Date.now() + playbackMs + ECHO_TAIL_MS);
       }
     } catch (err) {
-      log.error('tts_synthesis_failed', { error: err.message });
+      log.error('exotel_tts_synthesis_failed', { error: err.message });
     }
   };
 
@@ -190,6 +210,7 @@ export async function handleExotelStream(exotelWs) {
   };
 
   const handleStartCall = async () => {
+    recorder.startTime = Date.now();
     try {
       if (exotelToNumber) {
         const rawDigits = exotelToNumber.replace(/\D/g, '');
@@ -290,6 +311,7 @@ export async function handleExotelStream(exotelWs) {
       exotelWs.send(JSON.stringify({ event: 'transcript', role: 'agent', text: greetingText }));
     }
     isProcessing = true;
+    isInterrupted = false;
     try {
       await processSentenceForPlay(greetingText);
     } finally {
@@ -356,6 +378,11 @@ export async function handleExotelStream(exotelWs) {
     } catch (err) {
       log.error('exotel_ws_parse_error', { error: err.message });
     }
+  });
+
+  exotelWs.on('error', async (err) => {
+    log.error('exotel_ws_error', { error: err.message });
+    await runCleanup();
   });
 
   exotelWs.on('close', async () => {

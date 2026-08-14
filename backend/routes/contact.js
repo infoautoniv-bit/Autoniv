@@ -1,18 +1,20 @@
 import express from 'express';
 import Contact from '../db/models/Contact.js';
 import { contentFilter } from '../services/contentModeration.js';
-import { sendContactNotification } from '../services/emailService.js';
+import { sendContactNotification, sendCustomerLeadConfirmationEmail } from '../services/emailService.js';
 import { sendContactWhatsApp } from '../services/whatsappService.js';
 import { log } from '../services/logger.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { parsePage, paginatedResponse } from '../services/pagination.js';
 import { requireValidObjectId } from '../middleware/validators.js';
 
+import { leadFormLimiter } from '../middleware/rateLimiters.js';
+
 const router = express.Router();
 
-router.post('/', contentFilter('name', 'message'), async (req, res) => {
+router.post('/', leadFormLimiter, contentFilter('name', 'message'), async (req, res) => {
   try {
-    const { name, email, phone, company, message } = req.body;
+    const { name, email, phone, company, message, utmSource, utmMedium, utmCampaign, utmContent, utmTerm } = req.body;
 
     if (!name || !email || !message) {
       return res.status(400).json({ message: 'Name, email, and message are required' });
@@ -23,19 +25,38 @@ router.post('/', contentFilter('name', 'message'), async (req, res) => {
       return res.status(400).json({ message: 'Invalid email address' });
     }
 
+    let score = 50;
+    if (phone?.trim()) score += 15;
+    if (company?.trim()) score += 15;
+    if (utmSource?.trim()) score += 10;
+    const msgLower = (message || '').toLowerCase();
+    if (msgLower.includes('5,000') || msgLower.includes('1,000') || msgLower.includes('enterprise') || msgLower.includes('healthcare') || msgLower.includes('real estate')) {
+      score += 20;
+    }
+    score = Math.min(100, score);
+    const priority = score >= 75 ? 'high' : score >= 60 ? 'medium' : 'standard';
+
     const contact = await Contact.create({
       name: name.trim(),
       email: email.trim().toLowerCase(),
       phone: phone?.trim() || null,
       company: company?.trim() || null,
       message: message.trim(),
+      leadScore: score,
+      priority,
+      utmSource: utmSource?.trim() || null,
+      utmMedium: utmMedium?.trim() || null,
+      utmCampaign: utmCampaign?.trim() || null,
+      utmContent: utmContent?.trim() || null,
+      utmTerm: utmTerm?.trim() || null,
     });
 
     log.info('contact_created', { contactId: String(contact._id), email, name });
 
-    const data = { name: name.trim(), email: email.trim(), phone, company, message: message.trim() };
+    const data = { name: name.trim(), email: email.trim(), phone, company, message: message.trim(), utmSource, utmMedium, utmCampaign };
     sendContactNotification(data).catch(err => log.error('contact_email_failed', { error: err.message }));
     sendContactWhatsApp(data).catch(err => log.error('contact_whatsapp_failed', { error: err.message }));
+    sendCustomerLeadConfirmationEmail({ to: email.trim(), name: name.trim() }).catch(err => log.error('customer_confirmation_email_failed', { error: err.message }));
 
     return res.status(201).json({ message: 'Thank you! Our team will reach out within 24 hours.', contactId: contact._id });
   } catch (error) {

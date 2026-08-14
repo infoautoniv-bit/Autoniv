@@ -293,11 +293,11 @@ export function CreateChatbot() {
   const [apiKey, setApiKey] = useState('');
   const [showConfetti, setShowConfetti] = useState(false);
   const confettiValues = useMemo(() =>
-    Array.from({ length: 40 }, () => ({
-      scale: Math.random() * 0.8 + 0.4,
-      x: (Math.random() - 0.5) * 800,
-      y: (Math.random() - 0.5) * 600 - 100,
-      rotate: Math.random() * 360,
+    Array.from({ length: 40 }, (_, i) => ({
+      scale: ((i * 17) % 8 + 4) / 10,
+      x: ((i * 37) % 800) - 400,
+      y: ((i * 53) % 600) - 350,
+      rotate: (i * 73) % 360,
     })),
   []);
   const [previewMode, setPreviewMode] = useState<'widget' | 'mobile'>('widget');

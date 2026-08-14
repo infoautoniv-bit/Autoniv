@@ -51,11 +51,21 @@ const SOCIAL_LINKS = [
 
 const NAV_COLS = [
   {
+    heading: 'Solutions',
+    links: [
+      { href: '/services', label: 'All Services' },
+      { href: '/ai-phone-answering', label: 'AI Phone Answering' },
+      { href: '/customer-support', label: 'Customer Support' },
+      { href: '/industries/real-estate', label: 'Real Estate' },
+      { href: '/industries/healthcare', label: 'Healthcare' },
+    ],
+  },
+  {
     heading: 'Product',
     links: [
       { href: '/demos', label: 'Demo Recordings' },
+      { href: '/pricing', label: 'Pricing Plans' },
       { href: '/#features', label: 'Features', scroll: true },
-      { href: '/#contact', label: 'Contact Us', scroll: true },
       { href: '/#addons', label: 'Add-Ons', scroll: true },
       { href: '/help', label: 'Help Center' },
     ],
@@ -67,6 +77,7 @@ const NAV_COLS = [
       { href: '/careers', label: 'Careers' },
       { href: '/blog', label: 'Blog' },
       { href: '/press', label: 'Press' },
+      { href: '/case-studies', label: 'Case Studies' },
     ],
   },
   {
@@ -140,7 +151,7 @@ export default function Footer() {
 
         {/* Main footer body */}
         <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-14 pb-10" style={{ position: 'relative', zIndex: 1 }}>
-          <Stagger className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12" stagger={0.12} amount={0.15}>
+          <Stagger className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-8 mb-12" stagger={0.12} amount={0.15}>
 
             {/* Brand column — FULL WIDTH on mobile (col-span-1), spans 2 on tablet, spans 2 on lg */}
             <StaggerItem variant="fadeUp" className="col-span-1 sm:col-span-2 lg:col-span-2">

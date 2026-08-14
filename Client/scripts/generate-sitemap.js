@@ -29,7 +29,8 @@ const routes = [
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
   { path: '/services', priority: '0.8', changefreq: 'weekly' },
   { path: '/case-studies', priority: '0.8', changefreq: 'weekly' },
-  { path: '/news', priority: '0.8', changefreq: 'weekly' }
+  { path: '/news', priority: '0.8', changefreq: 'weekly' },
+  { path: '/demos', priority: '0.8', changefreq: 'weekly' }
 ];
 
 const xmlItems = routes.map(route => `  <url>
@@ -47,3 +48,4 @@ ${xmlItems}
 const destPath = path.resolve(__dirname, '../public/sitemap.xml');
 fs.writeFileSync(destPath, sitemapXml, 'utf8');
 console.log('Sitemap generated successfully at:', destPath);
+console.log('Google Search Console sitemap URL:', `${DOMAIN}/sitemap.xml`);

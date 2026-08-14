@@ -1,12 +1,13 @@
-import { decrypt } from '../encryption.js';
+import { decrypt, decryptCredentials } from '../encryption.js';
 
 const FETCH_TIMEOUT_MS = 15_000;
 const fetchWithTimeout = (url, opts = {}) => fetch(url, { ...opts, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 
-export async function makeExotelCall({ fromNumber, e164Number, webhookUrl, statusCallbackUrl, credentials, agent, host }) {
-  const sid = credentials.accountSid || credentials.subdomain || process.env.EXOTEL_ACCOUNT_SID;
-  const apiKey = credentials.apiKey || process.env.EXOTEL_API_KEY;
-  const apiToken = credentials.apiToken || credentials.authToken || process.env.EXOTEL_API_TOKEN;
+export async function makeExotelCall({ fromNumber, e164Number, webhookUrl, statusCallbackUrl, credentials = {}, agent, host }) {
+  const decCreds = decryptCredentials(credentials);
+  const sid = decCreds.accountSid || decCreds.subdomain || process.env.EXOTEL_ACCOUNT_SID;
+  const apiKey = decCreds.apiKey || process.env.EXOTEL_API_KEY;
+  const apiToken = decCreds.apiToken || decCreds.authToken || process.env.EXOTEL_API_TOKEN;
 
   if (!sid || !apiKey || !apiToken) {
     throw new Error('Exotel credentials incomplete. Account SID, API Key, and API Token are required.');
@@ -221,12 +222,13 @@ export async function makeCustomCall({ fromNumber, e164Number, webhookUrl, crede
   return { callSid: custData?.id || custData?.callSid || `cust_${Date.now()}` };
 }
 
-export async function makeTwilioCall({ fromNumber, e164Number, webhookUrl, statusCallbackUrl, credentials, agent, platform }) {
-  let accountSid = agent.twilioAccountSid ? decrypt(agent.twilioAccountSid) : (credentials.accountSid || credentials.accountSidKey || credentials.apiKey || process.env.TWILIO_ACCOUNT_SID);
-  let authToken = agent.twilioAuthToken ? decrypt(agent.twilioAuthToken) : (credentials.authToken || credentials.apiSecret || credentials.apiToken || process.env.TWILIO_AUTH_TOKEN);
+export async function makeTwilioCall({ fromNumber, e164Number, webhookUrl, statusCallbackUrl, credentials = {}, agent = {}, platform = 'twilio' }) {
+  const decCreds = decryptCredentials(credentials);
+  let accountSid = agent?.twilioAccountSid ? decrypt(agent.twilioAccountSid) : (decCreds.accountSid || decCreds.accountSidKey || decCreds.apiKey || process.env.TWILIO_ACCOUNT_SID);
+  let authToken = agent?.twilioAuthToken ? decrypt(agent.twilioAuthToken) : (decCreds.authToken || decCreds.apiSecret || decCreds.apiToken || process.env.TWILIO_AUTH_TOKEN);
 
   if (!accountSid || !authToken) {
-    throw new Error(`To make calls with ${platform.toUpperCase()}, please configure account credentials in Phone Numbers settings or environment variables.`);
+    throw new Error(`To make calls with ${(platform || 'twilio').toUpperCase()}, please configure account credentials in Phone Numbers settings or environment variables.`);
   }
 
   const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json`;

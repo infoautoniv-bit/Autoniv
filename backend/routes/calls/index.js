@@ -11,6 +11,7 @@ import { parsePage, paginatedResponse } from '../../services/pagination.js';
 import { decrypt, decryptCredentials } from '../../services/encryption.js';
 import { deleteRecording } from '../../services/cloudinary.js';
 import { platformHandlers } from '../../services/telephony/platforms.js';
+import { getLiveWebhookUrl } from '../../services/env.js';
 
 const FETCH_TIMEOUT_MS = 15_000;
 const fetchWithTimeout = (url, opts = {}) => fetch(url, { ...opts, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
@@ -416,7 +417,16 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
       return res.status(400).json({ message: 'Agent is not active. Enable it first.' });
     }
 
-    const e164Number = phoneClean.startsWith('+') ? phoneClean : `+${phoneClean}`;
+    let e164Number = phoneClean;
+    if (!e164Number.startsWith('+')) {
+      if (/^[6-9]\d{9}$/.test(e164Number)) {
+        e164Number = `+91${e164Number}`;
+      } else if (/^[2-9]\d{9}$/.test(e164Number)) {
+        e164Number = `+1${e164Number}`;
+      } else {
+        e164Number = `+${e164Number}`;
+      }
+    }
 
     let currentVapiId = agent.vapiId;
 
@@ -478,6 +488,11 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
             .sort({ createdAt: -1 })
             .lean();
         }
+        if (!phoneDoc) {
+          phoneDoc = await PhoneNumber.findOne({ platform: 'twilio' })
+            .sort({ createdAt: -1 })
+            .lean();
+        }
       }
 
       let platform = 'twilio';
@@ -507,7 +522,14 @@ router.post('/outbound', checkVoiceLimit(), async (req, res) => {
         });
       }
 
-      const baseWebhookUrl = process.env.WEBHOOK_URL || `https://${req.headers.host}`;
+      const reqHost = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+      const xfProto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+      const isSecure = xfProto === 'https' || req.secure || IS_PROD;
+      const protocol = isSecure ? 'https' : 'http';
+      const requestBaseUrl = reqHost && !reqHost.startsWith('localhost') && !reqHost.startsWith('127.0.0.1') ? `${protocol}://${reqHost}` : null;
+
+      const liveEnvUrl = getLiveWebhookUrl();
+      const baseWebhookUrl = requestBaseUrl || liveEnvUrl || process.env.WEBHOOK_URL || `https://${req.headers.host}`;
       let webhookUrl;
       let statusCallbackUrl;
       if (baseWebhookUrl.endsWith('/api/webhooks/vapi')) {

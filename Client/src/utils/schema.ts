@@ -27,7 +27,7 @@ export const ORGANIZATION_SCHEMA: SchemaBase = {
   logo: 'https://autoniv.com/logo.webp',
   image: 'https://autoniv.com/og-image.webp',
   description: 'AI-powered voice agents, chatbots, and phone answering services for businesses.',
-  email: 'hello@autoniv.com',
+  email: 'info.autoniv@gmail.com',
   telephone: '+91-7065990307',
   sameAs: [
     'https://www.linkedin.com/company/autoniv',
@@ -38,7 +38,7 @@ export const ORGANIZATION_SCHEMA: SchemaBase = {
   contactPoint: {
     '@type': 'ContactPoint',
     contactType: 'customer support',
-    email: 'hello@autoniv.com',
+    email: 'info.autoniv@gmail.com',
     telephone: '+91-7065990307',
     availableLanguage: ['English', 'Hindi', 'Spanish', 'French'],
   },

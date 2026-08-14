@@ -40,9 +40,11 @@ import whatsappConnectRoutes from './routes/whatsappConnect.js';
 import bulkCallRoutes from './routes/bulkCalls.js';
 import phoneNumberRoutes from './routes/phoneNumbers.js';
 import teamRoutes from './routes/team.js';
+import paymentRoutes from './routes/payments.js';
 import { initOrchestrator } from './services/orchestrator.js';
 import { syncWebhookUrls } from './services/vapi.js';
 import { registerPlanWs } from './services/planNotifier.js';
+import { scheduleUsageReset } from './services/billing/usageReset.js';
 import { verifyAccessToken } from './services/tokenService.js';
 
 import {
@@ -273,6 +275,7 @@ app.use('/api/webhooks/tts', ttsRoutes);
 app.use('/api/bulk-calls', bulkCallRoutes);
 app.use('/api/phone-numbers', phoneNumberRoutes);
 app.use('/api/team', teamRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ── API v1 aliases (backward-compatible /api/v1/* prefix) ────────────────
 app.use('/api/v1/auth', authRoutes);
@@ -285,6 +288,12 @@ app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/add-ons', addOnRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/contact', contactRoutes);
+app.use('/api/v1/support', supportRoutes);
+app.use('/api/v1/chatbots', chatbotRoutes);
+app.use('/api/v1/bulk-calls', bulkCallRoutes);
+app.use('/api/v1/phone-numbers', phoneNumberRoutes);
+app.use('/api/v1/team', teamRoutes);
 
 app.use(notFoundHandler);
 
@@ -345,6 +354,27 @@ app.use(errorHandler);
       });
 
       log.info('plan_ws_initialized', { endpoint: '/ws/plan' });
+
+      // Start monthly usage reset scheduler
+      scheduleUsageReset();
+
+      // Keep Render alive (free tier spins down after 15 min inactivity)
+      if (IS_PROD) {
+        const keepAlive = async () => {
+          try {
+            const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+            await fetch(`${url}/api/health`);
+            log.info('keep_alive_ping', { url });
+          } catch (err) {
+            log.warn('keep_alive_failed', { error: err.message });
+          }
+        };
+        
+        // Ping every 30 minutes to save Render hours
+        // Service will be awake ~30 min, sleep ~15 min before next ping
+        setInterval(keepAlive, 30 * 60 * 1000);
+        log.info('keep_alive_initialized', { intervalMinutes: 30 });
+      }
     });
 
     function shutdown(signal) {
