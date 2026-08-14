@@ -29,28 +29,33 @@ if (SENTRY_DSN && import.meta.env.PROD) {
 }
 
 // ─── Core Web Vitals Performance Tracking ──────────────────────────────
+// Aggregated once to prevent event spam and rate limiting in Google Tag
 if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
   window.addEventListener('load', () => {
     try {
+      let lcpReported = false;
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (typeof window.gtag === 'function') {
-            window.gtag('event', 'web_vitals', {
-              event_category: 'Web Vitals',
-              event_action: entry.name,
-              value: Math.round(entry.startTime || (entry as any).value || 0),
-              non_interaction: true,
-            });
+          if (!lcpReported && entry.entryType === 'largest-contentful-paint') {
+            lcpReported = true;
+            if (typeof window.gtag === 'function') {
+              window.gtag('event', 'web_vitals', {
+                event_category: 'Web Vitals',
+                event_action: 'LCP',
+                value: Math.round(entry.startTime),
+                non_interaction: true,
+              });
+            }
           }
         }
       });
       observer.observe({ type: 'largest-contentful-paint', buffered: true });
-      observer.observe({ type: 'layout-shift', buffered: true });
     } catch {
       // Non-critical performance observer fallback
     }
   });
 }
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
