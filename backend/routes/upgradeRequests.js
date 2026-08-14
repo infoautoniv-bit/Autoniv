@@ -205,6 +205,9 @@ router.put('/:id', requireAdmin, async (req, res) => {
             voicePlan,
             chatEnabled: chatPlan !== 'none',
             voiceEnabled: voicePlan !== 'none',
+            callsLimit: voiceConfig?.limits?.calls ?? 100,
+            minutesLimit: voiceConfig?.limits?.minutes ?? 100,
+            chatLimit: chatConfig?.limits?.conversations ?? 1000,
           }).catch((err) => log.warn('notifyPlanChange error', { error: err.message }));
 
           log.info(`[Upgrade Requests] Approved & updated user ${request.userId} to ${planLegacy} (${chatPlan}/${voicePlan})`);

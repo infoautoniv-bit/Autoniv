@@ -5,11 +5,13 @@ import Agent from '../../db/models/Agent.js';
 import Call from '../../db/models/Call.js';
 import User from '../../db/models/User.js';
 
-import { synthesizeSpeech } from '../speech/tts.js';
+import { cachedSynthesizeSpeech } from '../speech/ttsCache.js';
 import { LANGUAGE_NAMES } from '../speech/translate.js';
 import { AudioRecorder } from '../audioRecorder.js';
 import { verifyMediaStreamToken } from '../auth/mediaStreamToken.js';
 import { log } from '../logger.js';
+import { callManager } from './callManager.js';
+import { llmQueue } from './llmQueue.js';
 import {
   createDeepgramSTT,
   createLLMClient,
@@ -54,6 +56,7 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
   let toolAlreadyExecuted = { saveAppointment: false, saveLead: false };
   let callerInfo = { name: null, phone: null };
   let cleanedUp = false;
+  let agentRegistered = false;
 
   let callTimeout = null;
   let timeLimitReached = false;
@@ -67,6 +70,9 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
     if (cleanedUp) return;
     cleanedUp = true;
     if (callTimeout) { clearTimeout(callTimeout); callTimeout = null; }
+    if (agentRegistered && agentObj) {
+      callManager.unregisterCall(agentObj._id.toString(), callSid);
+    }
     try {
       if (twilioWs && (twilioWs.readyState === WebSocket.OPEN || twilioWs.readyState === WebSocket.CONNECTING)) {
         twilioWs.close(1000, 'Normal closure');
@@ -101,7 +107,7 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
   const processSentenceForPlay = async (sentence) => {
     if (isInterrupted) return;
     try {
-      const base64Audio = await synthesizeSpeech(sentence, true, agentObj?.language || 'en', agentObj?.voiceId);
+      const base64Audio = await cachedSynthesizeSpeech(sentence, true, agentObj?.language || 'en', agentObj?.voiceId);
       if (base64Audio && !isInterrupted && twilioWs.readyState === WebSocket.OPEN && streamSid) {
         const agentAudio = Buffer.from(base64Audio, 'base64');
         recorder.writeMulaw8k(agentAudio, Date.now());
@@ -134,12 +140,12 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
     isProcessing = true;
 
     try {
-      const { stream } = await generateCompletion({
+      const { stream } = await llmQueue.add(() => generateCompletion({
         groq, openaiClient, gemini, conversationHistory,
         agentType: agentObj?.type, logPrefix: 'Twilio LLM',
         toolState: toolAlreadyExecuted,
         agentObj,
-      });
+      }), agentObj?.customEngineModel?.split(':')[0] || 'groq');
 
       const { fullResponseText, toolCalls, interrupted } = await processStream({
         stream, isInterrupted, onSentence: processSentenceForPlay,
@@ -206,6 +212,19 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
           agentObj = callObj.agentId;
           log.info('database_agent_loaded', { method: 'call_record_fallback', name: agentObj.name });
         }
+      }
+
+      if (agentObj) {
+        const maxConcurrent = agentObj.maxConcurrentCalls || 1;
+        if (!callManager.canAcceptCall(agentObj._id.toString(), maxConcurrent)) {
+          log.warn('twilio_call_rejected_concurrent_limit', { agentId: agentObj._id, maxConcurrent });
+          if (twilioWs.readyState === WebSocket.OPEN) {
+            twilioWs.close(4003, 'Agent concurrent call limit reached');
+          }
+          return;
+        }
+        callManager.registerCall(agentObj._id.toString(), callSid);
+        agentRegistered = true;
       }
     } catch (dbErr) {
       log.error('database_resolution_error', { error: dbErr.message });
