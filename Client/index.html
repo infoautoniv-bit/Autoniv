@@ -25,6 +25,7 @@
 
   <link id="canonical-link" rel="canonical" href="https://autoniv.com/" />
   <link rel="alternate" hreflang="en" href="https://autoniv.com/" />
+  <link rel="alternate" hreflang="hi" href="https://autoniv.com/" />
   <link rel="alternate" hreflang="x-default" href="https://autoniv.com/" />
 
   <!-- Open Graph / Facebook -->
@@ -105,7 +106,7 @@
           "logo": "https://autoniv.com/logo.webp",
           "image": "https://autoniv.com/og-image.webp",
           "description": "AI-powered voice agents, chatbots, and phone answering services for businesses.",
-          "email": "hello@autoniv.com",
+          "email": "info.autoniv@gmail.com",
           "telephone": "+91-7065990307",
           "founder": { "@type": "Person", "name": "Rajnesh Yadav" },
           "sameAs": [
@@ -117,7 +118,7 @@
           "contactPoint": {
             "@type": "ContactPoint",
             "contactType": "customer support",
-            "email": "hello@autoniv.com",
+            "email": "info.autoniv@gmail.com",
             "telephone": "+91-7065990307",
             "availableLanguage": ["English", "Hindi", "Spanish", "French"]
           },
@@ -162,29 +163,14 @@
     }
   </script>
 
-  <!-- Google tag (gtag.js) — deferred to browser idle time so main thread CPU TBT is ~0ms -->
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18349392281"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    function loadGtag() {
-      if (window.__gtagLoaded) return;
-      window.__gtagLoaded = true;
-      var s = document.createElement('script');
-      s.src = 'https://www.googletagmanager.com/gtag/js?id=AW-18349392281';
-      s.async = true;
-      document.head.appendChild(s);
-      gtag('js', new Date());
-      gtag('config', 'AW-18349392281');
-    }
-    if ('requestIdleCallback' in window) {
-      window.addEventListener('load', function() {
-        requestIdleCallback(loadGtag, { timeout: 3500 });
-      });
-    } else {
-      window.addEventListener('load', function() {
-        setTimeout(loadGtag, 3500);
-      });
-    }
+    window.gtag = gtag;
+    gtag('js', new Date());
+    gtag('config', 'AW-18349392281');
   </script>
 </head>
 

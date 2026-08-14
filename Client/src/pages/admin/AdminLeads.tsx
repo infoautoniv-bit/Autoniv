@@ -144,6 +144,7 @@ function LeadDetailModal({
                   { label: 'Purpose', value: lead.purpose || '—' },
                   { label: 'Agent', value: lead.agentName || '—' },
                   { label: 'Status', value: (statusConfig[lead.status || 'new'] ?? fallbackStatus).label },
+                  { label: 'Priority', value: (lead as any).priority === 'high' ? 'High Priority ⚡' : (lead as any).priority === 'medium' ? 'Medium Priority' : 'Standard' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl bg-slate-50/60 border border-slate-100 px-3.5 py-2.5">
                     <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">{item.label}</span>
@@ -158,6 +159,36 @@ function LeadDetailModal({
                   <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-3">Message / Notes</p>
                   <div className="rounded-xl bg-slate-50/70 border border-slate-100 px-4 py-3">
                     <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{lead.notes || (lead as any).message}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Marketing Attribution (UTM Parameters) */}
+              {((lead as any).utmSource || (lead as any).utmCampaign) && (
+                <div className="border-t border-slate-100 pt-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-blue-600 mb-2.5 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    Ad Campaign Attribution (UTM)
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-blue-50/40 border border-blue-100 p-3">
+                    {(lead as any).utmSource && (
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Source</span>
+                        <span className="text-xs font-semibold text-slate-700 block truncate">{(lead as any).utmSource}</span>
+                      </div>
+                    )}
+                    {(lead as any).utmMedium && (
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Medium</span>
+                        <span className="text-xs font-semibold text-slate-700 block truncate">{(lead as any).utmMedium}</span>
+                      </div>
+                    )}
+                    {(lead as any).utmCampaign && (
+                      <div className="col-span-2">
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Campaign</span>
+                        <span className="text-xs font-bold text-blue-700 block truncate">{(lead as any).utmCampaign}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -232,8 +263,30 @@ export function AdminLeads() {
       return (l.name || '').toLowerCase().includes(q)
         || (l.phone || '').toLowerCase().includes(q)
         || (l.email || '').toLowerCase().includes(q)
-        || (l.agentName || '').toLowerCase().includes(q);
     });
+
+  const exportToCSV = () => {
+    if (!filteredLeads || filteredLeads.length === 0) return;
+    const headers = ['ID', 'Name', 'Phone', 'Email', 'Status', 'UTM Source', 'UTM Campaign', 'Date'];
+    const rows = filteredLeads.map((l: any) => [
+      `"${l.id || l._id || ''}"`,
+      `"${(l.name || '').replace(/"/g, '""')}"`,
+      `"${(l.phone || '').replace(/"/g, '""')}"`,
+      `"${(l.email || '').replace(/"/g, '""')}"`,
+      `"${l.status || 'new'}"`,
+      `"${(l.utmSource || '').replace(/"/g, '""')}"`,
+      `"${(l.utmCampaign || '').replace(/"/g, '""')}"`,
+      `"${l.createdAt ? new Date(l.createdAt).toISOString() : ''}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `autoniv_leads_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const openDetail = (lead: Lead) => {
     setSelectedLead(lead);
@@ -435,6 +488,15 @@ export function AdminLeads() {
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
+          <button
+            onClick={exportToCSV}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Export Leads (CSV)
+          </button>
         </motion.div>
 
         {/* ── Tabs ── */}

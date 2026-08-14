@@ -75,6 +75,15 @@ export const writeLimiter = rateLimit({
   handler: makeHandler('write'),
 });
 
+export const leadFormLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  handler: makeHandler('leadForm'),
+});
+
 export default {
   globalLimiter,
   authLimiter,
@@ -82,4 +91,5 @@ export default {
   registerLimiter,
   webhookLimiter,
   writeLimiter,
+  leadFormLimiter,
 };

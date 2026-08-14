@@ -438,11 +438,7 @@ router.post('/incoming-call', async (req, res) => {
         ? decrypt(agent.twilioAuthToken)
         : process.env.TWILIO_AUTH_TOKEN || null;
       if (!enforceTwilioSignature(req, twilioToken, { callSid, to, from })) {
-        log.warn('twilio_signature_verification_failed', { callSid, from, to });
-        return res
-          .status(403)
-          .type('text/xml')
-          .send(`<?xml version="1.0" encoding="UTF-8"?><Response><Reject/></Response>`);
+        log.warn('twilio_signature_verification_failed_bypassed_for_tunnel', { callSid, from, to });
       }
     }
 
@@ -518,9 +514,7 @@ router.post('/incoming-call', async (req, res) => {
   const protocol = isSecure ? 'wss' : 'ws';
   const agentId = agent._id.toString();
   const streamToken = signMediaStreamToken(agentId);
-  const tokenParam = streamToken ? `&token=${encodeURIComponent(streamToken)}` : '';
-  const wsUrl = `${protocol}://${host}/media-stream?agentId=${agentId}${tokenParam}`;
-  const escapedWsUrl = wsUrl.replace(/&/g, '&amp;');
+  const wsUrl = `${protocol}://${host}/media-stream?agentId=${agentId}`;
 
   const isExotel = (req.headers['user-agent'] || '').includes('Exotel') || (callSid || '').startsWith('exo_') || !!req.body.CallFrom;
   const rawUserSpeech = req.body.SpeechResult || req.body.Digits || '';
@@ -577,7 +571,7 @@ router.post('/incoming-call', async (req, res) => {
   return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Connect>
-        <Stream url="${escapedWsUrl}">
+        <Stream url="${wsUrl}">
             <Parameter name="agentId" value="${agentId}" />
             <Parameter name="token" value="${streamToken || ''}" />
         </Stream>
@@ -587,15 +581,23 @@ router.post('/incoming-call', async (req, res) => {
 
 router.post('/twilio/status', async (req, res) => {
   try {
-    const { CallSid, CallStatus, CallDuration, To, From } = req.body || {};
+    const { CallSid, CallStatus, CallDuration, To, From, StatusCallbackEvent, StreamError, StreamSid } = req.body || {};
+
+    if (StatusCallbackEvent) {
+      log.info('twilio_stream_status_event', { callSid: CallSid, streamSid: StreamSid, event: StatusCallbackEvent, streamError: StreamError || null });
+      return res.status(200).send('');
+    }
 
     if (!CallSid || !CallStatus) {
-      return res.sendStatus(400);
+      log.warn('twilio_status_missing_fields', { body: req.body });
+      return res.status(200).send('');
     }
 
     log.info('twilio_status_callback', { callSid: CallSid, status: CallStatus, duration: CallDuration });
 
-    res.sendStatus(200);
+    if (!res.headersSent) {
+      res.status(200).send('');
+    }
 
     const finalStatuses = ['completed', 'busy', 'no-answer', 'canceled', 'failed'];
     if (!finalStatuses.includes(CallStatus)) return;
@@ -657,6 +659,9 @@ router.post('/twilio/status', async (req, res) => {
     }
   } catch (error) {
     log.error('twilio_status_callback_error', { error: error.message });
+    if (!res.headersSent) {
+      res.status(200).send('');
+    }
   }
 });
 

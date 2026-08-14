@@ -5,9 +5,11 @@ import { sendLeadNotification } from '../services/emailService.js';
 import { sendLeadWhatsApp } from '../services/whatsappService.js';
 import { log } from '../services/logger.js';
 
+import { leadFormLimiter } from '../middleware/rateLimiters.js';
+
 const router = express.Router();
 
-router.post('/', contentFilter('name', 'purpose', 'notes'), async (req, res) => {
+router.post('/', leadFormLimiter, contentFilter('name', 'purpose', 'notes'), async (req, res) => {
   try {
     const { name, phone, email, purpose, notes } = req.body;
 

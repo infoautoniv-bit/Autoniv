@@ -7,10 +7,18 @@ const contactSchema = new mongoose.Schema({
   company: { type: String, default: null },
   message: { type: String, required: true },
   status: { type: String, default: 'new' },
+  leadScore: { type: Number, default: 50 },
+  priority: { type: String, enum: ['high', 'medium', 'standard'], default: 'standard' },
+  utmSource: { type: String, default: null },
+  utmMedium: { type: String, default: null },
+  utmCampaign: { type: String, default: null },
+  utmContent: { type: String, default: null },
+  utmTerm: { type: String, default: null },
 }, { timestamps: { createdAt: 'createdAt', updatedAt: false } });
 
 contactSchema.index({ createdAt: -1 });
 contactSchema.index({ status: 1 });
+contactSchema.index({ priority: 1, createdAt: -1 });
 
 const Contact = mongoose.model('Contact', contactSchema);
 export default Contact;

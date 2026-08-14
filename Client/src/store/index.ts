@@ -9,6 +9,7 @@ import upgradeRequestsReducer from './slices/upgradeRequestsSlice';
 import appointmentsReducer from './slices/appointmentsSlice';
 import addOnsReducer from './slices/addOnsSlice';
 import bulkCallsReducer from './slices/bulkCallsSlice';
+import paymentsReducer from './slices/paymentsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     appointments: appointmentsReducer,
     addOns: addOnsReducer,
     bulkCalls: bulkCallsReducer,
+    payments: paymentsReducer,
   },
   devTools: !import.meta.env.PROD,
 });

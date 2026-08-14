@@ -154,6 +154,19 @@ const EXACT_META = {
     title: 'Latest News - Autoniv',
     description: 'Stay updated with product announcements, brand news, and major updates from the Autoniv team.',
   },
+  '/demos': {
+    title: 'Live AI Voice Agent Demos & Call Recordings | Autoniv',
+    description: 'Listen to live AI voice agent recordings and sample phone calls in English, Hindi, and 20+ languages. Experience low-latency conversational AI in action.',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      serviceType: 'AI Voice Agent Demos',
+      provider: { '@type': 'Organization', name: 'Autoniv' },
+      name: 'Autoniv AI Voice Agent Live Interactive Demos',
+      description: 'Interactive voice call demonstrations showcasing AI lead qualification, appointment booking, and customer support across healthcare, real estate, and finance.',
+      areaServed: 'Global'
+    }
+  },
 };
 
 function escapeAttr(str) {
@@ -188,6 +201,10 @@ function swapMeta(html, routePath, meta) {
     `<link rel="alternate" hreflang="en" href="${url}" />`
   );
   result = result.replace(
+    /<link\s+rel="alternate"\s+hreflang="hi"\s+href="[^"]*"\s*\/?>/,
+    `<link rel="alternate" hreflang="hi" href="${url}" />`
+  );
+  result = result.replace(
     /<link\s+rel="alternate"\s+hreflang="x-default"\s+href="[^"]*"\s*\/?>/,
     `<link rel="alternate" hreflang="x-default" href="${url}" />`
   );
@@ -210,6 +227,25 @@ function swapMeta(html, routePath, meta) {
     `<meta property="og:description" content="${escapedDesc}" />`
   );
 
+  // Determine route-specific Open Graph social preview image
+  const ogImage = routePath.includes('real-estate')
+    ? 'https://autoniv.com/og-realestate.webp'
+    : routePath.includes('healthcare')
+      ? 'https://autoniv.com/og-healthcare.webp'
+      : 'https://autoniv.com/og-image.webp';
+
+  // Replace og:image
+  result = result.replace(
+    /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:image" content="${ogImage}" />`
+  );
+
+  // Replace twitter:image
+  result = result.replace(
+    /<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/?>/,
+    `<meta name="twitter:image" content="${ogImage}" />`
+  );
+
   // Replace twitter:url
   result = result.replace(
     /<meta\s+name="twitter:url"\s+content="[^"]*"\s*\/?>/,
@@ -226,6 +262,13 @@ function swapMeta(html, routePath, meta) {
   result = result.replace(
     /<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/,
     `<meta name="twitter:description" content="${escapedDesc}" />`
+  );
+
+  // Inject dynamic article freshness modification date
+  const todayISO = new Date().toISOString();
+  result = result.replace(
+    '</head>',
+    `  <meta property="article:modified_time" content="${todayISO}" />\n</head>`
   );
 
   // Keep standard CSS stylesheet link in prerendered HTML for Googlebot compliance

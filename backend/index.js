@@ -40,9 +40,11 @@ import whatsappConnectRoutes from './routes/whatsappConnect.js';
 import bulkCallRoutes from './routes/bulkCalls.js';
 import phoneNumberRoutes from './routes/phoneNumbers.js';
 import teamRoutes from './routes/team.js';
+import paymentRoutes from './routes/payments.js';
 import { initOrchestrator } from './services/orchestrator.js';
 import { syncWebhookUrls } from './services/vapi.js';
 import { registerPlanWs } from './services/planNotifier.js';
+import { scheduleUsageReset } from './services/billing/usageReset.js';
 import { verifyAccessToken } from './services/tokenService.js';
 
 import {
@@ -273,6 +275,7 @@ app.use('/api/webhooks/tts', ttsRoutes);
 app.use('/api/bulk-calls', bulkCallRoutes);
 app.use('/api/phone-numbers', phoneNumberRoutes);
 app.use('/api/team', teamRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ── API v1 aliases (backward-compatible /api/v1/* prefix) ────────────────
 app.use('/api/v1/auth', authRoutes);
@@ -285,6 +288,12 @@ app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/add-ons', addOnRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/contact', contactRoutes);
+app.use('/api/v1/support', supportRoutes);
+app.use('/api/v1/chatbots', chatbotRoutes);
+app.use('/api/v1/bulk-calls', bulkCallRoutes);
+app.use('/api/v1/phone-numbers', phoneNumberRoutes);
+app.use('/api/v1/team', teamRoutes);
 
 app.use(notFoundHandler);
 

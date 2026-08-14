@@ -105,6 +105,14 @@ export function DemoRecordings() {
       audioFileRef.current = null;
     }
 
+    try {
+      document.querySelectorAll('audio').forEach((a) => {
+        if (!a.paused) a.pause();
+      });
+    } catch {
+      // Ignore DOM audio errors
+    }
+
     const fallbackWebSpeech = (speechText: string, targetVoiceId: string) => {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();

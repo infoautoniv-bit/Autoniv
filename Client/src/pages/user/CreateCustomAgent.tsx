@@ -939,14 +939,14 @@ export function CreateCustomAgent() {
                       Upload File from Computer
                       <input
                         type="file"
-                        accept=".json,.csv,.txt"
+                        accept=".json,.csv,.txt,.xlsx,.xls"
                         className="hidden"
                         onChange={handleSheetFileUpload}
                       />
                     </label>
                   </div>
                   <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Paste your Google Sheets URL or click <strong>Upload File from Computer</strong> to load Google Credentials (.json) or Sheet files (.csv) directly.
+                    Paste your Google Sheets URL or click <strong>Upload File from Computer</strong> to load Excel (.xlsx), CSV (.csv), or JSON credentials directly.
                   </p>
                 </div>
 

@@ -112,21 +112,12 @@ router.get('/', requireAdmin, async (req, res) => {
       },
       { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
       {
-        $lookup: {
-          from: 'calls',
-          localField: '_id',
-          foreignField: 'agentId',
-          as: 'calls',
-        },
-      },
-      {
         $addFields: {
-          callCount: { $size: '$calls' },
           userName: '$user.name',
           userEmail: '$user.email',
         },
       },
-      { $project: { user: 0, calls: 0 } },
+      { $project: { user: 0 } },
       { $sort: { createdAt: -1 } },
     ];
 
@@ -160,20 +151,6 @@ router.get('/my', async (req, res) => {
 
     const pipeline = [
       { $match: matchStage },
-      {
-        $lookup: {
-          from: 'calls',
-          localField: '_id',
-          foreignField: 'agentId',
-          as: 'calls',
-        },
-      },
-      {
-        $addFields: {
-          callCount: { $size: '$calls' },
-        },
-      },
-      { $project: { calls: 0 } },
       { $sort: { createdAt: -1 } },
     ];
 

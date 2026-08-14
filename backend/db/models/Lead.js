@@ -20,6 +20,7 @@ leadSchema.index({ agentId: 1 });
 leadSchema.index({ phone: 1 });
 leadSchema.index({ userId: 1, phone: 1 });
 leadSchema.index({ userId: 1, createdAt: -1 });
+leadSchema.index({ userId: 1, status: 1, createdAt: -1 });
 leadSchema.index({ createdAt: -1 });
 
 leadSchema.post('save', async function (doc) {

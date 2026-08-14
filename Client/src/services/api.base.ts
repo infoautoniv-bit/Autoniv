@@ -199,6 +199,16 @@ api.interceptors.response.use(
       }
     }
 
+    if (
+      originalRequest.method?.toLowerCase() === 'get' &&
+      !originalRequest._getRetry &&
+      (!error.response || (error.response.status >= 502 && error.response.status <= 504) || error.code === 'ECONNABORTED')
+    ) {
+      originalRequest._getRetry = true;
+      await new Promise((res) => setTimeout(res, 400));
+      return api(originalRequest);
+    }
+
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }

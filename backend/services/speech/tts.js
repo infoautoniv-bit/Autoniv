@@ -364,10 +364,13 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     }
   }
 
+let sarvamQuotaExhausted = false;
+
   if (provider === 'sarvam') {
     const sarvamKey = process.env.SARVAM_API_KEY;
-    if (!sarvamKey || sarvamKey.startsWith('your-')) {
-      throw new Error('SARVAM_API_KEY is not set');
+    if (!sarvamKey || sarvamKey.startsWith('your-') || sarvamQuotaExhausted) {
+      const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';
+      return synthesizeSpeechDirectDeepgram(text, fmt, fallbackVoice);
     }
 
     const languageCodes = {
@@ -463,6 +466,9 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     if (!response || !response.ok) {
       if (!errTxt && response) {
         errTxt = await response.text().catch(() => 'Unreadable body');
+      }
+      if (errTxt && (errTxt.includes('quota') || errTxt.includes('credits') || errTxt.includes('401') || errTxt.includes('403'))) {
+        sarvamQuotaExhausted = true;
       }
       log.warn('sarvam_tts_fully_failed_falling_back_to_deepgram', { error: errTxt || 'Network/API error' });
       const fallbackVoice = isMaleSpeaker ? 'aura-orion-en' : (fmt.encoding === 'mulaw' ? 'aura-stella-en' : 'aura-asteria-en');

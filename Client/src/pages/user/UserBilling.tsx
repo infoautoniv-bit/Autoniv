@@ -469,9 +469,13 @@ export function UserBilling() {
 
   useEffect(() => {
     dispatch(fetchMyUpgradeRequests({}));
+    const timer = setInterval(() => {
+      dispatch(fetchMyUpgradeRequests({}));
+    }, 3000);
     if (isVoice) {
       dispatch(fetchMyAgents({ page: 1, limit: 50 }));
     }
+    return () => clearInterval(timer);
   }, [dispatch, isVoice]);
 
   useEffect(() => {
@@ -516,7 +520,10 @@ export function UserBilling() {
     return () => clearTimeout(handle);
   }, [showUpgrade, activePlanType, canUpgradeChat, canUpgradeVoice]);
 
-  const chatLimit = user?.chatLimit || activePlanConfig.callsPerMonth || 100;
+  const rawChatLimit = user?.chatLimit ?? activePlanConfig.callsPerMonth ?? 100;
+  const isUnlimitedChat = rawChatLimit === -1 || userChatPlan.endsWith('enterprise');
+  const chatLimit = isUnlimitedChat ? -1 : (rawChatLimit || 100);
+
   const rawMinutesLimit = user?.minutesLimit ?? activePlanConfig.minutesPerMonth ?? 0;
   const isUnlimitedMinutes = rawMinutesLimit === -1;
   const minutesLimit = isUnlimitedMinutes ? 0 : rawMinutesLimit || 50;
@@ -528,10 +535,10 @@ export function UserBilling() {
   const voiceCallsPct = isUnlimitedCalls ? 0 : voiceCallsLimit > 0 ? (voiceCallsUsed / voiceCallsLimit) * 100 : 0;
   const voiceCallsRemaining = isUnlimitedCalls ? Infinity : voiceCallsLimit - voiceCallsUsed;
 
-  const chatUsagePct = chatLimit > 0 ? ((user?.chatUsed || 0) / chatLimit) * 100 : 0;
+  const chatUsagePct = isUnlimitedChat ? 0 : chatLimit > 0 ? ((user?.chatUsed || 0) / chatLimit) * 100 : 0;
   const voiceUsagePct = isUnlimitedMinutes ? 0 : minutesLimit > 0 ? ((user?.minutesUsed || 0) / minutesLimit) * 100 : 0;
 
-  const chatRemaining = chatLimit - (user?.chatUsed || 0);
+  const chatRemaining = isUnlimitedChat ? Infinity : chatLimit - (user?.chatUsed || 0);
   const voiceRemaining = isUnlimitedMinutes ? Infinity : minutesLimit - (user?.minutesUsed || 0);
 
   const handleUpgrade = async () => {
@@ -654,7 +661,7 @@ export function UserBilling() {
                 <span className="text-xs font-extrabold text-slate-700 tabular-nums">
                   {user?.chatUsed || 0}
                   <span className="text-slate-400 font-medium">
-                    {userChatPlan.endsWith('enterprise') ? ' / ∞' : ` / ${chatLimit}`}
+                    {isUnlimitedChat ? ' / ∞' : ` / ${chatLimit}`}
                   </span>
                 </span>
               </div>
@@ -669,36 +676,29 @@ export function UserBilling() {
               <div className="flex justify-between text-[10px] text-slate-500 mt-1.5 font-bold">
                 <span>{chatUsagePct.toFixed(1)}%</span>
                 <span className="text-blue-600">
-                  {userChatPlan.endsWith('enterprise') ? 'Unlimited' : `${Math.max(0, chatRemaining).toLocaleString()} remaining`}
+                  {isUnlimitedChat ? 'Unlimited' : `${Math.max(0, chatRemaining).toLocaleString()} remaining`}
                 </span>
               </div>
             </div>
 
             {/* Chat Upgrade Button */}
-            {pendingRequest ? (
-              <div className="w-full py-3 rounded-xl font-bold text-center text-[10px] bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center gap-2">
-                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Upgrade pending admin review
+            {pendingRequest && (pendingRequest.requestedPlan.startsWith('chat_') || pendingRequest.requestedPlan.startsWith('both_')) ? (
+              <div className="w-full py-3 rounded-xl font-bold text-center text-[11px] bg-amber-50/90 border border-amber-200 text-amber-700 flex items-center justify-center gap-2 px-3">
+                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                Upgrade pending — Please wait for admin approval
               </div>
-            ) : canUpgradeChat ? (
+            ) : (
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => openUpgradeModal('chat')}
                 className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
               >
-                Upgrade Chat Plan
+                {canUpgradeChat ? 'Upgrade Chat Plan' : 'Manage Chat Plan ✨'}
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </motion.button>
-            ) : (
-              <div className="w-full py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-[10px] text-slate-500">
-                Enterprise — Contact support
-              </div>
             )}
           </motion.div>
 
@@ -786,42 +786,23 @@ export function UserBilling() {
             )}
 
             {/* Voice Upgrade Button */}
-            {pendingRequest ? (
-              <div className="w-full py-3 rounded-xl font-bold text-center text-[10px] bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center gap-2">
-                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Upgrade pending admin review
+            {pendingRequest && (pendingRequest.requestedPlan.startsWith('voice_') || pendingRequest.requestedPlan.startsWith('both_')) ? (
+              <div className="w-full py-3 rounded-xl font-bold text-center text-[11px] bg-amber-50/90 border border-amber-200 text-amber-700 flex items-center justify-center gap-2 px-3">
+                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                Upgrade pending — Please wait for admin approval
               </div>
-            ) : canUpgradeVoice ? (
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => openUpgradeModal('voice')}
-                className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
-              >
-                Upgrade Voice Plan
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </motion.button>
-            ) : userVoicePlan === 'none' ? (
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => openUpgradeModal('voice')}
-                className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
-              >
-                Activate Voice Plan
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </motion.button>
             ) : (
-              <div className="w-full py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-[10px] text-slate-500">
-                Enterprise — Contact support
-              </div>
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => openUpgradeModal('voice')}
+                className="w-full py-3 rounded-xl font-bold transition-all shadow-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center gap-2 text-xs cursor-pointer btn-press border-none"
+              >
+                {canUpgradeVoice ? 'Upgrade Voice Plan' : userVoicePlan === 'none' ? 'Activate Voice Plan ✨' : 'Manage Voice Plan ✨'}
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </motion.button>
             )}
           </motion.div>
         </div>
@@ -846,7 +827,7 @@ export function UserBilling() {
               </div>
             </div>
             <a
-              href="mailto:hello@autoniv.com"
+              href="mailto:info.autoniv@gmail.com"
               className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 active:scale-95 no-underline"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -1188,7 +1169,7 @@ export function UserBilling() {
                             Reach out to our admin team to configure your perfect combined plan. We'll set it up within 24 hours.
                           </p>
                           <div className="space-y-2.5">
-                            <a href="mailto:hello@autoniv.com" className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all group no-underline">
+                            <a href="mailto:info.autoniv@gmail.com" className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all group no-underline">
                               <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                                 <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -1196,7 +1177,7 @@ export function UserBilling() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-[10px] text-slate-500 font-semibold">Email us at</p>
-                                <p className="text-xs text-white font-bold truncate group-hover:text-blue-300 transition-colors">hello@autoniv.com</p>
+                                <p className="text-xs text-white font-bold truncate group-hover:text-blue-300 transition-colors">info.autoniv@gmail.com</p>
                               </div>
                               <svg className="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />

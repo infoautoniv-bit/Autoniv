@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
 
 const envSchema = z.object({
@@ -11,6 +13,20 @@ const envSchema = z.object({
   VAPI_API_KEY: z.string().min(1, 'VAPI_API_KEY is required'),
   SENTRY_DSN: z.string().url().optional(),
 });
+
+export function getLiveWebhookUrl() {
+  try {
+    const envPath = path.resolve('.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const match = content.match(/WEBHOOK_URL=(https:\/\/[^\s]+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+  } catch (_) {}
+  return process.env.WEBHOOK_URL;
+}
 
 export function validateEnv() {
   const parsed = envSchema.safeParse(process.env);

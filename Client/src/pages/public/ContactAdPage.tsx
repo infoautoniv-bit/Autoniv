@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MetaRobots, PRIVATE_ROBOTS } from '../../components/MetaRobots';
@@ -116,6 +116,48 @@ export function ContactAdPage() {
   const [refId, setRefId] = useState('');
   const [serverError, setServerError] = useState('');
 
+  // ── Restore draft from sessionStorage on initial load ──
+  useEffect(() => {
+    try {
+      const savedDraft = sessionStorage.getItem('autoniv_ad_form_draft');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.formData) setFormData(parsed.formData);
+        if (parsed.step && [1, 2, 3, 4].includes(parsed.step)) setStep(parsed.step);
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
+
+  // ── Auto-save draft to sessionStorage on change ──
+  useEffect(() => {
+    if (!submitted) {
+      try {
+        sessionStorage.setItem('autoniv_ad_form_draft', JSON.stringify({ formData, step }));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [formData, step, submitted]);
+
+  // ── Tab Switch Attention Recovery ──
+  useEffect(() => {
+    const originalTitle = document.title;
+    const handleVisibilityChange = () => {
+      if (document.hidden && !submitted) {
+        document.title = '⚡ Wait! Get Your Free AI Voice Agent Demo...';
+      } else {
+        document.title = originalTitle;
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.title = originalTitle;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [submitted]);
+
   const validateStep = (currentStep: number): boolean => {
     const errs: FormErrors = {};
 
@@ -181,13 +223,19 @@ export function ContactAdPage() {
     try {
       const compositeMessage = `[Company: ${formData.company}] [Website: ${formData.website || 'N/A'}] [Industry: ${formData.industry}] [Company Size: ${formData.companySize}] [Needs: ${formData.needs.join(', ') || 'None selected'}] [Monthly Volume: ${formData.callVolume || 'N/A'}] [Preferred Method: ${formData.contactMethod}] [Preferred Time: ${formData.preferredTime || 'N/A'}]\nChallenge / Notes: ${formData.challenge.trim() || 'None specified.'}`;
 
+      const searchParams = new URLSearchParams(window.location.search);
       const res = await contactService.submit({
         name: formData.fullName.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim() || undefined,
         company: formData.company.trim() || undefined,
         message: compositeMessage,
-      });
+        utmSource: searchParams.get('utm_source') || undefined,
+        utmMedium: searchParams.get('utm_medium') || undefined,
+        utmCampaign: searchParams.get('utm_campaign') || undefined,
+        utmContent: searchParams.get('utm_content') || undefined,
+        utmTerm: searchParams.get('utm_term') || undefined,
+      } as any);
 
       const generatedRef = res.data?.contactId
         ? `AUT-${res.data.contactId.slice(-6).toUpperCase()}`
@@ -195,6 +243,7 @@ export function ContactAdPage() {
 
       setRefId(generatedRef);
       setSubmitted(true);
+      try { sessionStorage.removeItem('autoniv_ad_form_draft'); } catch {}
       trackLeadFormConversion();
     } catch (err: unknown) {
       const message = axios.isAxiosError(err)

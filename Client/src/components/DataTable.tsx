@@ -198,7 +198,7 @@ function MobileRow<T>({ item, columns, onRowClick, selectable, isSelected, onSel
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {actions && <div onClick={e => e.stopPropagation()}>{actions.render(item)}</div>}
+          {actions && <div onClick={e => e.stopPropagation()}>{actions.card?.render ? actions.card.render(item) : actions.render(item)}</div>}
           {rest.length > 1 && (
             <button
               onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
@@ -587,7 +587,7 @@ export function DataTable<T extends Record<string, any>>({
                   </tr>
                 </thead>
                 <tbody>
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence mode="popLayout">
                     {pageData.map((item, i) => {
                       const itemKey = keyExtractor(item);
                       const isSelected = selectedKeys.has(itemKey);

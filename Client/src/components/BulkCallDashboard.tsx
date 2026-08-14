@@ -481,7 +481,7 @@ function BulkCallCreator({
               >
                 Upload CSV
               </button>
-              <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleFileUpload} />
+              <input ref={fileRef} type="file" accept=".csv,.txt,.xlsx,.xls" className="hidden" onChange={handleFileUpload} />
               <textarea
                 value={csvInput}
                 onChange={e => setCsvInput(e.target.value)}
