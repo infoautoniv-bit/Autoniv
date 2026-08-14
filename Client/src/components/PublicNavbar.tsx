@@ -406,7 +406,7 @@ export function PublicNavbar() {
       {/* Slide-in drawer */}
       <div
         ref={drawerRef}
-        className="xl:hidden fixed top-0 right-0 h-full z-[100] flex flex-col"
+        className="xl:hidden fixed top-9 right-0 h-full z-[100] flex flex-col"
         style={{
           width: 'min(85vw, 320px)',
           background: 'rgba(255,255,255,0.99)',
