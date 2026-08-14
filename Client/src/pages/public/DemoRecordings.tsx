@@ -162,6 +162,8 @@ export function DemoRecordings() {
             wrapAndPlay(`data:audio/wav;base64,${data.audios[0]}`);
             return;
           }
+        } else {
+          console.warn(`[Sarvam TTS ${res.status}] Account credits exhausted or non-200. Falling back to voice synthesis.`);
         }
       } catch { /* ignored */ }
     }
@@ -389,7 +391,10 @@ export function DemoRecordings() {
         }),
       })
         .then((res) => {
-          if (!res.ok) throw new Error('Sarvam API non-200');
+          if (!res.ok) {
+            console.warn(`[Sarvam TTS ${res.status}] Account credits exhausted or non-200. Falling back to Web Speech synthesis.`);
+            throw new Error(`Sarvam API non-200 status: ${res.status}`);
+          }
           return res.json();
         })
         .then((data) => {
