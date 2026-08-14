@@ -217,10 +217,10 @@ export function PublicNavbar() {
 
   return (
     <>
-      <div className="fixed top-9 sm:top-9 xl:top-9 inset-x-0 z-50 px-3 sm:px-5 lg:px-6 flex justify-center pointer-events-none transition-all duration-300">
+      <div className="fixed top-8 inset-x-0 z-50 px-3 sm:px-5 lg:px-6 flex justify-center pointer-events-none transition-all duration-300">
         <nav
           ref={navRef}
-          className="w-full max-w-[1400px] h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 rounded-full shadow-lg pointer-events-auto transition-all duration-300 overflow-hidden"
+          className="w-full max-w-[1400px] h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 rounded-full shadow-lg pointer-events-auto transition-all duration-300"
           style={{
             background: scrolled ? 'rgba(255, 255, 255, 0.98)' : 'rgba(255, 255, 255, 0.90)',
             boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.1)',
