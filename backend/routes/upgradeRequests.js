@@ -134,16 +134,58 @@ router.put('/:id', requireAdmin, async (req, res) => {
         let chatPlan = user.chatPlan || 'chat_free';
         let voicePlan = user.voicePlan || 'none';
 
-        if (plan.startsWith('chat_')) {
-          chatPlan = plan;
-        } else if (plan.startsWith('voice_')) {
-          voicePlan = plan;
-        } else if (plan.startsWith('both_')) {
-          chatPlan = plan.replace('both_', 'chat_');
-          voicePlan = plan.replace('both_', 'voice_');
-        } else if (VALID_UPGRADE_PLANS.includes(plan)) {
-          chatPlan = `chat_${plan}`;
-          voicePlan = `voice_${plan}`;
+          if (plan.startsWith('chat_')) {
+            chatPlan = plan;
+          } else if (plan.startsWith('voice_')) {
+            voicePlan = plan;
+          } else if (plan.startsWith('both_')) {
+            chatPlan = plan.replace('both_', 'chat_');
+            voicePlan = plan.replace('both_', 'voice_');
+          } else if (VALID_UPGRADE_PLANS.includes(plan)) {
+            chatPlan = `chat_${plan}`;
+            voicePlan = `voice_${plan}`;
+          }
+
+          const chatConfig = (chatPlan !== 'none' && PLAN_CONFIG[chatPlan]) ? PLAN_CONFIG[chatPlan] : null;
+          const voiceConfig = (voicePlan !== 'none' && PLAN_CONFIG[voicePlan]) ? PLAN_CONFIG[voicePlan] : null;
+
+          let planLegacy = plan;
+          if (plan.startsWith('both_')) {
+            const chatTier = chatPlan.replace('chat_', '');
+            const voiceTier = voicePlan.replace('voice_', '');
+            planLegacy = chatTier === voiceTier ? `both_${chatTier}` : plan;
+          } else if (plan.startsWith('chat_')) {
+            planLegacy = chatPlan;
+          } else if (plan.startsWith('voice_')) {
+            planLegacy = voicePlan;
+          }
+
+          // Atomic update of user account plan and quota limits
+          await User.findByIdAndUpdate(request.userId, {
+            plan: planLegacy,
+            chatPlan,
+            voicePlan,
+            chatEnabled: chatPlan !== 'none',
+            voiceEnabled: voicePlan !== 'none',
+            callsLimit: voiceConfig?.limits?.calls ?? 100,
+            minutesLimit: voiceConfig?.limits?.minutes ?? 100,
+            chatLimit: chatConfig?.limits?.conversations ?? 1000,
+            planUpdatedAt: new Date(),
+          });
+
+          // Dispatch real-time plan change event
+          notifyPlanChange(request.userId, {
+            plan: planLegacy,
+            chatPlan,
+            voicePlan,
+            chatEnabled: chatPlan !== 'none',
+            voiceEnabled: voicePlan !== 'none',
+            callsLimit: voiceConfig?.limits?.calls ?? 100,
+            minutesLimit: voiceConfig?.limits?.minutes ?? 100,
+            chatLimit: chatConfig?.limits?.conversations ?? 1000,
+          }).catch((err) => log.warn('notifyPlanChange error', { error: err.message }));
+
+          log.info(`[Upgrade Requests] Approved & updated user ${request.userId} to ${planLegacy} (${chatPlan}/${voicePlan})`);
         }
 
         const planConfigMap = User.PLAN_CONFIG || {};

@@ -345,6 +345,27 @@ app.use(errorHandler);
       });
 
       log.info('plan_ws_initialized', { endpoint: '/ws/plan' });
+
+      // Start monthly usage reset scheduler
+      scheduleUsageReset();
+
+      // Keep Render alive (free tier spins down after 15 min inactivity)
+      if (IS_PROD) {
+        const keepAlive = async () => {
+          try {
+            const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+            await fetch(`${url}/api/health`);
+            log.info('keep_alive_ping', { url });
+          } catch (err) {
+            log.warn('keep_alive_failed', { error: err.message });
+          }
+        };
+        
+        // Ping every 30 minutes to save Render hours
+        // Service will be awake ~30 min, sleep ~15 min before next ping
+        setInterval(keepAlive, 30 * 60 * 1000);
+        log.info('keep_alive_initialized', { intervalMinutes: 30 });
+      }
     });
 
     function shutdown(signal) {

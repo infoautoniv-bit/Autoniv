@@ -6,10 +6,12 @@ import Call from '../../db/models/Call.js';
 import User from '../../db/models/User.js';
 import { DEMO_AGENT } from '../../routes/agents/publicDemo.js';
 
-import { synthesizeSpeech } from '../speech/tts.js';
+import { cachedSynthesizeSpeech } from '../speech/ttsCache.js';
 import { LANGUAGE_NAMES } from '../speech/translate.js';
 import { AudioRecorder } from '../audioRecorder.js';
 import { log } from '../logger.js';
+import { callManager } from './callManager.js';
+import { llmQueue } from './llmQueue.js';
 import {
   createDeepgramSTT,
   createLLMClient,
@@ -66,6 +68,7 @@ export async function handleWebCall(clientWs, req) {
   let callTimeout = null;
   let timeLimitReached = false;
   let cleanedUp = false;
+  let agentRegistered = false;
 
   const { groq, openaiClient, gemini } = getSharedLLM();
 
@@ -82,6 +85,14 @@ export async function handleWebCall(clientWs, req) {
     } else {
       agentObj = await Agent.findById(agentId);
       if (!agentObj) { clientWs.close(4001, 'Agent not found'); return; }
+    }
+
+    const agentIdStr = isDemo ? 'demo' : agentObj._id.toString();
+    const maxConcurrent = isDemo ? 10 : (agentObj.maxConcurrentCalls || 1);
+    if (!callManager.canAcceptCall(agentIdStr, maxConcurrent)) {
+      log.warn('web_call_rejected_concurrent_limit', { agentId: agentIdStr, maxConcurrent });
+      clientWs.close(4003, 'Agent concurrent call limit reached');
+      return;
     }
 
     let callUserId = null;
@@ -103,6 +114,9 @@ export async function handleWebCall(clientWs, req) {
     callRecord.vapiCallId = callSid;
     await callRecord.save();
     log.info('web_call_record_initialized', { callSid });
+
+    callManager.registerCall(agentIdStr, callSid);
+    agentRegistered = true;
   } catch (err) {
     log.error('web_call_setup_error', { error: err.message });
     clientWs.close(4999, 'Database setup error');
@@ -132,7 +146,7 @@ export async function handleWebCall(clientWs, req) {
   const processSentenceForPlay = async (sentence) => {
     if (isInterrupted) return;
     try {
-      const base64Audio = await synthesizeSpeech(sentence, false, agentObj.language || 'en', agentObj.voiceId);
+      const base64Audio = await cachedSynthesizeSpeech(sentence, false, agentObj.language || 'en', agentObj.voiceId);
       if (base64Audio && !isInterrupted) {
         const agentAudioBuffer = Buffer.from(base64Audio, 'base64');
         recorder.writeAudio(agentAudioBuffer, Date.now(), 24000);
@@ -151,12 +165,12 @@ export async function handleWebCall(clientWs, req) {
     isProcessing = true;
 
     try {
-      const { stream } = await generateCompletion({
+      const { stream } = await llmQueue.add(() => generateCompletion({
         groq, openaiClient, gemini, conversationHistory,
         agentType: agentObj?.type, logPrefix: 'Web LLM',
         toolState: toolAlreadyExecuted,
         agentObj,
-      });
+      }), agentObj?.customEngineModel?.split(':')[0] || 'groq');
 
       const { fullResponseText, toolCalls, interrupted } = await processStream({
         stream, isInterrupted, onSentence: processSentenceForPlay,
@@ -251,6 +265,10 @@ export async function handleWebCall(clientWs, req) {
     if (cleanedUp) return;
     cleanedUp = true;
     if (callTimeout) { clearTimeout(callTimeout); callTimeout = null; }
+    if (agentRegistered) {
+      const agentIdStr = isDemo ? 'demo' : agentObj._id.toString();
+      callManager.unregisterCall(agentIdStr, callSid);
+    }
     await closeAndCleanup({ callSid, agentObj, callStartTime, fullTranscript, deepgramWs, pendingLeadData: toolAlreadyExecuted.pendingLeadData, recorder });
   };
 

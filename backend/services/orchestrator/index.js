@@ -4,6 +4,9 @@ import { handleExotelStream } from './exotelHandler.js';
 import { handleWebCall } from './webCallHandler.js';
 import { verifyMediaStreamToken } from '../auth/mediaStreamToken.js';
 import { log } from '../logger.js';
+import { callManager } from './callManager.js';
+import { llmQueue } from './llmQueue.js';
+import { getTTSCacheStats } from '../speech/ttsCache.js';
 
 export function initOrchestrator(server) {
   const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
@@ -54,4 +57,13 @@ export function initOrchestrator(server) {
   });
 
   log.info('orchestrator_initialized', { handlers: ['/media-stream', '/web-call', '/exotel-stream'] });
+}
+
+export function getOrchestratorStats() {
+  return {
+    calls: callManager.getStats(),
+    llmQueue: llmQueue.getStats(),
+    ttsCache: getTTSCacheStats(),
+    websocketConnections: 0,
+  };
 }

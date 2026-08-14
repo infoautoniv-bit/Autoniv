@@ -20,6 +20,8 @@ import {
   DEMO_RECORDINGS,
 } from './demoRecordingsData';
 
+import { humanizeSpeechText, getBestHumanVoice } from './demoSpeechUtils';
+
 export type { IndustryId, TranscriptItem, DemoRecording, IndustryTab, USPItem };
 export { USP_SLIDES, SARVAM_VOICES, INDUSTRIES, DEMO_RECORDINGS };
 
@@ -65,6 +67,23 @@ export function DemoRecordings() {
     return () => clearInterval(sliderInterval);
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.getVoices();
+      const handleVoicesChanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+      window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+      return () => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.onvoiceschanged = null;
+        }
+      };
+    }
+  }, []);
+
   const isPlayingRef = useRef<boolean>(false);
 
   const speakTurn = useCallback(async (item: TranscriptItem, agentVoiceId: string, userVoiceId: string = selectedUserVoice) => {
@@ -76,7 +95,8 @@ export function DemoRecordings() {
 
     if (isMuted) return;
 
-    const text = item.text;
+    const rawText = item.text;
+    const text = humanizeSpeechText(rawText);
     const speakerName = (voiceIdToUse.split(':').pop() || 'shreya').toLowerCase();
     const sarvamApiKey = import.meta.env.VITE_SARVAM_API_KEY;
 
@@ -89,17 +109,12 @@ export function DemoRecordings() {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(speechText);
-      u.rate = playbackSpeed;
+      u.rate = 0.96 * playbackSpeed;
       const isFemale = ['shreya', 'ritu', 'priya', 'simran'].some((v) => targetVoiceId.toLowerCase().includes(v));
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        const hasHi = /[\u0900-\u097F]/.test(speechText);
-        const match = voices.find((v) =>
-          (hasHi ? v.lang.startsWith('hi') : v.lang.startsWith('en')) &&
-          (isFemale ? /female|zira|samantha|victoria|google/i.test(v.name) : /male|david|mark|george/i.test(v.name))
-        ) || voices.find((v) => hasHi ? v.lang.startsWith('hi') : v.lang.startsWith('en'));
-        if (match) u.voice = match;
-      }
+      u.pitch = isFemale ? 1.04 : 0.96;
+      u.volume = 1.0;
+      const matchedVoice = getBestHumanVoice(targetVoiceId, speechText);
+      if (matchedVoice) u.voice = matchedVoice;
       window.speechSynthesis.speak(u);
     };
 
@@ -130,6 +145,7 @@ export function DemoRecordings() {
             text, model: 'bulbul:v3', speaker: speakerName,
             target_language_code: hasDevanagari ? 'hi-IN' : 'en-IN',
             speech_sample_rate: 22050, output_audio_codec: 'wav',
+            pace: 0.98,
           }),
         });
         if (res.ok) {
@@ -161,7 +177,7 @@ export function DemoRecordings() {
     }
     if (isMuted && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
       window.speechSynthesis.pause();
-    } else if (!isMuted && 'speechSynthesis' in window && window.speechSynthesis.paused) {
+    } else if (!isMuted && 'speechSynthesis' in window && window.speechSynthesis.paused && isPlayingRef.current) {
       window.speechSynthesis.resume();
     }
   }, [isMuted]);
@@ -301,7 +317,8 @@ export function DemoRecordings() {
       return;
     }
 
-    const text = item.text;
+    const rawText = item.text;
+    const text = humanizeSpeechText(rawText);
     const speakerName = (voiceIdToUse.split(':').pop() || 'shreya').toLowerCase();
     const sarvamApiKey = import.meta.env.VITE_SARVAM_API_KEY;
 
@@ -322,16 +339,12 @@ export function DemoRecordings() {
       }
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = playbackSpeed;
+      u.rate = 0.96 * playbackSpeed;
       const isFemale = ['shreya', 'ritu', 'priya', 'simran'].some((v) => voiceIdToUse.toLowerCase().includes(v));
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        const match = voices.find((v) =>
-          (hasDevanagari ? v.lang.startsWith('hi') : v.lang.startsWith('en')) &&
-          (isFemale ? /female|zira|samantha|victoria|google/i.test(v.name) : /male|david|mark|george/i.test(v.name))
-        ) || voices.find((v) => hasDevanagari ? v.lang.startsWith('hi') : v.lang.startsWith('en'));
-        if (match) u.voice = match;
-      }
+      u.pitch = isFemale ? 1.04 : 0.96;
+      u.volume = 1.0;
+      const matchedVoice = getBestHumanVoice(voiceIdToUse, text);
+      if (matchedVoice) u.voice = matchedVoice;
       u.onend = onTurnEnded;
       u.onerror = onTurnEnded;
       window.speechSynthesis.speak(u);
@@ -364,6 +377,7 @@ export function DemoRecordings() {
           text, model: 'bulbul:v3', speaker: speakerName,
           target_language_code: hasDevanagari ? 'hi-IN' : 'en-IN',
           speech_sample_rate: 22050, output_audio_codec: 'wav',
+          pace: 0.98,
         }),
       })
         .then((res) => {
