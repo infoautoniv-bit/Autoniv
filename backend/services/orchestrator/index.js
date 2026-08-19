@@ -2,6 +2,9 @@ import { WebSocketServer } from 'ws';
 import { handleTwilioStream } from './twilioHandler.js';
 import { handleExotelStream } from './exotelHandler.js';
 import { handleWebCall } from './webCallHandler.js';
+import { handleTelnyxStream } from './telnyxHandler.js';
+import { handlePlivoStream } from './plivoHandler.js';
+import { handleAsteriskStream } from './asteriskAriHandler.js';
 import { verifyMediaStreamToken } from '../auth/mediaStreamToken.js';
 import { log } from '../logger.js';
 import { callManager } from './callManager.js';
@@ -39,10 +42,10 @@ export function initOrchestrator(server) {
 
     const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
     const urlPath = parsedUrl.pathname;
-    log.info('websocket_connection_request', { path: urlPath });
+    const agentId = parsedUrl.searchParams.get('agentId');
+    log.info('websocket_connection_request', { path: urlPath, agentId });
 
     if (urlPath === '/media-stream') {
-      const agentId = parsedUrl.searchParams.get('agentId');
       const token = parsedUrl.searchParams.get('token') || parsedUrl.searchParams.get('amp;token');
       log.info('websocket_debug', { agentId: agentId || 'deferred_in_start_event', hasToken: Boolean(token), path: urlPath });
       if (agentId && token && !verifyMediaStreamToken(agentId, token)) {
@@ -53,12 +56,20 @@ export function initOrchestrator(server) {
       handleWebCall(ws, req);
     } else if (urlPath === '/exotel-stream') {
       handleExotelStream(ws);
+    } else if (urlPath === '/telnyx-stream') {
+      handleTelnyxStream(ws, agentId);
+    } else if (urlPath === '/plivo-stream') {
+      handlePlivoStream(ws, agentId);
+    } else if (urlPath === '/asterisk-stream') {
+      handleAsteriskStream(ws, agentId);
     } else {
       ws.close(4004, 'Not Found');
     }
   });
 
-  log.info('orchestrator_initialized', { handlers: ['/media-stream', '/web-call', '/exotel-stream'] });
+  log.info('orchestrator_initialized', {
+    handlers: ['/media-stream', '/web-call', '/exotel-stream', '/telnyx-stream', '/plivo-stream', '/asterisk-stream'],
+  });
 }
 
 export function getOrchestratorStats() {

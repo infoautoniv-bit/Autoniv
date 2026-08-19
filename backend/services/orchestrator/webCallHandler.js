@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import Agent from '../../db/models/Agent.js';
 import Call from '../../db/models/Call.js';
 import User from '../../db/models/User.js';
-import { DEMO_AGENT } from '../../routes/agents/publicDemo.js';
+import { DEMO_AGENT, DEMO_PERSONAS } from '../../routes/agents/publicDemo.js';
 
 import { cachedSynthesizeSpeech } from '../speech/ttsCache.js';
 import { LANGUAGE_NAMES } from '../speech/translate.js';
@@ -12,6 +12,7 @@ import { AudioRecorder } from '../audioRecorder.js';
 import { log } from '../logger.js';
 import { callManager } from './callManager.js';
 import { llmQueue } from './llmQueue.js';
+import { fetchPreCallContext } from './preCallService.js';
 import {
   createDeepgramSTT,
   createLLMClient,
@@ -30,6 +31,8 @@ import {
   APPOINTMENT_BOOKING_RULES,
   TIME_LIMIT_RULES,
   CALLER_MEMORY_RULES,
+  SYSTEM_SAFETY_GUARDRAILS,
+  HUMAN_VOICE_CADENCE_RULES,
   TIME_LIMIT_CLOSING,
   MAX_CALL_DURATION_MS,
 } from './prompts.js';
@@ -62,8 +65,8 @@ export async function handleWebCall(clientWs, req) {
   let isInterrupted = false;
   let chunkCount = 0;
   let isProcessing = false;
-  let toolAlreadyExecuted = { saveAppointment: false, saveLead: false };
-  let callerInfo = { name: null, phone: null };
+  let toolAlreadyExecuted = { saveAppointment: false, saveLead: false, logComplaint: false, transferCall: false };
+  let callerInfo = { name: null, phone: null, email: null };
   const recorder = new AudioRecorder(24000);
   let callTimeout = null;
   let timeLimitReached = false;
@@ -74,13 +77,17 @@ export async function handleWebCall(clientWs, req) {
 
   try {
     if (isDemo) {
+      const personaKey = parsedUrl.searchParams.get('persona') || 'default';
+      const voiceOverride = parsedUrl.searchParams.get('voiceId');
+      const personaConfig = DEMO_PERSONAS?.[personaKey] || DEMO_AGENT;
       agentObj = {
         _id: 'demo',
-        name: 'Autoniv AI Assistant',
-        type: 'receptionist',
-        language: 'en',
-        voiceId: 'FGY2WhTYpPnrIDTdsKH5',
-        prompt: DEMO_AGENT.prompt,
+        name: personaConfig.name || 'Autoniv AI Assistant',
+        type: personaConfig.type || 'receptionist',
+        language: personaConfig.language || 'en',
+        voiceId: voiceOverride || personaConfig.voiceId || 'EXAVITQu4vr4xnSDxMaL',
+        firstMessage: personaConfig.firstMessage,
+        prompt: personaConfig.prompt || DEMO_AGENT.prompt,
       };
     } else {
       agentObj = await Agent.findById(agentId);
@@ -124,11 +131,11 @@ export async function handleWebCall(clientWs, req) {
   }
 
   const triggerInterruption = () => {
-    if (!isProcessing || isInterrupted) return;
+    if (isInterrupted) return;
     isInterrupted = true;
-    log.info('twilio_interruption', { message: 'Caller barged in — stopping agent playback.' });
+    log.info('web_interruption', { message: 'Caller barged in — stopping agent playback (<50ms VAD).' });
     if (clientWs.readyState === WebSocket.OPEN) {
-      clientWs.send(JSON.stringify({ event: 'clear' }));
+      try { clientWs.send(JSON.stringify({ event: 'clear' })); } catch (_) {}
     }
   };
 
@@ -173,7 +180,9 @@ export async function handleWebCall(clientWs, req) {
       }), agentObj?.customEngineModel?.split(':')[0] || 'groq');
 
       const { fullResponseText, toolCalls, interrupted } = await processStream({
-        stream, isInterrupted, onSentence: processSentenceForPlay,
+        stream,
+        checkInterrupted: () => isInterrupted,
+        onSentence: processSentenceForPlay,
       });
 
       if (interrupted) return;
@@ -225,12 +234,21 @@ export async function handleWebCall(clientWs, req) {
   };
 
   const handleStartCall = async () => {
-    const ownerUser = await User.findById(agentObj.userId).lean();
+    const ownerUser = isDemo ? null : await User.findById(agentObj.userId).lean();
+    
+    // Fetch pre-call context
+    const preCallContext = await fetchPreCallContext(callerInfo.phone || null, agentObj);
+    if (preCallContext.callerName && !callerInfo.name) {
+      callerInfo.name = preCallContext.callerName;
+    }
+
     let systemInstructions = buildSystemPrompt(agentObj.type, agentObj.prompt);
-    if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser);
+    if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser, preCallContext);
     if (agentObj.type === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
     systemInstructions += TIME_LIMIT_RULES;
     systemInstructions += CALLER_MEMORY_RULES;
+    systemInstructions += SYSTEM_SAFETY_GUARDRAILS;
+    systemInstructions += HUMAN_VOICE_CADENCE_RULES;
 
     const agentLangName = LANGUAGE_NAMES[agentObj?.language || 'en'] || 'English';
     systemInstructions += `\n\nMULTILINGUAL & HUMAN SPEECH RULES:
@@ -238,7 +256,12 @@ export async function handleWebCall(clientWs, req) {
 2. Speak exactly like a natural, warm, and friendly human. Never sound robotic, and never output lists, tables, or bullet points.
 3. When speaking in Hindi, use natural, conversational Hindi phrasing. Never write dates or times using spelled-out English words (e.g., do NOT say "twenty sixth july" or "four baje"). Instead, write them in standard digits or native Hindi words (e.g., say "26 जुलाई 2026" or "छब्बीस जुलाई" and "4 बजे" or "चार बजे"). Keep numbers and dates in standard format so the voice engine pronounces them naturally like a human.`;
 
-    let greetingText = await generateGreeting({ groq, openaiClient, gemini, systemInstructions, agentType: agentObj.type, agentObj });
+    let greetingText = agentObj.firstMessage || await generateGreeting({
+      groq, openaiClient, gemini, systemInstructions,
+      agentType: agentObj.type,
+      agentObj,
+      context: preCallContext,
+    });
     const result = await translateIfNeeded(systemInstructions, greetingText, agentObj.language || 'en');
     systemInstructions = result.systemInstructions;
     greetingText = result.greetingText;

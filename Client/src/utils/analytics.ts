@@ -28,3 +28,32 @@ export function trackLeadFormConversion(value = 1.0, currency = 'INR') {
     }
   }
 }
+
+let lastTrackedPath: string | null = null;
+
+/**
+ * Tracks page view in Google Ads / Analytics for SPA navigation.
+ * Deduplicates rapid identical path events to prevent rate-limit errors in Google Tag.
+ * @param path Relative path (e.g. /pricing)
+ */
+export function trackPageView(path: string) {
+  if (typeof window === 'undefined') return;
+  if (lastTrackedPath === path) return;
+  lastTrackedPath = path;
+
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'page_view', {
+      page_path: path,
+      send_to: GOOGLE_ADS_CONVERSION_ID,
+    });
+    const gaId = import.meta.env.VITE_GA_ID;
+    if (gaId && gaId.startsWith('G-')) {
+      window.gtag('event', 'page_view', {
+        page_path: path,
+        send_to: gaId,
+      });
+    }
+  }
+}
+
+

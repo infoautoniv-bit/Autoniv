@@ -217,10 +217,10 @@ export function PublicNavbar() {
 
   return (
     <>
-      <div className="fixed top-[35px] inset-x-0 z-50 px-4 sm:px-6 lg:px-8 flex justify-center pointer-events-none transition-all duration-300">
+      <div className="fixed top-8 inset-x-0 z-50 px-3 sm:px-5 lg:px-6 flex justify-center pointer-events-none transition-all duration-300">
         <nav
           ref={navRef}
-          className="w-full max-w-8xl h-14 sm:h-16 flex items-center justify-between px-6 rounded-full shadow-lg pointer-events-auto transition-all duration-300"
+          className="w-full max-w-[1400px] h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 rounded-full shadow-lg pointer-events-auto transition-all duration-300"
           style={{
             background: scrolled ? 'rgba(255, 255, 255, 0.98)' : 'rgba(255, 255, 255, 0.90)',
             boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.1)',
@@ -250,7 +250,7 @@ export function PublicNavbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 flex-1 justify-center h-full">
+          <div className="hidden xl:flex items-center gap-0.5 2xl:gap-1.5 flex-1 justify-center h-full px-1 min-w-0">
             {navItems.map((item) => {
               if (item.dropdownItems) {
                 return (
@@ -258,7 +258,7 @@ export function PublicNavbar() {
                     <Link
                       to={item.href}
                       onClick={(e) => handleNavClick(e, item)}
-                      className="relative px-1.5 xl:px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center gap-1"
+                      className="relative px-1.5 2xl:px-2.5 py-1.5 text-xs 2xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center gap-1"
                       style={{ color: '#475569' }}
                       onMouseEnter={(e) => { e.currentTarget.style.color = '#0a0a0a'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
@@ -305,7 +305,7 @@ export function PublicNavbar() {
                   key={item.label}
                   to={item.isHash ? `/${item.href}` : item.href}
                   onClick={(e) => handleNavClick(e, item)}
-                  className="relative px-1.5 xl:px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center flex-shrink-0"
+                  className="relative px-1.5 2xl:px-2.5 py-1.5 text-xs 2xl:text-[13px] font-semibold transition-colors duration-150 whitespace-nowrap rounded-full flex items-center flex-shrink-0"
                   style={{ color: '#475569' }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = '#0a0a0a'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
@@ -322,18 +322,18 @@ export function PublicNavbar() {
           </div>
 
           {/* Desktop CTA buttons */}
-          <div className="hidden sm:flex items-center gap-1.5 xl:gap-2 flex-shrink-0">
+          <div className="hidden xl:flex items-center gap-1.5 2xl:gap-2 flex-shrink-0">
             <Suspense fallback={<div className="w-[72px] h-[34px]" />}>
               <GoogleTranslate />
             </Suspense>
             <button
               onClick={() => openAuth('login')}
-              className="px-4 py-2 text-xs xl:text-sm font-semibold rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer"
+              className="px-3 2xl:px-4 py-2 text-xs 2xl:text-sm font-semibold rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer"
               style={{
                 color: '#475569',
                 border: '1px solid rgba(37,99,235,0.15)',
                 background: 'transparent',
-                minHeight: '40px',
+                minHeight: '38px',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = '#2563EB';
@@ -355,10 +355,10 @@ export function PublicNavbar() {
                 background: 'var(--gg)',
                 boxShadow: '0 4px 14px rgba(16,185,129,0.25)',
                 borderRadius: '9999px',
-                padding: '10px 16px',
+                padding: '8px 14px',
                 border: 'none',
-                fontSize: '13px',
-                minHeight: '40px',
+                fontSize: '12px',
+                minHeight: '38px',
                 display: 'flex',
                 alignItems: 'center',
               }}
@@ -370,7 +370,7 @@ export function PublicNavbar() {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden flex items-center justify-center w-11 h-11 rounded-full flex-shrink-0"
+            className="xl:hidden flex items-center justify-center w-11 h-11 rounded-full flex-shrink-0"
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileMenuOpen}
             style={{
@@ -394,7 +394,7 @@ export function PublicNavbar() {
       {/* Backdrop */}
       <div
         onClick={() => setMobileMenuOpen(false)}
-        className="lg:hidden fixed inset-0 z-[55] transition-opacity duration-300"
+        className="xl:hidden fixed inset-0 z-[55] transition-opacity duration-300"
         style={{
           background: 'rgba(15,23,42,0.45)',
           opacity: mobileMenuOpen ? 1 : 0,
@@ -406,7 +406,7 @@ export function PublicNavbar() {
       {/* Slide-in drawer */}
       <div
         ref={drawerRef}
-        className="lg:hidden fixed top-9 right-0 h-full z-[100] flex flex-col"
+        className="xl:hidden fixed top-9 right-0 h-full z-[100] flex flex-col"
         style={{
           width: 'min(85vw, 320px)',
           background: 'rgba(255,255,255,0.99)',

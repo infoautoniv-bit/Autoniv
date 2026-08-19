@@ -4,6 +4,7 @@ import Lead from '../../db/models/Lead.js';
 import User from '../../db/models/User.js';
 import { uploadRecording } from '../cloudinary.js';
 import { log } from '../logger.js';
+import { runPostCallQA } from './qaEvaluator.js';
 
 export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTranscript, deepgramWs, pendingLeadData, recorder }) {
   if (deepgramWs) {
@@ -90,6 +91,37 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
         } else {
           log.info('billing_skipped', { callSid });
         }
+      }
+
+      // Fire asynchronous post-call QA evaluation and cost calculation
+      runPostCallQA(callSid, {
+        transcript: fullTranscript,
+        durationSeconds,
+        agentName: agentObj?.name,
+      }).catch((qaErr) => {
+        log.warn('cleanup_qa_eval_background_error', { error: qaErr.message });
+      });
+
+      // Dispatch post-call webhook to external CRM if configured
+      const crmWebhookUrl = agentObj?.crmIntegrations?.webhookUrl || agentObj?.webhookUrl;
+      if (crmWebhookUrl && typeof fetch !== 'undefined') {
+        const payload = {
+          event: 'call.completed',
+          callId: callSid,
+          agentId: agentObj?._id,
+          agentName: agentObj?.name,
+          duration: durationSeconds,
+          recordingUrl: recordingUrl || null,
+          transcript: fullTranscript.trim() || '',
+          timestamp: new Date().toISOString(),
+        };
+        fetch(crmWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch((whErr) => {
+          log.warn('post_call_crm_webhook_failed', { url: crmWebhookUrl, error: whErr.message });
+        });
       }
     }
 

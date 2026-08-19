@@ -1,15 +1,38 @@
 import { translateText, LANGUAGE_NAMES } from '../speech/translate.js';
+import { renderTemplate } from './templateEngine.js';
 import { log } from '../logger.js';
 
 const FIRST_MESSAGES = {
   receptionist: 'Thank you for calling, how can I help you today?',
   appointment: 'Hello! I can help you book an appointment. What service are you looking for today?',
-  faq: 'Hi there! I am here to answer your questions. What would you like to know?',
+  faq: 'Hi there! I am here to answer any questions you have. How can I help you today?',
+  support: 'Thank you for contacting customer support. How can I help resolve your issue today?',
+  complaint: 'Hello, thank you for reaching out to support. What issue or complaint can I assist you with today?',
+  ecommerce_orders: 'Thank you for calling customer service. I can help you check your order status, delivery, or returns. How can I help you?',
 };
 
-export async function generateGreeting({ groq, openaiClient, gemini, systemInstructions, agentType, agentObj }) {
+export async function generateGreeting({ groq, openaiClient, gemini, systemInstructions, agentType, agentObj, context = {} }) {
   const language = agentObj?.language || 'en';
   const langName = LANGUAGE_NAMES[language] || language;
+
+  // 1. If agent has a configured static firstMessage or greetingTemplate
+  const customFirstMessage = agentObj?.firstMessage || agentObj?.greetingTemplate;
+  if (customFirstMessage && typeof customFirstMessage === 'string' && customFirstMessage.trim().length > 0) {
+    let rendered = renderTemplate(customFirstMessage.trim(), context);
+    if (language !== 'en') {
+      rendered = await translateText(rendered, language);
+    }
+    return rendered;
+  }
+
+  // 2. If returning caller is recognized with a name, formulate a personalized greeting
+  if (context.callerName && !agentObj?.prompt) {
+    const personalized = `Hello ${context.callerName}! Thank you for calling back. How can I help you today?`;
+    if (language !== 'en') {
+      return await translateText(personalized, language);
+    }
+    return personalized;
+  }
 
   if (agentObj?.prompt && agentObj.prompt.trim().length > 15) {
     const client = groq || openaiClient || gemini;
@@ -30,8 +53,9 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
         });
         const customGreeting = completion.choices[0]?.message?.content?.trim();
         if (customGreeting) {
-          log.info('greeting_generated', { greeting: customGreeting, language });
-          return customGreeting;
+          const interpolated = renderTemplate(customGreeting, context);
+          log.info('greeting_generated', { greeting: interpolated, language });
+          return interpolated;
         }
       } catch (err) {
         log.warn('greeting_fallback', { error: err.message });
@@ -40,10 +64,11 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
   }
 
   const baseGreeting = FIRST_MESSAGES[agentType] || FIRST_MESSAGES.receptionist;
+  let finalGreeting = renderTemplate(baseGreeting, context);
   if (language !== 'en') {
-    return await translateText(baseGreeting, language);
+    return await translateText(finalGreeting, language);
   }
-  return baseGreeting;
+  return finalGreeting;
 }
 
 export async function translateIfNeeded(systemInstructions, greetingText, language) {
