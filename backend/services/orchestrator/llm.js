@@ -191,7 +191,7 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
   if (systemMsg) prunedHistory.push(systemMsg);
 
   const recentMessages = cleanedMessages.filter(m => m.role !== 'system');
-  const desiredLimit = 6;
+  const desiredLimit = 8;
   let startIndex = Math.max(0, recentMessages.length - desiredLimit);
   
   while (startIndex > 0 && (recentMessages[startIndex].role === 'tool' || (recentMessages[startIndex].role === 'assistant' && recentMessages[startIndex].tool_calls))) {
@@ -199,7 +199,18 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
   }
 
   const slicedRecent = recentMessages.slice(startIndex);
-  prunedHistory = prunedHistory.concat(slicedRecent);
+
+  const balancedHistory = [];
+  let lastRole = null;
+  for (const msg of slicedRecent) {
+    if (msg.role === lastRole && msg.role === 'user') {
+      continue;
+    }
+    balancedHistory.push(msg);
+    lastRole = msg.role;
+  }
+
+  prunedHistory = prunedHistory.concat(balancedHistory);
 
   tools = (tools || []).filter(
     t => t?.type === 'function' && t?.function?.name && typeof t.function.name === 'string' && t.function.name.trim().length > 0
@@ -304,6 +315,7 @@ export async function processStream({ stream, isInterrupted, checkInterrupted, o
   let sentenceBuffer = '';
   let fullResponseText = '';
   let toolCalls = [];
+  let chunkCount = 0;
 
   const isCancelled = () => {
     if (typeof checkInterrupted === 'function') return checkInterrupted();
@@ -311,9 +323,19 @@ export async function processStream({ stream, isInterrupted, checkInterrupted, o
   };
 
   for await (const chunk of stream) {
-    if (isCancelled()) return { fullResponseText: '', toolCalls: [], interrupted: true };
+    chunkCount++;
+    if (isCancelled()) {
+      log.info('processStream_interrupted', { chunkCount, fullResponseText: fullResponseText.substring(0, 100) });
+      return { fullResponseText: '', toolCalls: [], interrupted: true };
+    }
 
     const delta = chunk.choices[0]?.delta;
+    if (chunkCount <= 5) {
+      log.info('processStream_chunk_detail', { chunkCount, chunk: JSON.stringify(chunk).substring(0, 500) });
+    }
+    if (chunkCount <= 3 || chunkCount % 20 === 0) {
+      log.info('processStream_chunk', { chunkCount, hasContent: Boolean(delta?.content), hasToolCalls: Boolean(delta?.tool_calls), finishReason: chunk.choices[0]?.finish_reason, deltaKeys: delta ? Object.keys(delta) : [], role: delta?.role });
+    }
 
     if (delta?.content) {
       sentenceBuffer += delta.content;
@@ -360,6 +382,8 @@ export async function processStream({ stream, isInterrupted, checkInterrupted, o
     }
   }
 
+  log.info('processStream_complete', { chunkCount, fullResponseTextLength: fullResponseText.length, toolCallsCount: toolCalls.length, sentenceBufferLength: sentenceBuffer.length });
+
   return { fullResponseText, toolCalls, interrupted: false };
 }
 
@@ -369,8 +393,9 @@ export async function executeToolCalls({ toolCalls, agentObj, toolAlreadyExecute
     let args = {};
     try {
       args = JSON.parse(tc.arguments);
-    } catch {
-      log.warn('tool_parse_arguments_failed', { prefix: logPrefix });
+    } catch (err) {
+      log.warn('tool_parse_arguments_failed', { prefix: logPrefix, tool: name, rawArgs: tc.arguments?.substring(0, 200), error: err.message });
+      continue;
     }
     log.info('tool_execute', { prefix: logPrefix, tool: name, args });
 
