@@ -68,3 +68,18 @@ export function contentFilter(...fieldNames) {
     next();
   };
 }
+
+const CARD_PATTERN = /\b(?:\d{4}[ -]?){3}\d{4}\b/g;
+const CVV_PATTERN = /\b(cvv|cvc|security code)[\s:]*(\d{3,4})\b/gi;
+const OTP_PATTERN = /\b(otp|one time password|verification code)[\s:]*(\d{4,8})\b/gi;
+const PASSWORD_PATTERN = /\b(password|pin|secret)[\s:]*([^\s]{4,30})\b/gi;
+
+export function redactSensitivePII(text) {
+  if (!text || typeof text !== 'string') return text;
+  let sanitized = text;
+  sanitized = sanitized.replace(CARD_PATTERN, '[REDACTED_CARD_NUMBER]');
+  sanitized = sanitized.replace(CVV_PATTERN, '$1: [REDACTED_CVV]');
+  sanitized = sanitized.replace(OTP_PATTERN, '$1: [REDACTED_OTP]');
+  sanitized = sanitized.replace(PASSWORD_PATTERN, '$1: [REDACTED_SECRET]');
+  return sanitized;
+}

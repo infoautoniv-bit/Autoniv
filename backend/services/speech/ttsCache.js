@@ -10,8 +10,9 @@ class TTSCache {
     this.misses = 0;
   }
 
-  getKey(text, telephonyOrFormat, language, voiceId) {
-    return `${text}|${telephonyOrFormat}|${language}|${voiceId || 'default'}`;
+  getKey(text, telephonyOrFormat, language, voiceId, options = {}) {
+    const optStr = `${options?.speed || 1}|${options?.customBaseUrl || ''}`;
+    return `${text}|${telephonyOrFormat}|${language}|${voiceId || 'default'}|${optStr}`;
   }
 
   get(key) {
@@ -64,8 +65,8 @@ const COMMON_PHRASES = [
   'could you please repeat that', 'is there anything else',
 ];
 
-export async function cachedSynthesizeSpeech(text, telephonyOrFormat = true, language = 'en', voiceId = null) {
-  const key = ttsCache.getKey(text, telephonyOrFormat, language, voiceId);
+export async function cachedSynthesizeSpeech(text, telephonyOrFormat = true, language = 'en', voiceId = null, options = {}) {
+  const key = ttsCache.getKey(text, telephonyOrFormat, language, voiceId, options);
   
   const cached = ttsCache.get(key);
   if (cached) {
@@ -73,7 +74,7 @@ export async function cachedSynthesizeSpeech(text, telephonyOrFormat = true, lan
     return cached;
   }
 
-  const audio = await synthesizeSpeech(text, telephonyOrFormat, language, voiceId);
+  const audio = await synthesizeSpeech(text, telephonyOrFormat, language, voiceId, options);
   
   const isCommon = COMMON_PHRASES.some(p => text.toLowerCase().includes(p));
   if (isCommon || text.length < 100) {
@@ -83,6 +84,25 @@ export async function cachedSynthesizeSpeech(text, telephonyOrFormat = true, lan
   return audio;
 }
 
+export async function prewarmTTSCache(phrases = [], telephonyOrFormat = true, language = 'en', voiceId = null, options = {}) {
+  if (!Array.isArray(phrases) || phrases.length === 0) return;
+  log.info('tts_cache_prewarming', { count: phrases.length, language, voiceId });
+  for (const phrase of phrases) {
+    if (!phrase || typeof phrase !== 'string') continue;
+    const key = ttsCache.getKey(phrase.trim(), telephonyOrFormat, language, voiceId, options);
+    if (!ttsCache.get(key)) {
+      try {
+        const audio = await synthesizeSpeech(phrase.trim(), telephonyOrFormat, language, voiceId, options);
+        if (audio) {
+          ttsCache.set(key, audio);
+        }
+      } catch (err) {
+        log.warn('tts_prewarm_failed_for_phrase', { phrase, error: err.message });
+      }
+    }
+  }
+}
+
 export function getTTSCacheStats() {
   return ttsCache.getStats();
 }
@@ -90,3 +110,4 @@ export function getTTSCacheStats() {
 export function clearTTSCache() {
   ttsCache.clear();
 }
+

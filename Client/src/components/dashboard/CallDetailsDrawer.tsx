@@ -121,6 +121,81 @@ export const CallDetailsDrawer = ({ call, onClose }: CallDetailsDrawerProps) => 
                 ))}
               </div>
 
+              {/* AI Quality Assurance & Audit */}
+              {call.metadata?.qa && (
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="text-[9px] font-bold text-emerald-800 uppercase tracking-widest block">AI Quality Score</span>
+                    </div>
+                    <span className="text-xs font-extrabold text-emerald-700 px-2 py-0.5 rounded-full bg-emerald-100/80 border border-emerald-200">
+                      {call.metadata.qa.callScore ?? 85}/100
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="bg-white/80 rounded-lg p-2 border border-emerald-100/60">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Sentiment</span>
+                      <span className="font-semibold capitalize text-slate-700">{call.metadata.qa.sentiment || 'Neutral'}</span>
+                    </div>
+                    <div className="bg-white/80 rounded-lg p-2 border border-emerald-100/60">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Goal Status</span>
+                      <span className="font-semibold text-slate-700">
+                        {call.metadata.qa.goalAchieved ? '✅ Achieved' : '⏳ Incomplete'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {call.metadata.qa.summary && (
+                    <div className="text-[11px] text-slate-600 leading-relaxed bg-white/60 p-2.5 rounded-lg border border-emerald-100/50">
+                      <p className="font-medium">{call.metadata.qa.summary}</p>
+                    </div>
+                  )}
+
+                  {Array.isArray(call.metadata.qa.actionItems) && call.metadata.qa.actionItems.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">Follow-up Items</span>
+                      <ul className="list-disc list-inside text-[10px] text-slate-600 space-y-0.5">
+                        {call.metadata.qa.actionItems.map((item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Usage & Cost Breakdown */}
+              {call.metadata?.costBreakdown && (
+                <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Call Cost Breakdown</span>
+                    <span className="text-xs font-bold text-slate-800 font-mono">
+                      ${(call.metadata.costBreakdown.totalCost || 0).toFixed(4)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
+                    <div className="bg-white p-1.5 rounded border border-slate-100">
+                      <span className="text-[7.5px] text-slate-400 uppercase block font-bold">STT</span>
+                      <span className="font-mono text-slate-700">${(call.metadata.costBreakdown.sttCost || 0).toFixed(3)}</span>
+                    </div>
+                    <div className="bg-white p-1.5 rounded border border-slate-100">
+                      <span className="text-[7.5px] text-slate-400 uppercase block font-bold">LLM</span>
+                      <span className="font-mono text-slate-700">${(call.metadata.costBreakdown.llmCost || 0).toFixed(3)}</span>
+                    </div>
+                    <div className="bg-white p-1.5 rounded border border-slate-100">
+                      <span className="text-[7.5px] text-slate-400 uppercase block font-bold">TTS</span>
+                      <span className="font-mono text-slate-700">${(call.metadata.costBreakdown.ttsCost || 0).toFixed(3)}</span>
+                    </div>
+                    <div className="bg-white p-1.5 rounded border border-slate-100">
+                      <span className="text-[7.5px] text-slate-400 uppercase block font-bold">Carrier</span>
+                      <span className="font-mono text-slate-700">${(call.metadata.costBreakdown.telephonyCost || 0).toFixed(3)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Voice Recording</span>

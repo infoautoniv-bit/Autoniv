@@ -6,6 +6,10 @@ const GROQ_MODEL_ALIASES = {
   'llama-3.3-70b': 'llama-3.3-70b-versatile',
   'llama-3.1-70b': 'llama-3.1-70b-versatile',
   'llama-3.1-8b': 'llama-3.1-8b-instant',
+  'llama3-70b': 'llama-3.3-70b-versatile',
+  'llama3-8b': 'llama-3.1-8b-instant',
+  'mixtral-8x7b': 'mixtral-8x7b-32768',
+  'gemma-2-9b': 'gemma2-9b-it',
 };
 const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
@@ -88,10 +92,22 @@ async function requestCompletion(client, modelName, messages, tools, timeoutMs =
 export async function generateCompletion({ groq, openaiClient, gemini, conversationHistory, agentType, agentObj, logPrefix = 'LLM', toolState }) {
   let tools = getToolDefinitions(agentType);
 
+  const mcpServerUrl = agentObj?.mcpServerUrl || agentObj?.crmIntegrations?.mcpServerUrl;
+  if (mcpServerUrl) {
+    try {
+      const { fetchMcpTools } = await import('./mcpClient.js');
+      const mcpTools = await fetchMcpTools(mcpServerUrl, agentObj?.mcpApiKey);
+      if (mcpTools && mcpTools.length > 0) {
+        tools = tools.concat(mcpTools);
+      }
+    } catch (_) {}
+  }
+
   if (toolState) {
     tools = tools.filter(t => {
       if (t.function.name === 'saveLead' && toolState.saveLead) return false;
       if (t.function.name === 'saveAppointment' && toolState.saveAppointment) return false;
+      if (t.function.name === 'transferCall' && toolState.transferCall) return false;
       return true;
     });
   }
@@ -160,21 +176,33 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
 
   const candidates = [];
   if (provider === 'gemini' && gemini) {
-    candidates.push({ name: 'Gemini', client: gemini, model: modelId || 'gemini-2.5-flash' });
+    candidates.push({ name: 'Gemini', client: gemini, model: modelId || 'gemini-2.0-flash' });
+    candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-1.5-flash' });
   } else if (provider === 'openai' && openaiClient) {
     candidates.push({ name: 'OpenAI', client: openaiClient, model: modelId || 'gpt-4o-mini' });
   } else if (groq) {
-    candidates.push({ name: 'Groq', client: groq, model: resolveGroqModel(modelId) });
+    const selectedGroq = resolveGroqModel(modelId);
+    candidates.push({ name: 'Groq', client: groq, model: selectedGroq });
+    if (selectedGroq !== 'llama-3.1-8b-instant') {
+      candidates.push({ name: 'Groq', client: groq, model: 'llama-3.1-8b-instant' });
+    }
   }
 
-  if (groq && !candidates.some(c => c.name === 'Groq')) {
-    candidates.push({ name: 'Groq', client: groq, model: GROQ_DEFAULT_MODEL });
+  if (groq) {
+    if (!candidates.some(c => c.name === 'Groq' && c.model === 'llama-3.1-8b-instant')) {
+      candidates.push({ name: 'Groq', client: groq, model: 'llama-3.1-8b-instant' });
+    }
+  }
+  if (gemini) {
+    if (!candidates.some(c => c.name === 'Gemini' && c.model === 'gemini-2.0-flash')) {
+      candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.0-flash' });
+    }
+    if (!candidates.some(c => c.name === 'Gemini' && c.model === 'gemini-1.5-flash')) {
+      candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-1.5-flash' });
+    }
   }
   if (openaiClient && !candidates.some(c => c.name === 'OpenAI')) {
     candidates.push({ name: 'OpenAI', client: openaiClient, model: 'gpt-4o-mini' });
-  }
-  if (gemini && !candidates.some(c => c.name === 'Gemini')) {
-    candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.5-flash' });
   }
 
   if (candidates.length === 0) {
@@ -211,24 +239,39 @@ export function stripToolCallsFromText(text) {
   return cleaned.trim();
 }
 
-export async function processStream({ stream, isInterrupted, onSentence }) {
+const ABBREVIATION_ENDINGS = /\b(?:Dr|Mr|Mrs|Ms|Prof|Sr|Jr|vs|etc|e\.g|i\.e|a\.m|p\.m)\.$/i;
+
+export async function processStream({ stream, isInterrupted, checkInterrupted, onSentence }) {
   let sentenceBuffer = '';
   let fullResponseText = '';
   let toolCalls = [];
 
+  const isCancelled = () => {
+    if (typeof checkInterrupted === 'function') return checkInterrupted();
+    return Boolean(isInterrupted);
+  };
+
   for await (const chunk of stream) {
-    if (isInterrupted) return { fullResponseText: '', toolCalls: [], interrupted: true };
+    if (isCancelled()) return { fullResponseText: '', toolCalls: [], interrupted: true };
 
     const delta = chunk.choices[0]?.delta;
 
     if (delta?.content) {
       sentenceBuffer += delta.content;
 
-      if (/[.!?\n]/.test(sentenceBuffer)) {
-        const sentence = sentenceBuffer.trim();
-        sentenceBuffer = '';
-        if (sentence.length > 0) {
-          const cleanSentence = stripToolCallsFromText(sentence);
+      // Smart sentence boundary detection: checks terminal punctuation not inside decimals or abbreviations
+      const match = sentenceBuffer.match(/([.!?\n]+)(?:\s+|$)/);
+      if (match && match.index !== undefined) {
+        const splitIdx = match.index + match[1].length;
+        const candidate = sentenceBuffer.substring(0, splitIdx).trim();
+
+        // Check if candidate is not an abbreviation and not a decimal like "12." followed by digits
+        const isAbbrev = ABBREVIATION_ENDINGS.test(candidate);
+        const isDecimal = /\d+\.$/.test(candidate) && /^\d/.test(sentenceBuffer.substring(splitIdx).trim());
+
+        if (!isAbbrev && !isDecimal && candidate.length > 0) {
+          sentenceBuffer = sentenceBuffer.substring(splitIdx);
+          const cleanSentence = stripToolCallsFromText(candidate);
           if (cleanSentence.length > 0) {
             fullResponseText += (fullResponseText ? ' ' : '') + cleanSentence;
             await onSentence(cleanSentence);
@@ -272,11 +315,18 @@ export async function executeToolCalls({ toolCalls, agentObj, toolAlreadyExecute
     }
     log.info('tool_execute', { prefix: logPrefix, tool: name, args });
 
-    const result = await executeTool(name, args, {
-      agentObj,
-      toolState: toolAlreadyExecuted,
-      callId,
-    });
+    let result;
+    if (name.startsWith('mcp__')) {
+      const mcpServerUrl = agentObj?.mcpServerUrl || agentObj?.crmIntegrations?.mcpServerUrl;
+      const { callMcpTool } = await import('./mcpClient.js');
+      result = await callMcpTool(mcpServerUrl, name, args);
+    } else {
+      result = await executeTool(name, args, {
+        agentObj,
+        toolState: toolAlreadyExecuted,
+        callId,
+      });
+    }
 
     conversationHistory.push({
       role: 'tool',

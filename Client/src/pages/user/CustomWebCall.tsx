@@ -193,9 +193,24 @@ export function CustomWebCall() {
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
 
       let ab: AudioBuffer;
-      if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
-        const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-        ab = await ac.decodeAudioData(copy);
+      // Check for RIFF (WAV), ID3/MPEG (MP3), or Ogg container headers
+      const isContainer =
+        (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) || // RIFF
+        (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) || // ID3
+        (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) || // MP3 sync
+        (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53); // OggS
+
+      if (isContainer) {
+        try {
+          const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+          ab = await ac.decodeAudioData(copy);
+        } catch {
+          const i16 = new Int16Array(bytes.buffer, bytes.byteOffset, Math.floor(bytes.byteLength / 2));
+          const f32 = new Float32Array(i16.length);
+          for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
+          ab = ac.createBuffer(1, f32.length, 24000);
+          ab.copyToChannel(f32, 0);
+        }
       } else {
         const i16 = new Int16Array(bytes.buffer, bytes.byteOffset, Math.floor(bytes.byteLength / 2));
         const f32 = new Float32Array(i16.length);
@@ -326,6 +341,11 @@ export function CustomWebCall() {
           } else if (d.event === 'transcript') {
             const r = d.role === 'assistant' ? 'agent' : d.role === 'user' ? 'caller' : d.role;
             setLogs(p => [...p, { role: r, text: d.text, time: getNowTimeString() }]);
+          } else if (d.event === 'tool_call') {
+            setLogs(p => [...p, { role: 'system', text: `⚡ Executing tool: ${d.name || 'action'}...`, time: getNowTimeString() }]);
+          } else if (d.event === 'tool_result') {
+            const msg = d.result?.message || d.result?.ticketId || 'Action completed';
+            setLogs(p => [...p, { role: 'system', text: `✓ Tool ${d.name || ''} result: ${msg}`, time: getNowTimeString() }]);
           }
         } catch { /* ignored */ }
       };

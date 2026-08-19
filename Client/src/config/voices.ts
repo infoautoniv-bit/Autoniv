@@ -20,6 +20,23 @@ export const VOICE_OPTIONS: VoiceOption[] = [
   { value: 'vapi:Sid', label: 'Sid (Vapi) - Laid-back, Smooth, Deep-toned (Male, American)' },
   { value: 'vapi:Naina', label: 'Naina (Vapi) - Calm, Collected, Professional (Female, Indian American)' },
 
+  // --- Cartesia Sonic Voices (Sub-100ms Ultra-Low Latency) ---
+  { value: 'cartesia:a0e99841-438c-4a64-b679-ae501e7d6091', label: 'Cartesia Barbershop Man - Sub-100ms Ultra Fast (Male)' },
+  { value: 'cartesia:79a125e8-cd45-4c13-8a67-188112f4dd22', label: 'Cartesia British Lady - Fast, Articulate (Female)' },
+  { value: 'cartesia:694f12bc-c40d-43c1-a1ba-5252605a0112', label: 'Cartesia Friendly Host - Warm, Conversational (Neutral)' },
+
+  // --- OpenAI / Speaches Native Voices ---
+  { value: 'openai:alloy', label: 'OpenAI Alloy - Balanced, Neutral, Natural' },
+  { value: 'openai:echo', label: 'OpenAI Echo - Warm, Soft Tone (Male)' },
+  { value: 'openai:fable', label: 'OpenAI Fable - Expressive, British Accent' },
+  { value: 'openai:onyx', label: 'OpenAI Onyx - Deep, Authoritative (Male)' },
+  { value: 'openai:nova', label: 'OpenAI Nova - Energetic, Bright (Female)' },
+  { value: 'openai:shimmer', label: 'OpenAI Shimmer - Clear, Expressive (Female)' },
+
+  // --- Smallest AI Waves (Fast Indian & Global Accents) ---
+  { value: 'smallest:emily', label: 'Smallest AI Emily - Ultra Fast Conversational (Female)' },
+  { value: 'smallest:aravind', label: 'Smallest AI Aravind - Natural Indian English (Male)' },
+
   // --- ElevenLabs Voices ---
   { value: 'pNInz6obpgDQGcFmaJgB', label: 'Adam (ElevenLabs) - Dominant, Firm (Male)' },
   { value: 'Xb7hH8MSUJpSbSDYk0k2', label: 'Alice (ElevenLabs) - Clear, Engaging Educator (Female)' },

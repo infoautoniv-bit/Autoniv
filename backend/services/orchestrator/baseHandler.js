@@ -21,6 +21,8 @@ import {
   APPOINTMENT_BOOKING_RULES,
   TIME_LIMIT_RULES,
   CALLER_MEMORY_RULES,
+  SYSTEM_SAFETY_GUARDRAILS,
+  HUMAN_VOICE_CADENCE_RULES,
   TIME_LIMIT_CLOSING,
   MAX_CALL_DURATION_MS,
 } from './prompts.js';
@@ -46,9 +48,10 @@ export class BaseVoiceHandler {
     this.toolAlreadyExecuted = {
       saveAppointment: false,
       saveLead: false,
+      logComplaint: false,
       pendingLeadData: null,
     };
-    this.callerInfo = { name: null, phone: null };
+    this.callerInfo = { name: null, phone: null, email: null };
 
     this.cleanedUp = false;
     this.callTimeout = null;
@@ -90,9 +93,10 @@ export class BaseVoiceHandler {
 
   // --- Shared Core Pipeline Logic ---
   triggerInterruption() {
-    if (!this.isProcessing || this.isInterrupted) return;
+    if (this.isInterrupted) return;
     this.isInterrupted = true;
-    log.info(`${this.logPrefix}_interruption`, { traceId: this.traceId, message: 'Caller barged in — stopping agent playback.' });
+    this.muteInputUntil = 0;
+    log.info(`${this.logPrefix}_interruption`, { traceId: this.traceId, message: 'Caller barged in — stopping agent playback (<50ms VAD).' });
     if (this.isTransportOpen()) {
       try {
         this.sendClearSignal();
@@ -164,7 +168,7 @@ export class BaseVoiceHandler {
 
       const { fullResponseText, toolCalls, interrupted } = await processStream({
         stream,
-        isInterrupted: this.isInterrupted,
+        checkInterrupted: () => this.isInterrupted,
         onSentence: (sentence) => this.processSentenceForPlay(sentence),
       });
 
@@ -281,6 +285,8 @@ export class BaseVoiceHandler {
     if ((this.agentObj?.type || 'receptionist') === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
     systemInstructions += TIME_LIMIT_RULES;
     systemInstructions += CALLER_MEMORY_RULES;
+    systemInstructions += SYSTEM_SAFETY_GUARDRAILS;
+    systemInstructions += HUMAN_VOICE_CADENCE_RULES;
 
     const agentLangName = LANGUAGE_NAMES[this.agentObj?.language || 'en'] || 'English';
     systemInstructions += `\n\nMULTILINGUAL & HUMAN SPEECH RULES:
