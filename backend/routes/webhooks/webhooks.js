@@ -545,7 +545,7 @@ router.post('/incoming-call', async (req, res) => {
           const messages = [{ role: 'system', content: sysPrompt }, ...history.slice(-10)];
 
           const completion = await groq.chat.completions.create({
-            model: 'qwen/qwen3.6-27b',
+            model: 'openai/gpt-oss-120b',
             messages,
             max_tokens: 150,
             temperature: 0.3,

@@ -304,7 +304,7 @@ router.post('/', contentFilter('name', 'prompt'), async (req, res) => {
       voiceId: voiceId || null,
       isActive: true,
       useCustomEngine: !!useCustomEngine,
-      customEngineModel: customEngineModel || 'groq:qwen/qwen3.6-27b',
+      customEngineModel: customEngineModel || 'groq:openai/gpt-oss-120b',
       twilioAccountSid: twilioAccountSid ? encrypt(twilioAccountSid) : null,
       twilioAuthToken: twilioAuthToken ? encrypt(twilioAuthToken) : null,
       phoneNumberId: isDirectNumber ? null : (phoneNumberId || null),

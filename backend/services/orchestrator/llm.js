@@ -3,22 +3,21 @@ import { getToolDefinitions, executeTool } from '../appointmentTools.js';
 import { log } from '../logger.js';
 
 const GROQ_MODEL_ALIASES = {
-  'llama-3.3-70b': 'qwen/qwen3.6-27b',
-  'llama-3.1-70b': 'qwen/qwen3.6-27b',
-  'llama-3.1-8b': 'qwen/qwen3.6-27b',
-  'llama3-70b': 'qwen/qwen3.6-27b',
-  'llama3-8b': 'qwen/qwen3.6-27b',
-  'mixtral-8x7b': 'qwen/qwen3.6-27b',
-  'gemma-2-9b': 'qwen/qwen3.6-27b',
-  'llama-3.1-8b-instant': 'qwen/qwen3.6-27b',
-  'llama-3.3-70b-versatile': 'qwen/qwen3.6-27b',
-  'llama-3.1-70b-versatile': 'qwen/qwen3.6-27b',
-  'openai/gpt-oss-120b': 'qwen/qwen3.6-27b',
-  'openai/gpt-oss-20b': 'qwen/qwen3.6-27b',
+  'llama-3.3-70b': 'openai/gpt-oss-120b',
+  'llama-3.1-70b': 'openai/gpt-oss-120b',
+  'llama-3.1-8b': 'openai/gpt-oss-20b',
+  'llama3-70b': 'openai/gpt-oss-120b',
+  'llama3-8b': 'openai/gpt-oss-20b',
+  'mixtral-8x7b': 'openai/gpt-oss-120b',
+  'gemma-2-9b': 'openai/gpt-oss-20b',
+  'llama-3.1-8b-instant': 'openai/gpt-oss-20b',
+  'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
+  'llama-3.1-70b-versatile': 'openai/gpt-oss-120b',
+  'qwen/qwen3.6-27b': 'openai/gpt-oss-120b',
 };
-const GROQ_DEFAULT_MODEL = 'qwen/qwen3.6-27b';
+const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
-const MAX_REPLY_TOKENS = 250;
+const MAX_REPLY_TOKENS = 1024;
 const REPLY_TEMPERATURE = 0.3;
 
 export function resolveGroqModel(modelId) {
@@ -237,20 +236,17 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
     return m;
   });
 
-  const engineSelected = agentObj?.customEngineModel || 'groq:qwen/qwen3.6-27b';
+  const engineSelected = agentObj?.customEngineModel || 'groq:openai/gpt-oss-120b';
   const [provider, modelId] = engineSelected.split(':');
 
   const candidates = [];
 
   // 1. PRIMARY: Groq (ultra low latency LPU)
   if (groq) {
-    const groqModel = resolveGroqModel(modelId) || 'qwen/qwen3.6-27b';
+    const groqModel = resolveGroqModel(modelId) || 'openai/gpt-oss-120b';
     candidates.push({ name: 'Groq', client: groq, model: groqModel });
     if (groqModel !== 'openai/gpt-oss-20b') {
       candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
-    }
-    if (groqModel !== 'openai/gpt-oss-120b') {
-      candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-120b' });
     }
   }
 

@@ -408,7 +408,7 @@ You MUST respond in valid JSON only:
 
     const groq = getGroq();
     let completion = null;
-    const candidateModels = ['qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
+    const candidateModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
     for (const m of candidateModels) {
       try {
         completion = await groq.chat.completions.create({

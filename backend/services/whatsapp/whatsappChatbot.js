@@ -9,7 +9,7 @@ import { log } from '../logger.js';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
-const GROQ_MODEL = 'qwen/qwen3.6-27b';
+const GROQ_MODEL = 'openai/gpt-oss-120b';
 
 let groq = null;
 if (GROQ_API_KEY) {

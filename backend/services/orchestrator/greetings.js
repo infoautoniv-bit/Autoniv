@@ -37,7 +37,7 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
   if (agentObj?.prompt && agentObj.prompt.trim().length > 15) {
     const candidates = [];
     if (groq) {
-      candidates.push({ client: groq, model: 'qwen/qwen3.6-27b' });
+      candidates.push({ client: groq, model: 'openai/gpt-oss-120b' });
       candidates.push({ client: groq, model: 'openai/gpt-oss-20b' });
     }
     if (gemini) {
@@ -55,6 +55,8 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
         const langDirective = language !== 'en'
           ? `\n\nYou MUST respond ONLY in ${langName}. Do NOT use English.`
           : '';
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         const completion = await client.chat.completions.create({
           model,
           messages: [
@@ -63,7 +65,8 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
           ],
           max_tokens: 100,
           temperature: 0.5,
-        });
+        }, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const customGreeting = completion.choices[0]?.message?.content?.trim();
         if (customGreeting && customGreeting.length < 200 && !customGreeting.includes('1.') && !customGreeting.includes('system')) {
           const interpolated = renderTemplate(customGreeting, context);

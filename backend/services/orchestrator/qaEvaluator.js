@@ -10,7 +10,7 @@ function getEvaluatorClients() {
         apiKey: process.env.GROQ_API_KEY,
         baseURL: 'https://api.groq.com/openai/v1',
       }),
-      model: 'qwen/qwen3.6-27b',
+      model: 'openai/gpt-oss-120b',
     });
     clients.push({
       client: new OpenAI({
