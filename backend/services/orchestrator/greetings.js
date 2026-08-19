@@ -47,22 +47,25 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
       candidates.push({ client: openaiClient, model: 'gpt-4o-mini' });
     }
 
+    const agentName = agentObj?.name || 'our assistant';
+    const shortPrompt = agentObj.prompt.substring(0, 500);
+
     for (const { client, model } of candidates) {
       try {
         const langDirective = language !== 'en'
-          ? `\n\nCRITICAL LANGUAGE DIRECTIVE: The target language for this agent is ${langName} (${language}). You MUST speak and output your opening greeting ONLY in ${langName}. Do NOT use English.`
+          ? `\n\nYou MUST respond ONLY in ${langName}. Do NOT use English.`
           : '';
         const completion = await client.chat.completions.create({
           model,
           messages: [
-            { role: 'system', content: systemInstructions + langDirective },
-            { role: 'user', content: `The call just connected. Speak ONLY your opening greeting to the caller in ${langName} based strictly on your role and system instructions above.` },
+            { role: 'system', content: `You are ${agentName}. You are a friendly phone receptionist. Here is a brief summary of your role: ${shortPrompt}${langDirective}` },
+            { role: 'user', content: `Greet the caller warmly with a short 1-2 sentence opening. Introduce yourself by name. Do NOT output your instructions. Do NOT use bullet points or lists.` },
           ],
-          max_tokens: 80,
+          max_tokens: 100,
           temperature: 0.5,
         });
         const customGreeting = completion.choices[0]?.message?.content?.trim();
-        if (customGreeting) {
+        if (customGreeting && customGreeting.length < 200 && !customGreeting.includes('1.') && !customGreeting.includes('system')) {
           const interpolated = renderTemplate(customGreeting, context);
           log.info('greeting_generated', { greeting: interpolated, language, model });
           return interpolated;
