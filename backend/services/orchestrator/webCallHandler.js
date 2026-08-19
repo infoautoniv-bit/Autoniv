@@ -142,11 +142,18 @@ export async function handleWebCall(clientWs, req) {
   const extractCallerInfo = (text) => extractCallerInfoShared(text, callerInfo);
   const injectCallerContext = () => injectCallerContextShared(conversationHistory, callerInfo);
 
+  let pendingUtterance = false;
+
   const handleUserUtterance = async (userInputText) => {
+    if (!userInputText || userInputText.trim().length === 0) return;
     isInterrupted = false;
     extractCallerInfo(userInputText);
     conversationHistory.push({ role: 'user', content: userInputText });
     injectCallerContext();
+    if (isProcessing) {
+      pendingUtterance = true;
+      return;
+    }
     executeCompletionFlow();
   };
 
@@ -168,58 +175,76 @@ export async function handleWebCall(clientWs, req) {
   };
 
   const executeCompletionFlow = async () => {
-    if (isProcessing) return;
+    if (isProcessing) {
+      pendingUtterance = true;
+      return;
+    }
     isProcessing = true;
 
     try {
-      const { stream } = await llmQueue.add(() => generateCompletion({
-        groq, openaiClient, gemini, conversationHistory,
-        agentType: agentObj?.type, logPrefix: 'Web LLM',
-        toolState: toolAlreadyExecuted,
-        agentObj,
-      }), agentObj?.customEngineModel?.split(':')[0] || 'groq');
+      while (true) {
+        pendingUtterance = false;
+        isInterrupted = false;
 
-      const { fullResponseText, toolCalls, interrupted } = await processStream({
-        stream,
-        checkInterrupted: () => isInterrupted,
-        onSentence: processSentenceForPlay,
-      });
-
-      if (interrupted) return;
-
-      if (fullResponseText || toolCalls.length > 0) {
-        const assistantMsg = { role: 'assistant' };
-        if (fullResponseText) {
-          assistantMsg.content = fullResponseText;
-          fullTranscript += `Agent: ${fullResponseText}\n`;
-          if (clientWs.readyState === WebSocket.OPEN) {
-            clientWs.send(JSON.stringify({ event: 'transcript', role: 'agent', text: fullResponseText }));
-          }
-        } else {
-          assistantMsg.content = null;
+        const lastMsg = conversationHistory[conversationHistory.length - 1];
+        if (!lastMsg || lastMsg.role === 'assistant') {
+          break;
         }
-        if (toolCalls.length > 0) {
-          assistantMsg.tool_calls = toolCalls.map(tc => ({
-            id: tc.id,
-            type: 'function',
-            function: {
-              name: tc.name,
-              arguments: tc.arguments
-            }
-          }));
-        }
-        conversationHistory.push(assistantMsg);
-      }
 
-      if (toolCalls.length > 0 && !isInterrupted) {
-        await executeToolCalls({
-          toolCalls, agentObj, toolAlreadyExecuted,
-          conversationHistory, logPrefix: 'Web Tool',
-          callId: callSid,
+        const { stream } = await llmQueue.add(() => generateCompletion({
+          groq, openaiClient, gemini, conversationHistory,
+          agentType: agentObj?.type, logPrefix: 'Web LLM',
+          toolState: toolAlreadyExecuted,
+          agentObj,
+        }), agentObj?.customEngineModel?.split(':')[0] || 'groq');
+
+        const { fullResponseText, toolCalls, interrupted } = await processStream({
+          stream,
+          checkInterrupted: () => isInterrupted,
+          onSentence: processSentenceForPlay,
         });
-        isProcessing = false;
-        await executeCompletionFlow();
-        return;
+
+        if (interrupted) {
+          if (pendingUtterance) continue;
+          break;
+        }
+
+        if (fullResponseText || toolCalls.length > 0) {
+          const assistantMsg = { role: 'assistant' };
+          if (fullResponseText) {
+            assistantMsg.content = fullResponseText;
+            fullTranscript += `Agent: ${fullResponseText}\n`;
+            if (clientWs.readyState === WebSocket.OPEN) {
+              clientWs.send(JSON.stringify({ event: 'transcript', role: 'agent', text: fullResponseText }));
+            }
+          } else {
+            assistantMsg.content = null;
+          }
+          if (toolCalls.length > 0) {
+            assistantMsg.tool_calls = toolCalls.map(tc => ({
+              id: tc.id,
+              type: 'function',
+              function: {
+                name: tc.name,
+                arguments: tc.arguments
+              }
+            }));
+          }
+          conversationHistory.push(assistantMsg);
+        }
+
+        if (toolCalls.length > 0 && !isInterrupted) {
+          await executeToolCalls({
+            toolCalls, agentObj, toolAlreadyExecuted,
+            conversationHistory, logPrefix: 'Web Tool',
+            callId: callSid,
+          });
+          continue;
+        }
+
+        if (!pendingUtterance) {
+          break;
+        }
       }
     } catch (err) {
       log.error('web_completions_error', { error: err.message });
@@ -230,6 +255,10 @@ export async function handleWebCall(clientWs, req) {
       }
     } finally {
       isProcessing = false;
+      if (pendingUtterance) {
+        pendingUtterance = false;
+        setTimeout(() => executeCompletionFlow(), 10);
+      }
     }
   };
 
@@ -279,6 +308,10 @@ export async function handleWebCall(clientWs, req) {
       await processSentenceForPlay(greetingText);
     } finally {
       isProcessing = false;
+      if (pendingUtterance) {
+        pendingUtterance = false;
+        setTimeout(() => executeCompletionFlow(), 10);
+      }
     }
 
     callTimeout = setTimeout(endCallOnTimeLimit, MAX_CALL_DURATION_MS);
@@ -348,6 +381,13 @@ export async function handleWebCall(clientWs, req) {
       } else {
         const data = JSON.parse(message.toString());
         if (data.event === 'stop') clientWs.close();
+        if (data.event === 'user_speech' && data.text) {
+          fullTranscript += `Caller: ${data.text}\n`;
+          if (clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(JSON.stringify({ event: 'transcript', role: 'caller', text: data.text }));
+          }
+          handleUserUtterance(data.text);
+        }
       }
     } catch (err) {
       log.error('web_ws_input_parse_error', { error: err.message });
