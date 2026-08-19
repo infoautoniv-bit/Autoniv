@@ -776,9 +776,8 @@ textarea::placeholder {
   .use-case-card h3{font-size:18px !important;}
   .use-case-card p{font-size:14px !important;}
   .hero-cta-row{display:flex !important;flex-direction:column !important;gap:12px !important;width:100% !important;}
-  .hero-cta-row .hero-btn-row{display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;gap:8px !important;width:100% !important;}
-  .hero-cta-row .hero-btn-row > button{flex:1 1 0 !important;min-width:0 !important;display:flex !important;align-items:center !important;justify-content:center !important;min-height:42px !important;font-size:11.5px !important;padding:8px 8px !important;gap:5px !important;white-space:nowrap !important;overflow:hidden !important;border-radius:12px !important;}
-  .hero-cta-row .hero-btn-row > button svg.w-4{width:12px !important;height:12px !important;flex-shrink:0 !important;}
+  .hero-cta-row .hero-btn-row{display:flex !important;flex-direction:column !important;gap:10px !important;width:100% !important;}
+  .hero-cta-row .hero-btn-row > button{width:100% !important;min-height:46px !important;font-size:14px !important;padding:10px 16px !important;gap:8px !important;border-radius:12px !important;display:flex !important;align-items:center !important;justify-content:center !important;}
 }
 
 /* ════════════════════════════════════════════════════════════════════════
