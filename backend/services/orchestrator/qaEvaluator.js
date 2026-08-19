@@ -10,7 +10,7 @@ function getEvaluatorClients() {
         apiKey: process.env.GROQ_API_KEY,
         baseURL: 'https://api.groq.com/openai/v1',
       }),
-      model: 'openai/gpt-oss-120b',
+      model: 'llama-3.1-8b-instant',
     });
     clients.push({
       client: new OpenAI({
@@ -18,6 +18,13 @@ function getEvaluatorClients() {
         baseURL: 'https://api.groq.com/openai/v1',
       }),
       model: 'openai/gpt-oss-20b',
+    });
+    clients.push({
+      client: new OpenAI({
+        apiKey: process.env.GROQ_API_KEY,
+        baseURL: 'https://api.groq.com/openai/v1',
+      }),
+      model: 'openai/gpt-oss-120b',
     });
   }
   const geminiKey = process.env.GEMINI_API_KEY || process.env.GEMENI_API_KEY;

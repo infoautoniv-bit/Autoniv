@@ -168,15 +168,24 @@ Flow Rules:
   );
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages,
-      max_tokens: 512,
-      temperature: 0.5,
-      response_format: { type: 'json_object' }
-    });
+    let completion = null;
+    const candidateModels = [GROQ_MODEL, 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'];
+    for (const m of candidateModels) {
+      try {
+        completion = await groq.chat.completions.create({
+          model: m,
+          messages,
+          max_tokens: 512,
+          temperature: 0.5,
+          response_format: { type: 'json_object' }
+        });
+        if (completion) break;
+      } catch (mErr) {
+        log.warn('chatbot_model_candidate_failed', { model: m, error: mErr.message });
+      }
+    }
 
-    const content = completion.choices?.[0]?.message?.content?.trim();
+    const content = completion?.choices?.[0]?.message?.content?.trim();
     if (!content) {
       return 'Sorry, I could not generate a response.';
     }

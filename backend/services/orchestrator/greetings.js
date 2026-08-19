@@ -35,15 +35,26 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
   }
 
   if (agentObj?.prompt && agentObj.prompt.trim().length > 15) {
-    const client = groq || openaiClient || gemini;
-    if (client) {
+    const candidates = [];
+    if (groq) {
+      candidates.push({ client: groq, model: 'llama-3.1-8b-instant' });
+      candidates.push({ client: groq, model: 'openai/gpt-oss-20b' });
+      candidates.push({ client: groq, model: 'openai/gpt-oss-120b' });
+    }
+    if (gemini) {
+      candidates.push({ client: gemini, model: 'gemini-2.5-flash' });
+    }
+    if (openaiClient) {
+      candidates.push({ client: openaiClient, model: 'gpt-4o-mini' });
+    }
+
+    for (const { client, model } of candidates) {
       try {
-        const modelName = groq ? 'llama-3.3-70b-versatile' : (openaiClient ? 'gpt-4o-mini' : 'gemini-2.5-flash');
         const langDirective = language !== 'en'
           ? `\n\nCRITICAL LANGUAGE DIRECTIVE: The target language for this agent is ${langName} (${language}). You MUST speak and output your opening greeting ONLY in ${langName}. Do NOT use English.`
           : '';
         const completion = await client.chat.completions.create({
-          model: modelName,
+          model,
           messages: [
             { role: 'system', content: systemInstructions + langDirective },
             { role: 'user', content: `The call just connected. Speak ONLY your opening greeting to the caller in ${langName} based strictly on your role and system instructions above.` },
@@ -54,11 +65,11 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
         const customGreeting = completion.choices[0]?.message?.content?.trim();
         if (customGreeting) {
           const interpolated = renderTemplate(customGreeting, context);
-          log.info('greeting_generated', { greeting: interpolated, language });
+          log.info('greeting_generated', { greeting: interpolated, language, model });
           return interpolated;
         }
       } catch (err) {
-        log.warn('greeting_fallback', { error: err.message });
+        log.warn('greeting_fallback_candidate', { model, error: err.message });
       }
     }
   }

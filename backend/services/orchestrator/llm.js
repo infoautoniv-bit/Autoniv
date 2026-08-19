@@ -192,16 +192,12 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
 
   const candidates = [];
 
-  // 1. PRIMARY: Groq (ultra low latency LPU, native tool-calling enabled)
+  // 1. PRIMARY: Groq (ultra low latency LPU, llama-3.1-8b-instant primary)
   if (groq) {
-    const selectedGroq = resolveGroqModel(provider === 'groq' ? modelId : 'gpt-oss-120b');
-    candidates.push({ name: 'Groq', client: groq, model: selectedGroq });
-    if (selectedGroq !== 'openai/gpt-oss-20b') {
-      candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
-    }
-    if (selectedGroq !== 'qwen/qwen3.6-27b') {
-      candidates.push({ name: 'Groq', client: groq, model: 'qwen/qwen3.6-27b' });
-    }
+    candidates.push({ name: 'Groq', client: groq, model: 'llama-3.1-8b-instant' });
+    candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
+    candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-120b' });
+    candidates.push({ name: 'Groq', client: groq, model: 'qwen/qwen3.6-27b' });
   }
 
   // 2. Secondary: Specific agent model if requested and not Groq

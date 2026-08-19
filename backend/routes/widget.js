@@ -407,13 +407,22 @@ You MUST respond in valid JSON only:
     groqMessages.push({ role: 'user', content: trimmed });
 
     const groq = getGroq();
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
-      messages: groqMessages,
-      temperature: 0.3,
-      max_tokens: 800,
-      response_format: { type: 'json_object' },
-    });
+    let completion = null;
+    const candidateModels = ['llama-3.1-8b-instant', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'];
+    for (const m of candidateModels) {
+      try {
+        completion = await groq.chat.completions.create({
+          model: m,
+          messages: groqMessages,
+          temperature: 0.3,
+          max_tokens: 800,
+          response_format: { type: 'json_object' },
+        });
+        if (completion) break;
+      } catch (mErr) {
+        log.warn('widget_chat_model_candidate_failed', { model: m, error: mErr.message });
+      }
+    }
 
     const content = completion.choices[0]?.message?.content?.trim();
     if (!content) {
