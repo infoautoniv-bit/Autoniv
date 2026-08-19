@@ -37,7 +37,7 @@ export async function generateGreeting({ groq, openaiClient, gemini, systemInstr
   if (agentObj?.prompt && agentObj.prompt.trim().length > 15) {
     const candidates = [];
     if (groq) {
-      candidates.push({ client: groq, model: 'openai/gpt-oss-120b' });
+      candidates.push({ client: groq, model: 'qwen/qwen3.6-27b' });
       candidates.push({ client: groq, model: 'openai/gpt-oss-20b' });
     }
     if (gemini) {

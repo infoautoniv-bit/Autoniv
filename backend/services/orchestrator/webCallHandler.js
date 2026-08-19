@@ -318,10 +318,14 @@ export async function handleWebCall(clientWs, req) {
   const handleStartCall = async () => {
     const ownerUser = isDemo ? null : await User.findById(agentObj.userId).lean();
     
-    // Fetch pre-call context
-    const preCallContext = await fetchPreCallContext(callerInfo.phone || null, agentObj);
-    if (preCallContext.callerName && !callerInfo.name) {
-      callerInfo.name = preCallContext.callerName;
+    let preCallContext = {};
+    try {
+      preCallContext = await fetchPreCallContext(callerInfo.phone || null, agentObj);
+      if (preCallContext.callerName && !callerInfo.name) {
+        callerInfo.name = preCallContext.callerName;
+      }
+    } catch (ctxErr) {
+      log.warn('web_precall_context_failed', { error: ctxErr.message });
     }
 
     let systemInstructions = buildSystemPrompt(agentObj.type, agentObj.prompt);
@@ -345,12 +349,20 @@ export async function handleWebCall(clientWs, req) {
 2. Speak exactly like a natural, warm, and friendly human. Never sound robotic, and never output lists, tables, or bullet points.
 3. When speaking in Hindi, use natural, conversational Hindi phrasing. Never write dates or times using spelled-out English words (e.g., do NOT say "twenty sixth july" or "four baje"). Instead, write them in standard digits or native Hindi words (e.g., say "26 जुलाई 2026" or "छब्बीस जुलाई" and "4 बजे" or "चार बजे"). Keep numbers and dates in standard format so the voice engine pronounces them naturally like a human.`;
 
-    let greetingText = agentObj.firstMessage || await generateGreeting({
-      groq, openaiClient, gemini, systemInstructions,
-      agentType: agentObj.type,
-      agentObj,
-      context: preCallContext,
-    });
+    let greetingText = agentObj.firstMessage;
+    if (!greetingText) {
+      try {
+        greetingText = await generateGreeting({
+          groq, openaiClient, gemini, systemInstructions,
+          agentType: agentObj.type,
+          agentObj,
+          context: preCallContext,
+        });
+      } catch (greetErr) {
+        log.error('web_greeting_generation_failed', { error: greetErr.message });
+        greetingText = 'Hello! How can I help you today?';
+      }
+    }
     const result = await translateIfNeeded(systemInstructions, greetingText, agentObj.language || 'en');
     systemInstructions = result.systemInstructions;
     greetingText = result.greetingText;
@@ -374,9 +386,8 @@ export async function handleWebCall(clientWs, req) {
     } finally {
       isProcessing = false;
       if (pendingUtterance) {
-        const nextText = pendingUtterance;
         pendingUtterance = false;
-        log.info('web_processing_pending_after_greeting', { text: nextText });
+        log.info('web_processing_pending_after_greeting');
         setTimeout(async () => {
           try {
             await executeCompletionFlow();
@@ -437,7 +448,16 @@ export async function handleWebCall(clientWs, req) {
   } catch (sttErr) {
     log.error('deepgram_stt_init_failed', { error: sttErr.message });
   }
-  await handleStartCall();
+  try {
+    await handleStartCall();
+  } catch (startErr) {
+    log.error('web_call_start_failed', { error: startErr.message });
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.close(4998, 'Call start failed');
+    }
+    await runCleanup();
+    return;
+  }
 
   clientWs.on('message', (message, isBinary) => {
     try {

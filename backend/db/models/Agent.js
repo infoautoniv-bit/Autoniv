@@ -17,7 +17,7 @@ const agentSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   callCount: { type: Number, default: 0 },
   useCustomEngine: { type: Boolean, default: false },
-  customEngineModel: { type: String, default: 'groq:llama-3.3-70b' },
+  customEngineModel: { type: String, default: 'groq:qwen/qwen3.6-27b' },
   dialogueMode: { type: String, default: 'graph', enum: ['linear', 'graph'] },
   telephonyProvider: { type: String, default: 'twilio', enum: ['twilio', 'telnyx', 'plivo', 'asterisk', 'exotel', 'custom'] },
   mcpServerUrl: { type: String, default: null },

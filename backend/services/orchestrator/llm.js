@@ -3,18 +3,20 @@ import { getToolDefinitions, executeTool } from '../appointmentTools.js';
 import { log } from '../logger.js';
 
 const GROQ_MODEL_ALIASES = {
-  'llama-3.3-70b': 'llama-3.3-70b-versatile',
-  'llama-3.1-70b': 'llama-3.1-70b-versatile',
-  'llama-3.1-8b': 'llama-3.1-8b-instant',
-  'llama3-70b': 'llama-3.3-70b-versatile',
-  'llama3-8b': 'llama-3.1-8b-instant',
-  'mixtral-8x7b': 'mixtral-8x7b-32768',
-  'gemma-2-9b': 'gemma2-9b-it',
-  'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
-  'llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
-  'llama-3.1-70b-versatile': 'llama-3.1-70b-versatile',
+  'llama-3.3-70b': 'qwen/qwen3.6-27b',
+  'llama-3.1-70b': 'qwen/qwen3.6-27b',
+  'llama-3.1-8b': 'qwen/qwen3.6-27b',
+  'llama3-70b': 'qwen/qwen3.6-27b',
+  'llama3-8b': 'qwen/qwen3.6-27b',
+  'mixtral-8x7b': 'qwen/qwen3.6-27b',
+  'gemma-2-9b': 'qwen/qwen3.6-27b',
+  'llama-3.1-8b-instant': 'qwen/qwen3.6-27b',
+  'llama-3.3-70b-versatile': 'qwen/qwen3.6-27b',
+  'llama-3.1-70b-versatile': 'qwen/qwen3.6-27b',
+  'openai/gpt-oss-120b': 'qwen/qwen3.6-27b',
+  'openai/gpt-oss-20b': 'qwen/qwen3.6-27b',
 };
-const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_DEFAULT_MODEL = 'qwen/qwen3.6-27b';
 
 const MAX_REPLY_TOKENS = 250;
 const REPLY_TEMPERATURE = 0.3;
@@ -235,18 +237,21 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
     return m;
   });
 
-  const engineSelected = agentObj?.customEngineModel || 'groq:gpt-oss-120b';
+  const engineSelected = agentObj?.customEngineModel || 'groq:qwen/qwen3.6-27b';
   const [provider, modelId] = engineSelected.split(':');
 
   const candidates = [];
 
   // 1. PRIMARY: Groq (ultra low latency LPU)
   if (groq) {
-    candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-120b' });
-    candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
-    candidates.push({ name: 'Groq', client: groq, model: 'meta-llama/llama-4-scout-17b-16e-instruct' });
-    candidates.push({ name: 'Groq', client: groq, model: 'qwen/qwen3.6-27b' });
-    candidates.push({ name: 'Groq', client: groq, model: 'llama-3.3-70b-versatile' });
+    const groqModel = resolveGroqModel(modelId) || 'qwen/qwen3.6-27b';
+    candidates.push({ name: 'Groq', client: groq, model: groqModel });
+    if (groqModel !== 'openai/gpt-oss-20b') {
+      candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
+    }
+    if (groqModel !== 'openai/gpt-oss-120b') {
+      candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-120b' });
+    }
   }
 
   // 2. SECONDARY: Gemini
@@ -330,8 +335,8 @@ export async function processStream({ stream, isInterrupted, checkInterrupted, o
       log.info('processStream_chunk', { chunkCount, hasContent: Boolean(delta?.content), hasToolCalls: Boolean(delta?.tool_calls), hasReasoning: Boolean(delta?.reasoning_content), finishReason: chunk.choices[0]?.finish_reason, deltaKeys: delta ? Object.keys(delta) : [], role: delta?.role });
     }
 
-    if (delta?.reasoning_content) {
-      reasoningText += delta.reasoning_content;
+    if (delta?.reasoning || delta?.reasoning_content) {
+      reasoningText += delta.reasoning || delta.reasoning_content;
     }
 
     if (delta?.content) {
