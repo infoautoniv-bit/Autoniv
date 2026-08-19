@@ -3,23 +3,23 @@ import { getToolDefinitions, executeTool } from '../appointmentTools.js';
 import { log } from '../logger.js';
 
 const GROQ_MODEL_ALIASES = {
+  'llama-3.1-8b-instant': 'openai/gpt-oss-20b',
+  'llama-3.1-8b': 'openai/gpt-oss-20b',
+  'llama3-8b': 'openai/gpt-oss-20b',
   'llama-3.3-70b': 'openai/gpt-oss-120b',
   'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
   'llama-3.1-70b': 'openai/gpt-oss-120b',
   'llama-3.1-70b-versatile': 'openai/gpt-oss-120b',
-  'llama-3.1-8b': 'groq/compound-mini',
-  'llama-3.1-8b-instant': 'groq/compound-mini',
   'llama3-70b': 'openai/gpt-oss-120b',
-  'llama3-8b': 'groq/compound-mini',
-  'compound-mini': 'groq/compound-mini',
-  'compound': 'groq/compound',
+  'compound-mini': 'openai/gpt-oss-20b',
+  'compound': 'openai/gpt-oss-120b',
   'gpt-oss-120b': 'openai/gpt-oss-120b',
   'gpt-oss-20b': 'openai/gpt-oss-20b',
   'qwen-27b': 'qwen/qwen3.6-27b',
   'mixtral-8x7b': 'openai/gpt-oss-120b',
-  'gemma-2-9b': 'groq/compound-mini',
+  'gemma-2-9b': 'openai/gpt-oss-20b',
 };
-const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b';
+const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
 const MAX_REPLY_TOKENS = 160;
 const REPLY_TEMPERATURE = 0.6;
@@ -192,9 +192,8 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
 
   const candidates = [];
 
-  // 1. PRIMARY: Groq (ultra low latency LPU, llama-3.1-8b-instant primary)
+  // 1. PRIMARY: Groq (ultra low latency LPU: openai/gpt-oss-20b & openai/gpt-oss-120b)
   if (groq) {
-    candidates.push({ name: 'Groq', client: groq, model: 'llama-3.1-8b-instant' });
     candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
     candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-120b' });
     candidates.push({ name: 'Groq', client: groq, model: 'qwen/qwen3.6-27b' });

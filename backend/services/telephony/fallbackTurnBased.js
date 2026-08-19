@@ -77,7 +77,7 @@ export function buildTurnBasedResponse({ platform, responseText, actionUrl, spea
  * @param {string} [opts.model]
  * @returns {Promise<string>}
  */
-export async function runTurnBasedLLM({ agent, userSpeech, llmClient, model = 'llama-3.1-8b-instant' }) {
+export async function runTurnBasedLLM({ agent, userSpeech, llmClient, model = 'openai/gpt-oss-20b' }) {
   const fallbackLine = agent?.prompt
     ? `Hello! ${agent.name} here. How can I help you today?`
     : 'Hello! I am your AI voice assistant. How can I help you today?';
