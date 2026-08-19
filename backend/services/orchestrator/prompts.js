@@ -1,12 +1,12 @@
 import { renderTemplate } from './templateEngine.js';
 
 export function buildSystemPrompt(type, customPrompt) {
-  const completionRule = `\n\n### CRITICAL CALL COMPLETION RULE:\nOnce the lead or appointment is saved (after calling saveLead or saveAppointment), say: "Thank you for sharing your details! Our team will follow up with you shortly. Have a great day!" and immediately end the call / hang up. Do NOT ask any further questions once details are saved.`;
+   const completionRule = `\n\n### CRITICAL CALL COMPLETION RULE:\nOnce the lead or appointment is saved (after calling saveLead or saveAppointment), say: "Thank you for sharing your details! Our team will follow up with you shortly. Have a great day!" and immediately end the call / hang up. Do NOT ask any further questions once details are saved.`;
 
-  if (customPrompt && customPrompt.trim().length > 20) return customPrompt.trim() + completionRule;
+   if (customPrompt && customPrompt.trim().length > 20) return customPrompt.trim() + completionRule;
 
-  const defaults = {
-    receptionist: `You are a friendly, helpful, and professional AI voice receptionist for {{company | 'our business'}}.
+   const defaults = {
+      receptionist: `You are a friendly, helpful, and professional AI voice receptionist for {{company | 'our business'}}.
 You handle both GENERAL INQUIRIES and APPOINTMENT / LEAD REQUESTS naturally.
 
 YOUR GOALS:
@@ -20,7 +20,7 @@ YOUR GOALS:
    - Use 'saveLead' or 'saveAppointment' once you have their details.
 4. Keep all voice responses conversational, natural, and under 2-3 sentences per turn.${completionRule}`,
 
-    appointment: `You are a friendly, versatile AI assistant for {{company | 'our clinic/business'}}. You handle both GENERAL INQUIRIES and APPOINTMENT BOOKINGS seamlessly.
+      appointment: `You are a friendly, versatile AI assistant for {{company | 'our clinic/business'}}. You handle both GENERAL INQUIRIES and APPOINTMENT BOOKINGS seamlessly.
 
 CLINIC / BUSINESS INFORMATION:
 - Business: {{company | 'Our Business'}}
@@ -46,13 +46,13 @@ HOW TO HANDLE CALLS:
    - If you don't know a specific detail: "I don't have that exact information with me right now, but I can have our team follow up with you. Would you like me to leave a note with them?"
    - If yes, collect their name and phone, then call saveLead.${completionRule}`,
 
-    faq: `You are a knowledgeable customer support assistant for {{company | 'our business'}}.
+      faq: `You are a knowledgeable customer support assistant for {{company | 'our business'}}.
 Answer all caller questions about services, pricing, hours, location, and procedures clearly and helpfully.
 If a caller wants to book an appointment or speak with someone, offer to schedule a visit or take down their contact details using saveLead.
 Always remain courteous, friendly, and concise.`,
-  };
+   };
 
-  return defaults[type] || defaults.faq;
+   return defaults[type] || defaults.faq;
 }
 
 export const APPOINTMENT_BOOKING_RULES = `\n\nBOOKING RULES:
@@ -90,46 +90,46 @@ export const CALLER_MEMORY_RULES = `\n\n### CALLER MEMORY & RETENTION RULES (STR
 - When you have the necessary information (Name, Phone, Email), immediately invoke saveLead or saveAppointment without asking for the same details twice.`;
 
 export function interpolatePrompt(prompt, user, extraContext = {}) {
-  if (!prompt) return prompt;
-  let result = prompt;
+   if (!prompt) return prompt;
+   let result = prompt;
 
-  const companyName = user?.company || user?.name || 'our business';
-  const phone = user?.phoneNumber || 'our office number';
-  const email = user?.email || '';
-  const ownerName = user?.name || '';
+   const companyName = user?.company || user?.name || 'our business';
+   const phone = user?.phoneNumber || 'our office number';
+   const email = user?.email || '';
+   const ownerName = user?.name || '';
 
-  // Backward compatibility with legacy brackets
-  result = result.replace(/\[COMPANY_NAME\]/g, companyName);
-  result = result.replace(/\[COMPANY PHONE\]/g, phone);
-  result = result.replace(/\[PHONE\]/g, phone);
-  result = result.replace(/\[COMPANY EMAIL\]/g, email);
-  result = result.replace(/\[EMAIL\]/g, email);
-  result = result.replace(/\[OWNER NAME\]/g, ownerName);
+   // Backward compatibility with legacy brackets
+   result = result.replace(/\[COMPANY_NAME\]/g, companyName);
+   result = result.replace(/\[COMPANY PHONE\]/g, phone);
+   result = result.replace(/\[PHONE\]/g, phone);
+   result = result.replace(/\[COMPANY EMAIL\]/g, email);
+   result = result.replace(/\[EMAIL\]/g, email);
+   result = result.replace(/\[OWNER NAME\]/g, ownerName);
 
-  // Modern {{variable}} template syntax interpolation
-  const context = {
-    company: companyName,
-    company_name: companyName,
-    phone,
-    email,
-    owner_name: ownerName,
-    user: {
-      name: ownerName,
+   // Modern {{variable}} template syntax interpolation
+   const context = {
       company: companyName,
-      email,
+      company_name: companyName,
       phone,
-    },
-    ...extraContext,
-  };
+      email,
+      owner_name: ownerName,
+      user: {
+         name: ownerName,
+         company: companyName,
+         email,
+         phone,
+      },
+      ...extraContext,
+   };
 
-  result = renderTemplate(result, context);
+   result = renderTemplate(result, context);
 
-  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  result = result + `\n\nCRITICAL CONTEXT: Today's date is ${todayStr}. Any appointment date requested by the caller (like "tomorrow" or "next Monday") must be computed relative to today's date. Never check or book appointments for past dates.`;
+   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+   result = result + `\n\nCRITICAL CONTEXT: Today's date is ${todayStr}. Any appointment date requested by the caller (like "tomorrow" or "next Monday") must be computed relative to today's date. Never check or book appointments for past dates.`;
 
-  if (extraContext.callerName) {
-    result = result + `\nCALLER NAME: The caller's name is already verified as "${extraContext.callerName}". Address them by name and do not ask them for their name again.`;
-  }
+   if (extraContext.callerName) {
+      result = result + `\nCALLER NAME: The caller's name is already verified as "${extraContext.callerName}". Address them by name and do not ask them for their name again.`;
+   }
 
-  return result;
+   return result;
 }

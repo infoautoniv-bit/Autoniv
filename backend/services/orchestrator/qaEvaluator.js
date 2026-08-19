@@ -2,21 +2,43 @@ import OpenAI from 'openai';
 import Call from '../../db/models/Call.js';
 import { log } from '../logger.js';
 
-function getEvaluatorClient() {
+function getEvaluatorClients() {
+  const clients = [];
   if (process.env.GROQ_API_KEY) {
-    return new OpenAI({
-      apiKey: process.env.GROQ_API_KEY,
-      baseURL: 'https://api.groq.com/openai/v1',
-      defaultModel: 'llama-3.3-70b-versatile',
+    clients.push({
+      client: new OpenAI({
+        apiKey: process.env.GROQ_API_KEY,
+        baseURL: 'https://api.groq.com/openai/v1',
+      }),
+      model: 'openai/gpt-oss-120b',
+    });
+    clients.push({
+      client: new OpenAI({
+        apiKey: process.env.GROQ_API_KEY,
+        baseURL: 'https://api.groq.com/openai/v1',
+      }),
+      model: 'openai/gpt-oss-20b',
     });
   }
-  if (process.env.OPENAI_API_KEY) {
-    return new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      defaultModel: 'gpt-4o-mini',
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GEMENI_API_KEY;
+  if (geminiKey && geminiKey.trim() !== '' && !geminiKey.startsWith('your-')) {
+    clients.push({
+      client: new OpenAI({
+        apiKey: geminiKey,
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+      }),
+      model: 'gemini-2.5-flash',
     });
   }
-  return null;
+  if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.startsWith('your-')) {
+    clients.push({
+      client: new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      }),
+      model: 'gpt-4o-mini',
+    });
+  }
+  return clients;
 }
 
 /**
@@ -58,7 +80,7 @@ export async function runPostCallQA(callId, options = {}) {
       return null;
     }
 
-    const client = getEvaluatorClient();
+    const clients = getEvaluatorClients();
     let qaResult = {
       sentiment: 'neutral',
       goalAchieved: false,
@@ -67,8 +89,7 @@ export async function runPostCallQA(callId, options = {}) {
       actionItems: [],
     };
 
-    if (client) {
-      const model = process.env.GROQ_API_KEY ? 'llama-3.3-70b-versatile' : 'gpt-4o-mini';
+    if (clients.length > 0) {
       const prompt = `You are an automated Quality Assurance auditor for AI phone calls.
 Analyze the following call transcript and return a JSON object with:
 - "sentiment": ("positive", "neutral", "negative", or "frustrated")
@@ -85,25 +106,30 @@ ${transcript.slice(0, 4000)}
 Return ONLY valid JSON matching this schema:
 {"sentiment": "...", "goalAchieved": true/false, "callScore": 85, "summary": "...", "actionItems": []}`;
 
-      const response = await client.chat.completions.create({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-      });
-
-      const content = response.choices?.[0]?.message?.content;
-      if (content) {
+      for (const { client, model } of clients) {
         try {
-          const parsed = JSON.parse(content);
-          qaResult = {
-            sentiment: parsed.sentiment || 'neutral',
-            goalAchieved: Boolean(parsed.goalAchieved),
-            callScore: Math.min(100, Math.max(1, Number(parsed.callScore) || 75)),
-            summary: parsed.summary || 'Call processed.',
-            actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [],
-          };
-        } catch (_) {}
+          const response = await client.chat.completions.create({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
+          });
+
+          const content = response.choices?.[0]?.message?.content;
+          if (content) {
+            const parsed = JSON.parse(content);
+            qaResult = {
+              sentiment: parsed.sentiment || 'neutral',
+              goalAchieved: Boolean(parsed.goalAchieved),
+              callScore: Math.min(100, Math.max(1, Number(parsed.callScore) || 75)),
+              summary: parsed.summary || 'Call processed.',
+              actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [],
+            };
+            break;
+          }
+        } catch (candidateErr) {
+          log.warn('qa_evaluator_candidate_failed', { model, error: candidateErr.message });
+        }
       }
     }
 
