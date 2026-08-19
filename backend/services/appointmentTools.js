@@ -473,14 +473,23 @@ export async function executeTool(name, args, ctx) {
           }
         }
 
+        const validAgentId = (agentObj?._id && mongoose.Types.ObjectId.isValid(agentObj._id)) ? agentObj._id : undefined;
+        const validUserId = (userId && mongoose.Types.ObjectId.isValid(userId)) ? userId : undefined;
+
         // Dedup: check if lead already exists for this call/phone
-        const existing = await Lead.findOne({
-          agentId: agentObj._id,
-          $or: [
-            ...(mongoCallId ? [{ callId: mongoCallId }] : []),
-            ...(safePhone ? [{ phone: safePhone }] : [])
-          ]
-        }).lean();
+        const orConditions = [
+          ...(mongoCallId ? [{ callId: mongoCallId }] : []),
+          ...(safePhone ? [{ phone: safePhone }] : [])
+        ];
+
+        let existing = null;
+        if (orConditions.length > 0) {
+          const query = {
+            ...(validAgentId ? { agentId: validAgentId } : {}),
+            $or: orConditions
+          };
+          existing = await Lead.findOne(query).lean();
+        }
 
         if (existing) {
           toolState.saveLead = true;
@@ -488,9 +497,9 @@ export async function executeTool(name, args, ctx) {
         }
 
         const lead = await Lead.create({
-          agentId: agentObj._id,
-          callId: mongoCallId,
-          userId,
+          ...(validAgentId ? { agentId: validAgentId } : {}),
+          ...(mongoCallId ? { callId: mongoCallId } : {}),
+          ...(validUserId ? { userId: validUserId } : {}),
           name: leadName ? sanitizeText(safeString(leadName, 200)) : null,
           phone: safePhone,
           email: pick(args, 'email') ? safeString(args.email, 254) : null,
@@ -575,13 +584,17 @@ export async function executeTool(name, args, ctx) {
           }
         }
 
+        const validAgentId = (agentObj?._id && mongoose.Types.ObjectId.isValid(agentObj._id)) ? agentObj._id : undefined;
+        const validUserId = (userId && mongoose.Types.ObjectId.isValid(userId)) ? userId : undefined;
+
         // dedup: reuse a matching pending booking made in the last 10 min
-        const existing = await Appointment.findOne({
-          userId,
+        const existingQuery = {
+          ...(validUserId ? { userId: validUserId } : {}),
           phone: safePhone,
           service: sanitizedService,
           status: 'pending',
-        }).sort({ createdAt: -1 });
+        };
+        const existing = await Appointment.findOne(existingQuery).sort({ createdAt: -1 });
 
         if (existing && (Date.now() - existing.createdAt.getTime()) < DEDUP_WINDOW_MS) {
           toolState.saveAppointment = true;
@@ -601,9 +614,9 @@ export async function executeTool(name, args, ctx) {
         let appt;
         try {
           appt = await Appointment.create({
-            agentId: agentObj._id,
-            callId: mongoCallId,
-            userId,
+            ...(validAgentId ? { agentId: validAgentId } : {}),
+            ...(mongoCallId ? { callId: mongoCallId } : {}),
+            ...(validUserId ? { userId: validUserId } : {}),
             name: customerName ? sanitizeText(safeString(customerName, 200)) : null,
             phone: safePhone,
             email: safeString(email, 254),
@@ -619,23 +632,27 @@ export async function executeTool(name, args, ctx) {
         } catch (apptErr) {
           log.error('orchestrator_appointment_save_failed', { error: apptErr.message });
 
-          const existingLead = await Lead.findOne({
-            agentId: agentObj._id,
-            $or: [
-              ...(mongoCallId ? [{ callId: mongoCallId }] : []),
-              ...(safePhone ? [{ phone: safePhone }] : [])
-            ]
-          }).lean();
+          const fallbackOr = [
+            ...(mongoCallId ? [{ callId: mongoCallId }] : []),
+            ...(safePhone ? [{ phone: safePhone }] : [])
+          ];
+          let existingLead = null;
+          if (fallbackOr.length > 0) {
+            existingLead = await Lead.findOne({
+              ...(validAgentId ? { agentId: validAgentId } : {}),
+              $or: fallbackOr
+            }).lean();
+          }
 
           if (!existingLead && safePhone) {
             await Lead.create({
-              agentId: agentObj._id,
-              callId: mongoCallId,
-              userId,
+              ...(validAgentId ? { agentId: validAgentId } : {}),
+              ...(mongoCallId ? { callId: mongoCallId } : {}),
+              ...(validUserId ? { userId: validUserId } : {}),
               name: customerName ? sanitizeText(safeString(customerName, 200)) : null,
               phone: safePhone,
               email: safeString(email, 254),
-              purpose: sanitizedService || 'Appointment booking',
+              purpose: `Booking attempt: ${sanitizedService || 'Appointment'}`,
               leadType: 'call',
             });
             log.info('orchestrator_lead_fallback_from_appointment_failure', { phone: safePhone });
