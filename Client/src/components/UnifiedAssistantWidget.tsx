@@ -895,7 +895,7 @@ export default function UnifiedAssistantWidget() {
   ];
 
   return (
-    <div className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-[150]">
+    <div className="fixed bottom-4 sm:bottom-6 right-3 sm:right-6 z-[150]">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -903,9 +903,8 @@ export default function UnifiedAssistantWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.94 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute bottom-20 right-0 w-[500px] max-w-[calc(100vw-32px)] rounded-[22px] overflow-hidden flex flex-col"
+            className="absolute bottom-16 sm:bottom-20 right-0 w-[500px] max-w-[calc(100vw-24px)] rounded-[22px] overflow-hidden flex flex-col h-[min(560px,calc(100dvh-100px))]"
             style={{
-              height: '560px',
               background: `linear-gradient(180deg, ${T.bgElevated} 0%, ${T.bg} 100%)`,
               border: `1px solid ${T.border}`,
               backdropFilter: 'blur(24px)',
@@ -1341,7 +1340,7 @@ export default function UnifiedAssistantWidget() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 8, scale: 0.9 }}
           transition={{ delay: 1.2, duration: 0.4, ease: 'easeOut' }}
-          className="absolute -top-14 right-0 flex items-center gap-2 px-3 py-2 rounded-xl whitespace-nowrap shadow-lg z-50"
+          className="hidden sm:flex absolute -top-14 right-0 items-center gap-2 px-3 py-2 rounded-xl whitespace-nowrap shadow-lg z-50"
           style={{
             background: 'rgba(8,13,28,0.92)',
             border: `1px solid ${T.border}`,
