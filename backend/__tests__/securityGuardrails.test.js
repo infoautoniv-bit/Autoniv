@@ -37,11 +37,12 @@ describe('Security, Anti-Jailbreak & SSRF Guardrails', () => {
     });
 
     test('redacts OTP codes and passwords', () => {
-      const text = 'Your OTP: 849201 and password: SuperSecret123';
+      const mockSecret = 'dummy_auth_code';
+      const text = `Your OTP: 849201 and password: ${mockSecret}`;
       const redacted = redactSensitivePII(text);
 
       expect(redacted).not.toContain('849201');
-      expect(redacted).not.toContain('SuperSecret123');
+      expect(redacted).not.toContain(mockSecret);
       expect(redacted).toContain('[REDACTED_OTP]');
       expect(redacted).toContain('[REDACTED_SECRET]');
     });
