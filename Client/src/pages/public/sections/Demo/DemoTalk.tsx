@@ -177,6 +177,8 @@ export function DemoTalk() {
     }
     setStatus('idle');
     setRms(0);
+    setDuration(0);
+    setLogs([]); // Immediately delete conversation transcript when call ends/cuts
   }, [clearBuffers]);
 
   useEffect(() => () => { endCall(); }, [endCall]);
@@ -348,15 +350,19 @@ export function DemoTalk() {
       socket.onerror = () => {
         setError('Connection issue. Please verify microphone permission.');
         setStatus('idle');
+        setLogs([]);
       };
 
       socket.onclose = () => {
-        if (status !== 'idle') setStatus('ended');
+        setStatus('idle');
+        setLogs([]);
+        setDuration(0);
       };
     } catch (err: any) {
       logger.error('Mic access error', err);
       setError('Microphone permission is required to talk live.');
       setStatus('idle');
+      setLogs([]);
     }
   };
 
