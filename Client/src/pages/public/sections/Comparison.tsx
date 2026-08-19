@@ -79,13 +79,12 @@ const ComparisonRow = memo(function ComparisonRow({ row, index, revealed }: { ro
     >
       {/* Feature name - sticky */}
       <td
-        className="px-5 py-4 text-xs font-semibold sticky left-0 z-10"
+        className="px-3 sm:px-5 py-3 sm:py-4 text-[11px] sm:text-xs font-semibold sticky left-0 z-10"
         style={{
           color: isVerdict ? "#0a0a0a" : "#334155",
-          background: isVerdict
-            ? "linear-gradient(90deg, rgba(37,99,235,0.06), rgba(255,255,255,0.98))"
-            : "rgba(255,255,255,0.98)",
-          borderRight: "1px solid rgba(37,99,235,0.06)",
+          background: "#ffffff",
+          borderRight: "1px solid #e2e8f0",
+          boxShadow: "3px 0 8px rgba(0,0,0,0.06)",
           fontWeight: isVerdict ? 800 : 600,
         }}
       >
@@ -94,7 +93,7 @@ const ComparisonRow = memo(function ComparisonRow({ row, index, revealed }: { ro
 
       {/* Autoniv - highlighted */}
       <td
-        className="px-5 py-4 text-xs font-medium"
+        className="px-3 sm:px-5 py-3 sm:py-4 text-[11px] sm:text-xs font-medium"
         style={{
           background: "linear-gradient(135deg, rgba(37,99,235,0.05), rgba(16,185,129,0.04))",
           color: row.autoniv.startsWith("✓") ? "#10B981" : row.autoniv.startsWith("✗") ? "#ef4444" : "#0a0a0a",
@@ -111,7 +110,7 @@ const ComparisonRow = memo(function ComparisonRow({ row, index, revealed }: { ro
         return (
           <td
             key={c.key}
-            className="px-5 py-4 text-xs"
+            className="px-3 sm:px-5 py-3 sm:py-4 text-[11px] sm:text-xs"
             style={{
               color: val.startsWith("✓") ? "#10B981" : val.startsWith("✗") ? "#ef4444" : "#64748b",
             }}
@@ -163,12 +162,12 @@ export const Comparison = memo(function Comparison() {
         style={{ background: "radial-gradient(ellipse, rgba(34,197,94,0.05), transparent 70%)" }}
       />
 
-      <div className="relative z-10 py-20 sm:py-28 px-4">
+      <div className="relative z-10 py-12 sm:py-24 px-3 sm:px-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <Reveal className="text-center mb-14">
+          <Reveal className="text-center mb-8 sm:mb-14">
             <span
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold tracking-[0.18em] uppercase mb-6"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-[0.16em] uppercase mb-4"
               style={{
                 color: "#10B981",
                 background: "rgba(16,185,129,0.06)",
@@ -181,15 +180,15 @@ export const Comparison = memo(function Comparison() {
               WHY AUTONIV
             </span>
             <h2
-              className="font-extrabold tracking-tight mt-4"
-              style={{ fontSize: "clamp(28px,4vw,48px)", color: "#0a0a0a" }}
+              className="font-extrabold tracking-tight mt-2 text-balance"
+              style={{ fontSize: "clamp(22px, 5.5vw, 46px)", color: "#0a0a0a", lineHeight: 1.15 }}
             >
               Head-to-head{" "}
               <span className="bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">
                 comparison
               </span>
             </h2>
-            <p className="text-sm sm:text-base max-w-lg mx-auto mt-3" style={{ color: "#64748b" }}>
+            <p className="text-xs sm:text-base max-w-lg mx-auto mt-2 sm:mt-3 px-2" style={{ color: "#64748b" }}>
               We beat every competitor on every dimension. Real costs, real features — we did the math so you don't have to.
             </p>
           </Reveal>
@@ -197,28 +196,31 @@ export const Comparison = memo(function Comparison() {
           {/* Table */}
           <div
             ref={tableRef}
-            className="relative rounded-3xl overflow-hidden"
+            className="relative rounded-2xl sm:rounded-3xl overflow-hidden"
             style={{
               background: "rgba(255,255,255,0.98)",
               border: "1px solid rgba(37,99,235,0.12)",
-              boxShadow: "0 30px 100px rgba(16,185,129,0.05), 0 0 0 1px rgba(37,99,235,0.03)",
+              boxShadow: "0 20px 60px rgba(16,185,129,0.05), 0 0 0 1px rgba(37,99,235,0.03)",
               opacity: tableRevealed ? 1 : 0,
               transform: tableRevealed ? "none" : "translateY(20px)",
               transition: "opacity 0.6s cubic-bezier(.16,1,.3,1) 0.1s, transform 0.6s cubic-bezier(.16,1,.3,1) 0.1s",
             }}
           >
             {/* Scroll hint for mobile */}
-            <div className="sm:hidden flex items-center gap-2 px-5 py-3 text-[11px] text-slate-400 font-medium"
-              style={{ borderBottom: "1px solid rgba(37,99,235,0.06)" }}
+            <div className="sm:hidden flex items-center justify-between px-3 py-2.5 text-[11px] text-slate-500 font-semibold bg-slate-50/80"
+              style={{ borderBottom: "1px solid rgba(37,99,235,0.08)" }}
             >
-              <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-              Swipe to see all competitors
+              <span className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-blue-500 animate-pulse" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+                Swipe table horizontally
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">6 Columns</span>
             </div>
 
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
+            <div className="overflow-x-auto custom-scrollbar -webkit-overflow-scrolling-touch">
+              <table className="w-full text-left border-collapse" style={{ minWidth: 720 }}>
                 <thead>
                   <tr
                     style={{
@@ -227,29 +229,32 @@ export const Comparison = memo(function Comparison() {
                     }}
                   >
                     <th
-                      className="px-5 py-5 text-[11px] font-bold uppercase tracking-wider sticky left-0 z-20"
+                      className="px-3 sm:px-5 py-3.5 sm:py-5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider sticky left-0 z-20"
                       style={{
                         color: "#64748b",
-                        background: "rgba(255,255,255,0.98)",
-                        borderRight: "1px solid rgba(37,99,235,0.06)",
-                        width: "18%",
+                        background: "#ffffff",
+                        borderRight: "1px solid #e2e8f0",
+                        boxShadow: "3px 0 8px rgba(0,0,0,0.06)",
+                        minWidth: "130px",
+                        width: "22%",
                       }}
                     >
                       Feature
                     </th>
                     <th
-                      className="px-5 py-5 text-[11px] font-bold uppercase tracking-wider relative overflow-hidden"
+                      className="px-3 sm:px-5 py-3.5 sm:py-5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider relative overflow-hidden"
                       style={{
                         color: "#ffffff",
                         background: "linear-gradient(135deg, #1d4ed8, #059669)",
-                        width: "14%",
+                        minWidth: "120px",
+                        width: "16%",
                         borderLeft: "2px solid rgba(16,185,129,0.25)",
                         borderRight: "2px solid rgba(16,185,129,0.25)",
                         boxShadow: "0 4px 15px rgba(16,185,129,0.15)",
                       }}
                     >
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-white/20 text-white border border-white/20 tracking-wider">
+                      <div className="flex flex-col items-start gap-0.5 sm:gap-1">
+                        <span className="px-1 py-0.5 rounded text-[7.5px] sm:text-[8px] font-black bg-white/20 text-white border border-white/20 tracking-wider">
                           🏆 WINNER
                         </span>
                         <span className="text-xs font-extrabold tracking-wide">Autoniv</span>
@@ -258,8 +263,8 @@ export const Comparison = memo(function Comparison() {
                     {competitors.map((c) => (
                       <th
                         key={c.key}
-                        className="px-5 py-5 text-[11px] font-bold uppercase tracking-wider"
-                        style={{ color: "#94a3b8", width: "13%" }}
+                        className="px-3 sm:px-5 py-3.5 sm:py-5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider"
+                        style={{ color: "#94a3b8", minWidth: "100px", width: "12%" }}
                       >
                         {c.label}
                       </th>
@@ -276,15 +281,15 @@ export const Comparison = memo(function Comparison() {
           </div>
 
           {/* Summary verdict */}
-          <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="mt-6 sm:mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
             {SUMMARY_VERDICTS.map((item, i) => (
-              <Reveal key={i} delay={i * 0.06} from="bottom">
+              <Reveal key={i} delay={i * 0.04} from="bottom">
                 <div
-                  className="group relative rounded-2xl p-5 text-center transition-[transform,box-shadow] duration-350 hover:shadow-xl hover:-translate-y-1.5 overflow-hidden cursor-default"
+                  className="group relative rounded-xl sm:rounded-2xl p-3 sm:p-5 text-center transition-[transform,box-shadow] duration-350 hover:shadow-xl hover:-translate-y-1.5 overflow-hidden cursor-default"
                   style={{
                     background: "#ffffff",
                     border: "1px solid rgba(37,99,235,0.08)",
-                    boxShadow: "0 10px 30px rgba(0,0,0,0.02)",
+                    boxShadow: "0 6px 20px rgba(0,0,0,0.02)",
                   }}
                 >
                   {/* Accent hover wash */}
@@ -295,9 +300,9 @@ export const Comparison = memo(function Comparison() {
                   {/* Border line indicator */}
                   <div className="absolute bottom-0 left-0 right-0 h-[2.5px] w-0 group-hover:w-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-emerald-500" />
                   
-                  <div className="relative text-3xl mb-3 transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 inline-block">{item.icon}</div>
-                  <div className="relative text-xs font-black tracking-wide" style={{ color: "#1e293b" }}>{item.label}</div>
-                  <div className="relative text-[10px] mt-1.5 font-medium leading-relaxed" style={{ color: "#64748b" }}>{item.desc}</div>
+                  <div className="relative text-2xl sm:text-3xl mb-1.5 sm:mb-3 transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 inline-block">{item.icon}</div>
+                  <div className="relative text-[11px] sm:text-xs font-black tracking-wide" style={{ color: "#1e293b" }}>{item.label}</div>
+                  <div className="relative text-[9px] sm:text-[10px] mt-1 font-medium leading-relaxed" style={{ color: "#64748b" }}>{item.desc}</div>
                 </div>
               </Reveal>
             ))}
