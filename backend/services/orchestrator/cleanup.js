@@ -47,9 +47,11 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
       if (recordingUrl) {
         updateData.recordingUrl = recordingUrl;
       }
-      if (agentObj) {
+      if (agentObj && mongoose.Types.ObjectId.isValid(agentObj._id)) {
         updateData.agentId = agentObj._id;
-        updateData.userId = agentObj.userId;
+        if (agentObj.userId && mongoose.Types.ObjectId.isValid(agentObj.userId)) {
+          updateData.userId = agentObj.userId;
+        }
       }
 
       const matchFilter = {
@@ -62,12 +64,12 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
 
       const updatedCall = await Call.findOneAndUpdate(matchFilter, { $set: updateData }, { new: true });
 
-      if (!updatedCall && agentObj) {
+      if (!updatedCall && agentObj && mongoose.Types.ObjectId.isValid(agentObj._id)) {
         await Call.create({
           vapiCallId: callSid,
           orchestratorCallId: callSid,
           agentId: agentObj._id,
-          userId: agentObj.userId,
+          userId: mongoose.Types.ObjectId.isValid(agentObj.userId) ? agentObj.userId : null,
           callerNumber: 'Unknown',
           startedAt: callStartTime,
           ...updateData,

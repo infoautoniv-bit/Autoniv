@@ -95,7 +95,7 @@ export async function handleWebCall(clientWs, req) {
     }
 
     const agentIdStr = isDemo ? 'demo' : agentObj._id.toString();
-    const maxConcurrent = isDemo ? 10 : (agentObj.maxConcurrentCalls || 1);
+    const maxConcurrent = isDemo ? 10 : Math.max(5, agentObj.maxConcurrentCalls || 1);
     if (!callManager.canAcceptCall(agentIdStr, maxConcurrent)) {
       log.warn('web_call_rejected_concurrent_limit', { agentId: agentIdStr, maxConcurrent });
       clientWs.close(4003, 'Agent concurrent call limit reached');
@@ -130,9 +130,14 @@ export async function handleWebCall(clientWs, req) {
     return;
   }
 
+  let isSpeaking = false;
+  let speakingTimer = null;
+
   const triggerInterruption = () => {
-    if (isInterrupted) return;
+    if (!isSpeaking || isInterrupted) return;
     isInterrupted = true;
+    isSpeaking = false;
+    if (speakingTimer) { clearTimeout(speakingTimer); speakingTimer = null; }
     log.info('web_interruption', { message: 'Caller barged in — stopping agent playback (<50ms VAD).' });
     if (clientWs.readyState === WebSocket.OPEN) {
       try { clientWs.send(JSON.stringify({ event: 'clear' })); } catch (_) {}
@@ -147,6 +152,8 @@ export async function handleWebCall(clientWs, req) {
   const handleUserUtterance = async (userInputText) => {
     if (!userInputText || userInputText.trim().length === 0) return;
     isInterrupted = false;
+    isSpeaking = false;
+    if (speakingTimer) { clearTimeout(speakingTimer); speakingTimer = null; }
     extractCallerInfo(userInputText);
     conversationHistory.push({ role: 'user', content: userInputText });
     injectCallerContext();
@@ -162,15 +169,23 @@ export async function handleWebCall(clientWs, req) {
     try {
       const base64Audio = await cachedSynthesizeSpeech(sentence, false, agentObj.language || 'en', agentObj.voiceId);
       if (base64Audio && !isInterrupted) {
+        isSpeaking = true;
         const agentAudioBuffer = Buffer.from(base64Audio, 'base64');
         recorder.writeAudio(agentAudioBuffer, Date.now(), 24000);
 
         if (clientWs.readyState === WebSocket.OPEN) {
           clientWs.send(JSON.stringify({ event: 'audio', payload: base64Audio }));
         }
+
+        if (speakingTimer) clearTimeout(speakingTimer);
+        const durationMs = Math.max(1500, Math.floor(agentAudioBuffer.length / 48));
+        speakingTimer = setTimeout(() => {
+          isSpeaking = false;
+        }, durationMs);
       }
     } catch (err) {
       log.error('tts_synthesis_failed', { error: err.message });
+      isSpeaking = false;
     }
   };
 

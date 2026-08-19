@@ -85,9 +85,14 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
     });
   };
 
+  let isSpeaking = false;
+  let speakingTimer = null;
+
   const triggerInterruption = () => {
-    if (!isProcessing || isInterrupted) return;
+    if (!isSpeaking || !isProcessing || isInterrupted) return;
     isInterrupted = true;
+    isSpeaking = false;
+    if (speakingTimer) { clearTimeout(speakingTimer); speakingTimer = null; }
     log.info('twilio_interruption', { message: 'Caller barged in — stopping agent playback.' });
     if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
       twilioWs.send(JSON.stringify({ event: 'clear', streamSid }));
@@ -96,12 +101,20 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
 
   const extractCallerInfo = (text) => extractCallerInfoShared(text, callerInfo);
   const injectCallerContext = () => injectCallerContextShared(conversationHistory, callerInfo);
+  let pendingUtterance = false;
 
   const handleUserUtterance = async (userInputText) => {
+    if (!userInputText || userInputText.trim().length === 0) return;
     isInterrupted = false;
+    isSpeaking = false;
+    if (speakingTimer) { clearTimeout(speakingTimer); speakingTimer = null; }
     extractCallerInfo(userInputText);
     conversationHistory.push({ role: 'user', content: userInputText });
     injectCallerContext();
+    if (isProcessing) {
+      pendingUtterance = true;
+      return;
+    }
     executeCompletionFlow();
   };
 
@@ -110,11 +123,12 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
     try {
       const base64Audio = await cachedSynthesizeSpeech(sentence, true, agentObj?.language || 'en', agentObj?.voiceId);
       if (base64Audio && !isInterrupted && twilioWs.readyState === WebSocket.OPEN && streamSid) {
+        isSpeaking = true;
         const agentAudio = Buffer.from(base64Audio, 'base64');
         recorder.writeMulaw8k(agentAudio, Date.now());
 
-        const CHUNK_SIZE = 640;
-        const CHUNK_INTERVAL_MS = 80;
+        const CHUNK_SIZE = 160;
+        const CHUNK_INTERVAL_MS = 20;
         for (let offset = 0; offset < agentAudio.length; offset += CHUNK_SIZE) {
           if (isInterrupted || twilioWs.readyState !== WebSocket.OPEN) break;
           const chunk = agentAudio.subarray(offset, offset + CHUNK_SIZE);
@@ -129,61 +143,86 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
         }
 
         const playbackMs = agentAudio.length / 8;
+        if (speakingTimer) clearTimeout(speakingTimer);
+        speakingTimer = setTimeout(() => {
+          isSpeaking = false;
+        }, Math.max(1000, playbackMs));
         muteInputUntil = Math.max(muteInputUntil, Date.now() + playbackMs + ECHO_TAIL_MS);
       }
     } catch (err) {
       log.error('tts_synthesis_failed', { error: err.message });
+      isSpeaking = false;
     }
   };
 
   const executeCompletionFlow = async () => {
-    if (isProcessing) return;
+    if (isProcessing) {
+      pendingUtterance = true;
+      return;
+    }
     isProcessing = true;
 
     try {
-      const { stream } = await llmQueue.add(() => generateCompletion({
-        groq, openaiClient, gemini, conversationHistory,
-        agentType: agentObj?.type, logPrefix: 'Twilio LLM',
-        toolState: toolAlreadyExecuted,
-        agentObj,
-      }), agentObj?.customEngineModel?.split(':')[0] || 'groq');
+      while (true) {
+        pendingUtterance = false;
+        isInterrupted = false;
 
-      const { fullResponseText, toolCalls, interrupted } = await processStream({
-        stream, isInterrupted, onSentence: processSentenceForPlay,
-      });
-
-      if (interrupted) return;
-
-      if (fullResponseText || toolCalls.length > 0) {
-        const assistantMsg = { role: 'assistant' };
-        if (fullResponseText) {
-          assistantMsg.content = fullResponseText;
-          fullTranscript += `Agent: ${fullResponseText}\n`;
-        } else {
-          assistantMsg.content = null;
+        const lastMsg = conversationHistory[conversationHistory.length - 1];
+        if (!lastMsg || lastMsg.role === 'assistant') {
+          break;
         }
-        if (toolCalls.length > 0) {
-          assistantMsg.tool_calls = toolCalls.map(tc => ({
-            id: tc.id,
-            type: 'function',
-            function: {
-              name: tc.name,
-              arguments: tc.arguments
-            }
-          }));
-        }
-        conversationHistory.push(assistantMsg);
-      }
 
-      if (toolCalls.length > 0 && !isInterrupted) {
-        await executeToolCalls({
-          toolCalls, agentObj, toolAlreadyExecuted,
-          conversationHistory, logPrefix: 'Twilio Tool',
-          callId: callSid,
+        const { stream } = await llmQueue.add(() => generateCompletion({
+          groq, openaiClient, gemini, conversationHistory,
+          agentType: agentObj?.type, logPrefix: 'Twilio LLM',
+          toolState: toolAlreadyExecuted,
+          agentObj,
+        }), agentObj?.customEngineModel?.split(':')[0] || 'groq');
+
+        const { fullResponseText, toolCalls, interrupted } = await processStream({
+          stream,
+          checkInterrupted: () => isInterrupted,
+          onSentence: processSentenceForPlay,
         });
-        isProcessing = false;
-        await executeCompletionFlow();
-        return;
+
+        if (interrupted) {
+          if (pendingUtterance) continue;
+          break;
+        }
+
+        if (fullResponseText || toolCalls.length > 0) {
+          const assistantMsg = { role: 'assistant' };
+          if (fullResponseText) {
+            assistantMsg.content = fullResponseText;
+            fullTranscript += `Agent: ${fullResponseText}\n`;
+          } else {
+            assistantMsg.content = null;
+          }
+          if (toolCalls.length > 0) {
+            assistantMsg.tool_calls = toolCalls.map(tc => ({
+              id: tc.id,
+              type: 'function',
+              function: {
+                name: tc.name,
+                arguments: tc.arguments
+              }
+            }));
+          }
+          conversationHistory.push(assistantMsg);
+        }
+
+        if (toolCalls.length > 0 && !isInterrupted) {
+          await executeToolCalls({
+            toolCalls, agentObj, toolAlreadyExecuted,
+            conversationHistory, logPrefix: 'Twilio Tool',
+            callId: callSid,
+          });
+          continue;
+        }
+
+        if (!pendingUtterance) {
+          break;
+        }
       }
     } catch (err) {
       log.error('twilio_completion_flow_error', { error: err.message });
@@ -194,6 +233,10 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
       }
     } finally {
       isProcessing = false;
+      if (pendingUtterance) {
+        pendingUtterance = false;
+        setTimeout(() => executeCompletionFlow(), 10);
+      }
     }
   };
 
@@ -282,6 +325,10 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
       await processSentenceForPlay(greetingText);
     } finally {
       isProcessing = false;
+      if (pendingUtterance) {
+        pendingUtterance = false;
+        setTimeout(() => executeCompletionFlow(), 10);
+      }
     }
 
     callTimeout = setTimeout(endCallOnTimeLimit, MAX_CALL_DURATION_MS);

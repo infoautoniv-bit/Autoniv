@@ -98,9 +98,14 @@ export async function handleExotelStream(exotelWs) {
     }, 4000);
   };
 
+  let isSpeaking = false;
+  let speakingTimer = null;
+
   const triggerInterruption = () => {
-    if (!isProcessing || isInterrupted) return;
+    if (!isSpeaking || !isProcessing || isInterrupted) return;
     isInterrupted = true;
+    isSpeaking = false;
+    if (speakingTimer) { clearTimeout(speakingTimer); speakingTimer = null; }
     log.info('exotel_interruption', { message: 'Caller barged in.' });
     if (exotelWs.readyState === WebSocket.OPEN && streamSid) {
       exotelWs.send(JSON.stringify({ event: 'clear', stream_sid: streamSid }));
@@ -109,12 +114,20 @@ export async function handleExotelStream(exotelWs) {
 
   const extractCallerInfo = (text) => extractCallerInfoShared(text, callerInfo);
   const injectCallerContext = () => injectCallerContextShared(conversationHistory, callerInfo);
+  let pendingUtterance = false;
 
   const handleUserUtterance = async (userInputText) => {
+    if (!userInputText || userInputText.trim().length === 0) return;
     isInterrupted = false;
+    isSpeaking = false;
+    if (speakingTimer) { clearTimeout(speakingTimer); speakingTimer = null; }
     extractCallerInfo(userInputText);
     conversationHistory.push({ role: 'user', content: userInputText });
     injectCallerContext();
+    if (isProcessing) {
+      pendingUtterance = true;
+      return;
+    }
     executeCompletionFlow();
   };
 
@@ -123,6 +136,7 @@ export async function handleExotelStream(exotelWs) {
     try {
       const base64Audio = await synthesizeSpeech(sentence, { encoding: 'linear16', sampleRate: EXOTEL_SAMPLE_RATE }, agentObj?.language || 'en', agentObj?.voiceId);
       if (base64Audio && !isInterrupted) {
+        isSpeaking = true;
         const agentAudioBuffer = Buffer.from(base64Audio, 'base64');
         recorder.writeAudio(agentAudioBuffer, Date.now(), EXOTEL_SAMPLE_RATE);
 
@@ -151,53 +165,83 @@ export async function handleExotelStream(exotelWs) {
           }
         }
         const playbackMs = (agentAudioBuffer.length / 2) / (EXOTEL_SAMPLE_RATE / 1000);
+        if (speakingTimer) clearTimeout(speakingTimer);
+        speakingTimer = setTimeout(() => {
+          isSpeaking = false;
+        }, Math.max(1000, playbackMs));
         muteInputUntil = Math.max(muteInputUntil, Date.now() + playbackMs + ECHO_TAIL_MS);
       }
     } catch (err) {
       log.error('exotel_tts_synthesis_failed', { error: err.message });
+      isSpeaking = false;
     }
   };
 
   const executeCompletionFlow = async () => {
-    if (isProcessing) return;
+    if (isProcessing) {
+      pendingUtterance = true;
+      return;
+    }
     isProcessing = true;
+
     try {
-      const { stream } = await generateCompletion({
-        groq, openaiClient, gemini, conversationHistory,
-        agentType: agentObj?.type, logPrefix: 'Exotel LLM',
-        toolState: toolAlreadyExecuted, agentObj,
-      });
-      const { fullResponseText, toolCalls, interrupted } = await processStream({
-        stream, isInterrupted, onSentence: processSentenceForPlay,
-      });
-      if (interrupted) return;
-      if (fullResponseText || toolCalls.length > 0) {
-        const assistantMsg = { role: 'assistant' };
-        if (fullResponseText) {
-          assistantMsg.content = fullResponseText;
-          fullTranscript += `Agent: ${fullResponseText}\n`;
-          if (exotelWs.readyState === WebSocket.OPEN) {
-            exotelWs.send(JSON.stringify({ event: 'transcript', role: 'agent', text: fullResponseText }));
-          }
-        } else {
-          assistantMsg.content = null;
+      while (true) {
+        pendingUtterance = false;
+        isInterrupted = false;
+
+        const lastMsg = conversationHistory[conversationHistory.length - 1];
+        if (!lastMsg || lastMsg.role === 'assistant') {
+          break;
         }
-        if (toolCalls.length > 0) {
-          assistantMsg.tool_calls = toolCalls.map(tc => ({
-            id: tc.id, type: 'function',
-            function: { name: tc.name, arguments: tc.arguments },
-          }));
-        }
-        conversationHistory.push(assistantMsg);
-      }
-      if (toolCalls.length > 0 && !isInterrupted) {
-        await executeToolCalls({
-          toolCalls, agentObj, toolAlreadyExecuted,
-          conversationHistory, logPrefix: 'Exotel Tool', callId: callSid,
+
+        const { stream } = await generateCompletion({
+          groq, openaiClient, gemini, conversationHistory,
+          agentType: agentObj?.type, logPrefix: 'Exotel LLM',
+          toolState: toolAlreadyExecuted, agentObj,
         });
-        isProcessing = false;
-        await executeCompletionFlow();
-        return;
+
+        const { fullResponseText, toolCalls, interrupted } = await processStream({
+          stream,
+          checkInterrupted: () => isInterrupted,
+          onSentence: processSentenceForPlay,
+        });
+
+        if (interrupted) {
+          if (pendingUtterance) continue;
+          break;
+        }
+
+        if (fullResponseText || toolCalls.length > 0) {
+          const assistantMsg = { role: 'assistant' };
+          if (fullResponseText) {
+            assistantMsg.content = fullResponseText;
+            fullTranscript += `Agent: ${fullResponseText}\n`;
+            if (exotelWs.readyState === WebSocket.OPEN) {
+              exotelWs.send(JSON.stringify({ event: 'transcript', role: 'agent', text: fullResponseText }));
+            }
+          } else {
+            assistantMsg.content = null;
+          }
+          if (toolCalls.length > 0) {
+            assistantMsg.tool_calls = toolCalls.map(tc => ({
+              id: tc.id, type: 'function',
+              function: { name: tc.name, arguments: tc.arguments },
+            }));
+          }
+          conversationHistory.push(assistantMsg);
+        }
+
+        if (toolCalls.length > 0 && !isInterrupted) {
+          await executeToolCalls({
+            toolCalls, agentObj, toolAlreadyExecuted,
+            conversationHistory, logPrefix: 'Exotel Tool', callId: callSid,
+          });
+          continue;
+        }
+
+        if (!pendingUtterance) {
+          break;
+        }
       }
     } catch (err) {
       log.error('exotel_completions_error', { error: err.message });
@@ -206,6 +250,10 @@ export async function handleExotelStream(exotelWs) {
       }
     } finally {
       isProcessing = false;
+      if (pendingUtterance) {
+        pendingUtterance = false;
+        setTimeout(() => executeCompletionFlow(), 10);
+      }
     }
   };
 
@@ -316,6 +364,10 @@ export async function handleExotelStream(exotelWs) {
       await processSentenceForPlay(greetingText);
     } finally {
       isProcessing = false;
+      if (pendingUtterance) {
+        pendingUtterance = false;
+        setTimeout(() => executeCompletionFlow(), 10);
+      }
     }
 
     callTimeout = setTimeout(endCallOnTimeLimit, MAX_CALL_DURATION_MS);

@@ -21,8 +21,8 @@ const GROQ_MODEL_ALIASES = {
 };
 const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
-const MAX_REPLY_TOKENS = 160;
-const REPLY_TEMPERATURE = 0.6;
+const MAX_REPLY_TOKENS = 180;
+const REPLY_TEMPERATURE = 0.3;
 
 export function resolveGroqModel(modelId) {
   if (!modelId) return GROQ_DEFAULT_MODEL;
@@ -192,10 +192,10 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
 
   const candidates = [];
 
-  // 1. PRIMARY: Groq (ultra low latency LPU: openai/gpt-oss-20b & openai/gpt-oss-120b)
+  // 1. PRIMARY: Groq (ultra low latency LPU: openai/gpt-oss-120b & openai/gpt-oss-20b)
   if (groq) {
-    candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
     candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-120b' });
+    candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
     candidates.push({ name: 'Groq', client: groq, model: 'qwen/qwen3.6-27b' });
   }
 
@@ -247,10 +247,13 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
 
 export function stripToolCallsFromText(text) {
   if (!text) return '';
-  let cleaned = text.replace(/<function[^>]*>[\s\S]*?<\/function>/gi, '');
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/gi, '');
+  cleaned = cleaned.replace(/<function[^>]*>[\s\S]*?<\/function>/gi, '');
   cleaned = cleaned.replace(/[a-zA-Z0-9_]+\s*>\s*[\s\S]*?<\/function>/gi, '');
   cleaned = cleaned.replace(/<[^>]+>[\s\S]*?<\/[^>]+>/gi, '');
   cleaned = cleaned.replace(/<\/?[a-zA-Z0-9_=\s"'{}:,]+>/gi, '');
+  cleaned = cleaned.replace(/\s*\([^)]{1,40}\)\s*/g, ' ');
   return cleaned.trim();
 }
 

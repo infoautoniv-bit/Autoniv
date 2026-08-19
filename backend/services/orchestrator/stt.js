@@ -48,6 +48,23 @@ export class ReconnectingDeepgramWS {
     this.baseDelay = 1000;
     this.lastProcessedTranscript = '';
     this.utteranceBuffer = '';
+    this.silenceTimer = null;
+  }
+
+  flushBuffer() {
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
+    }
+    if (this.utteranceBuffer && this.utteranceBuffer.trim().length > 0) {
+      const finalUtterance = this.utteranceBuffer.trim();
+      this.utteranceBuffer = '';
+      if (finalUtterance !== this.lastProcessedTranscript) {
+        this.lastProcessedTranscript = finalUtterance;
+        log.info('stt_flushed_final', { prefix: this.logPrefix, transcript: finalUtterance });
+        this.onTranscript(finalUtterance, true);
+      }
+    }
   }
 
   get readyState() {
@@ -103,15 +120,7 @@ export class ReconnectingDeepgramWS {
 
         // Handle UtteranceEnd event from Deepgram
         if (response.type === 'UtteranceEnd') {
-          if (this.utteranceBuffer && this.utteranceBuffer.trim().length > 0) {
-            const finalUtterance = this.utteranceBuffer.trim();
-            this.utteranceBuffer = '';
-            if (finalUtterance !== this.lastProcessedTranscript) {
-              this.lastProcessedTranscript = finalUtterance;
-              log.info('stt_utterance_end_final', { prefix: this.logPrefix, transcript: finalUtterance });
-              this.onTranscript(finalUtterance, true);
-            }
-          }
+          this.flushBuffer();
           return;
         }
 
@@ -119,23 +128,20 @@ export class ReconnectingDeepgramWS {
         const isFinal = response.is_final;
         const isSpeechFinal = response.speech_final;
 
-        if (transcript && transcript.trim().length >= 2) {
+        if (transcript && transcript.trim().length >= 1) {
           if (isFinal) {
+            this.utteranceBuffer = (this.utteranceBuffer ? (this.utteranceBuffer + ' ' + transcript) : transcript).trim();
             if (isSpeechFinal) {
-              const fullText = (this.utteranceBuffer ? (this.utteranceBuffer + ' ' + transcript) : transcript).trim();
-              this.utteranceBuffer = '';
-              if (fullText === this.lastProcessedTranscript) return;
-              this.lastProcessedTranscript = fullText;
-              log.info('stt_speech_final', { prefix: this.logPrefix, transcript: fullText });
-              this.onTranscript(fullText, true);
+              this.flushBuffer();
             } else {
-              // Accumulate in buffer until speech finishes
-              this.utteranceBuffer = (this.utteranceBuffer ? (this.utteranceBuffer + ' ' + transcript) : transcript).trim();
+              if (this.silenceTimer) clearTimeout(this.silenceTimer);
+              this.silenceTimer = setTimeout(() => {
+                this.flushBuffer();
+              }, 900);
             }
           } else if (this.onInterruption) {
-            // Only trigger interruption when actual speech words are detected (not ambient background noise)
             const cleanWords = transcript.trim();
-            if (cleanWords.length >= 3 && !/^[.,?!]+$/.test(cleanWords)) {
+            if (cleanWords.length >= 4 && /[a-zA-Z0-9]/.test(cleanWords) && !/^[.,?!]+$/.test(cleanWords)) {
               this.onInterruption();
             }
           }
