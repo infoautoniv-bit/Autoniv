@@ -54,6 +54,122 @@ async function synthesizeSpeechDirectDeepgram(text, fmt, modelName) {
   return Buffer.from(buffer).toString('base64');
 }
 
+async function synthesizeSpeechCartesia(text, fmt, voiceId = 'a0e99841-438c-4a64-b679-ae501e7d6091', options = {}) {
+  const cartesiaKey = process.env.CARTESIA_API_KEY;
+  if (!cartesiaKey || cartesiaKey.startsWith('your-')) {
+    throw new Error('CARTESIA_API_KEY is not configured or is placeholder');
+  }
+  const isTelephony = fmt.encoding === 'mulaw' || fmt.encoding === 'ulaw';
+  const encoding = isTelephony ? 'pcm_mulaw' : 'pcm_s16le';
+  const sampleRate = isTelephony ? 8000 : (fmt.sampleRate || 24000);
+
+  const response = await fetch('https://api.cartesia.ai/tts/bytes', {
+    method: 'POST',
+    headers: {
+      'X-API-Key': cartesiaKey,
+      'Cartesia-Version': '2024-06-10',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model_id: options.model || 'sonic-multilingual',
+      transcript: text,
+      voice: { mode: 'id', id: voiceId || 'a0e99841-438c-4a64-b679-ae501e7d6091' },
+      output_format: {
+        container: 'raw',
+        encoding,
+        sample_rate: sampleRate,
+      },
+      duration_scale: options.speed ? 1.0 / options.speed : 1.0,
+    }),
+  });
+
+  if (!response.ok) {
+    const errTxt = await response.text();
+    throw new Error(`Cartesia TTS failed (${response.status}): ${errTxt}`);
+  }
+
+  const buffer = await response.arrayBuffer();
+  const rawBuf = Buffer.from(buffer);
+  if (!isTelephony) {
+    const wavBuf = addWavHeader(rawBuf, sampleRate, 1, 16);
+    return wavBuf.toString('base64');
+  }
+  return rawBuf.toString('base64');
+}
+
+async function synthesizeSpeechOpenAI(text, fmt, voice = 'alloy', options = {}) {
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const baseUrl = options.customBaseUrl || process.env.OPENAI_TTS_BASE_URL || 'https://api.openai.com/v1';
+  if (!openaiKey && !options.customBaseUrl) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
+
+  const speed = Math.min(2.0, Math.max(0.5, Number(options.speed) || 1.0));
+  const isTelephony = fmt.encoding === 'mulaw' || fmt.encoding === 'ulaw';
+  const responseFormat = isTelephony ? 'opus' : 'pcm';
+
+  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/audio/speech`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiKey || 'sk-local'}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: options.model || 'tts-1',
+      input: text,
+      voice: voice || 'alloy',
+      response_format: responseFormat,
+      speed,
+    }),
+  });
+
+  if (!response.ok) {
+    const errTxt = await response.text();
+    throw new Error(`OpenAI TTS failed (${response.status}): ${errTxt}`);
+  }
+
+  const buffer = await response.arrayBuffer();
+  const rawBuf = Buffer.from(buffer);
+  if (!isTelephony && responseFormat === 'pcm') {
+    const wavBuf = addWavHeader(rawBuf, 24000, 1, 16);
+    return wavBuf.toString('base64');
+  }
+  return rawBuf.toString('base64');
+}
+
+async function synthesizeSpeechSmallestAI(text, fmt, voiceId = 'emily', options = {}) {
+  const smallestKey = process.env.SMALLEST_API_KEY;
+  if (!smallestKey || smallestKey.startsWith('your-')) {
+    throw new Error('SMALLEST_API_KEY is not configured');
+  }
+  const speed = Number(options.speed) || 1.0;
+  const isTelephony = fmt.encoding === 'mulaw' || fmt.encoding === 'ulaw';
+  const sampleRate = isTelephony ? 8000 : 24000;
+
+  const response = await fetch('https://waves-api.smallest.ai/api/v1/lightning/get_speech', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${smallestKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      text,
+      voice_id: voiceId || 'emily',
+      speed,
+      sample_rate: sampleRate,
+      add_wav_header: !isTelephony,
+    }),
+  });
+
+  if (!response.ok) {
+    const errTxt = await response.text();
+    throw new Error(`Smallest AI TTS failed (${response.status}): ${errTxt}`);
+  }
+
+  const buffer = await response.arrayBuffer();
+  return Buffer.from(buffer).toString('base64');
+}
+
 const SARVAM_MALE_SPEAKERS = new Set([
   'shubh', 'aditya', 'rahul', 'rohan', 'amit', 'dev', 'ratan', 'varun', 'manan',
   'sumit', 'kabir', 'aayan', 'ashutosh', 'advait', 'anand', 'tarun', 'sunny',
@@ -215,7 +331,7 @@ export function humanizeSpeechText(text) {
   return h.replace(/\s+/g, ' ').trim();
 }
 
-export async function synthesizeSpeech(text, telephonyOrFormat = true, language = 'en', voiceId = null) {
+export async function synthesizeSpeech(text, telephonyOrFormat = true, language = 'en', voiceId = null, options = {}) {
   const speechText = humanizeSpeechText(text);
   const fmt = normalizeTelephonyFormat(telephonyOrFormat);
   const isTwilio = fmt.isTelephony;
@@ -231,6 +347,11 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
       provider = 'deepgram';
     } else if (voiceId.startsWith('bulbul')) {
       provider = 'sarvam';
+    } else if (voiceId.startsWith('cartesia-') || voiceId.startsWith('sonic-')) {
+      provider = 'cartesia';
+      voiceModelOrId = voiceId.replace(/^(cartesia-|sonic-)/, '');
+    } else if (voiceId.startsWith('openai:') || ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'].includes(voiceId)) {
+      provider = 'openai';
     } else {
       provider = 'elevenlabs';
     }
@@ -239,6 +360,39 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
     const best = getBestMultilingualProvider(detectedLang, 'female');
     provider = best.provider;
     voiceModelOrId = best.voiceModelOrId;
+  }
+
+  // Handle Cartesia Sonic Provider
+  if (provider === 'cartesia') {
+    try {
+      return await synthesizeSpeechCartesia(speechText, fmt, voiceModelOrId, options);
+    } catch (cartesiaErr) {
+      log.warn('tts_cartesia_failed_fallback_deepgram', { error: cartesiaErr.message });
+      provider = 'deepgram';
+      voiceModelOrId = 'aura-asteria-en';
+    }
+  }
+
+  // Handle OpenAI / Speaches / Custom endpoint Provider
+  if (provider === 'openai' || provider === 'custom') {
+    try {
+      return await synthesizeSpeechOpenAI(speechText, fmt, voiceModelOrId, options);
+    } catch (openaiErr) {
+      log.warn('tts_openai_failed_fallback_deepgram', { error: openaiErr.message });
+      provider = 'deepgram';
+      voiceModelOrId = 'aura-asteria-en';
+    }
+  }
+
+  // Handle Smallest AI Waves Provider
+  if (provider === 'smallest') {
+    try {
+      return await synthesizeSpeechSmallestAI(speechText, fmt, voiceModelOrId, options);
+    } catch (smallestErr) {
+      log.warn('tts_smallest_failed_fallback_deepgram', { error: smallestErr.message });
+      provider = 'deepgram';
+      voiceModelOrId = 'aura-asteria-en';
+    }
   }
 
   const detectedLang = detectLanguageOfText(speechText, language);
@@ -329,22 +483,21 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
 
   if (provider === 'elevenlabs' && !isElevenLabsMissing) {
     try {
-      const outputFormat = fmt.encoding === 'mulaw' ? 'ulaw_8000' : 'mp3_44100_128';
-      const acceptHeader = fmt.encoding === 'mulaw' ? 'audio/wav' : 'audio/mpeg';
+      const isTelephony = fmt.encoding === 'mulaw' || fmt.encoding === 'ulaw';
+      const outputFormat = isTelephony ? 'ulaw_8000' : 'pcm_24000';
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceModelOrId}?output_format=${outputFormat}`, {
         method: 'POST',
         headers: {
           'xi-api-key': elevenlabsKey,
           'Content-Type': 'application/json',
-          'Accept': acceptHeader,
         },
         body: JSON.stringify({
           text: speechText,
           model_id: 'eleven_turbo_v2_5',
           voice_settings: {
-            stability: 0.50,
+            stability: 0.38,
             similarity_boost: 0.85,
-            style: 0.25,
+            style: 0.35,
             use_speaker_boost: true,
           },
         }),
@@ -356,7 +509,19 @@ export async function synthesizeSpeech(text, telephonyOrFormat = true, language 
       }
 
       const buffer = await response.arrayBuffer();
-      return Buffer.from(buffer).toString('base64');
+      let audioBuffer = Buffer.from(buffer);
+
+      // If telephony mulaw was wrapped in a WAV header, strip the 44-byte header to prevent click/screech
+      if (isTelephony) {
+        if (audioBuffer.length > 44 && audioBuffer.toString('utf8', 0, 4) === 'RIFF') {
+          audioBuffer = audioBuffer.subarray(44);
+        }
+        return audioBuffer.toString('base64');
+      }
+
+      // For web/linear16 audio, wrap raw 24kHz PCM with standard WAV header for clean browser playback
+      const wavBuffer = addWavHeader(audioBuffer, 24000, 1, 16);
+      return wavBuffer.toString('base64');
     } catch (elevenErr) {
       log.warn('tts_elevenlabs_failed_fallback_deepgram', { error: elevenErr.message });
       const fallbackVoice = (voiceModelOrId && voiceModelOrId.includes('male')) ? 'aura-orion-en' : 'aura-asteria-en';

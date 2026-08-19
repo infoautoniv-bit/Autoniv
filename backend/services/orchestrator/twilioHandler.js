@@ -12,6 +12,7 @@ import { verifyMediaStreamToken } from '../auth/mediaStreamToken.js';
 import { log } from '../logger.js';
 import { callManager } from './callManager.js';
 import { llmQueue } from './llmQueue.js';
+import { fetchPreCallContext } from './preCallService.js';
 import {
   createDeepgramSTT,
   createLLMClient,
@@ -241,8 +242,16 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
     }
 
     const ownerUser = agentObj ? await User.findById(agentObj.userId).lean() : null;
+    
+    // Fetch pre-call context (CRM data, previous appointments, caller recognition)
+    const callerNumber = callerInfo.phone || null;
+    const preCallContext = await fetchPreCallContext(callerNumber, agentObj);
+    if (preCallContext.callerName && !callerInfo.name) {
+      callerInfo.name = preCallContext.callerName;
+    }
+
     let systemInstructions = buildSystemPrompt(agentObj?.type || 'receptionist', agentObj?.prompt);
-    if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser);
+    if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser, preCallContext);
     if ((agentObj?.type || 'receptionist') === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
     systemInstructions += TIME_LIMIT_RULES;
     systemInstructions += CALLER_MEMORY_RULES;
@@ -253,7 +262,12 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
 2. Speak exactly like a natural, warm, and friendly human. Never sound robotic, and never output lists, tables, or bullet points.
 3. When speaking in Hindi, use natural, conversational Hindi phrasing. Never write dates or times using spelled-out English words (e.g., do NOT say "twenty sixth july" or "four baje"). Instead, write them in standard digits or native Hindi words (e.g., say "26 जुलाई 2026" or "छब्बीस जुलाई" and "4 बजे" or "चार बजे"). Keep numbers and dates in standard format so the voice engine pronounces them naturally like a human.`;
 
-    let greetingText = await generateGreeting({ groq, openaiClient, gemini, systemInstructions, agentType: agentObj?.type || 'receptionist', agentObj });
+    let greetingText = await generateGreeting({
+      groq, openaiClient, gemini, systemInstructions,
+      agentType: agentObj?.type || 'receptionist',
+      agentObj,
+      context: preCallContext,
+    });
     const result = await translateIfNeeded(systemInstructions, greetingText, agentObj?.language || 'en');
     systemInstructions = result.systemInstructions;
     greetingText = result.greetingText;
@@ -318,6 +332,15 @@ export function handleTwilioStream(twilioWs, urlAgentId) {
           if (Date.now() < muteInputUntil) break;
           if (deepgramWs && deepgramWs.readyState === WebSocket.OPEN) {
             deepgramWs.send(inboundMulaw);
+          }
+          break;
+        }
+        case 'dtmf': {
+          const digit = data.dtmf?.digit;
+          if (digit) {
+            log.info('twilio_dtmf_digit_received', { digit, streamSid });
+            fullTranscript += `Caller (Keypad): [Pressed ${digit}]\n`;
+            handleUserUtterance(`[Keypad input: ${digit}]`);
           }
           break;
         }

@@ -53,6 +53,10 @@ export interface Agent {
   type: 'receptionist' | 'appointment' | 'faq';
   prompt?: string;
   voiceId?: string;
+  voiceProvider?: 'deepgram' | 'elevenlabs' | 'sarvam' | 'cartesia' | 'openai' | 'smallest' | 'custom';
+  voiceSpeed?: number;
+  customTtsBaseUrl?: string;
+  firstMessage?: string;
   language?: string;
   phoneNumberId?: string;
   phoneNumber?: string;
@@ -64,6 +68,10 @@ export interface Agent {
   updatedAt?: string;
   useCustomEngine?: boolean;
   customEngineModel?: string;
+  telephonyProvider?: 'twilio' | 'telnyx' | 'plivo' | 'asterisk';
+  dialogueMode?: 'linear' | 'graph';
+  mcpServerUrl?: string;
+  mcpApiKey?: string;
   twilioAccountSid?: string;
   twilioAuthToken?: string;
   googleSheetId?: string;
@@ -72,6 +80,8 @@ export interface Agent {
     hubspotToken?: string;
     webhookUrl?: string;
     webhookSecret?: string;
+    mcpServerUrl?: string;
+    mcpApiKey?: string;
     googleSheetId?: string;
     googleSheetUrl?: string;
     fieldMapping?: Record<string, string> | string;
@@ -85,6 +95,7 @@ export interface Call {
   agentId?: string;
   userId: string;
   vapiCallId?: string;
+  orchestratorCallId?: string;
   callerNumber?: string;
   duration: number;
   status: 'completed' | 'missed' | 'failed' | 'in-progress';
@@ -94,6 +105,27 @@ export interface Call {
   userName?: string;
   startedAt?: string;
   endedAt?: string;
+  metadata?: {
+    qa?: {
+      sentiment?: 'positive' | 'neutral' | 'negative' | 'frustrated';
+      goalAchieved?: boolean;
+      callScore?: number;
+      summary?: string;
+      actionItems?: string[];
+    };
+    costBreakdown?: {
+      sttCost?: number;
+      llmCost?: number;
+      ttsCost?: number;
+      telephonyCost?: number;
+      totalCost?: number;
+    };
+    metrics?: {
+      turnCount?: number;
+      totalLlmMs?: number;
+      totalToolMs?: number;
+    };
+  };
 }
 
 export interface Lead {

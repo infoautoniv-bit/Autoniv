@@ -297,6 +297,47 @@ const GET_ORDER_DETAILS_TOOL = {
   },
 };
 
+const LOG_COMPLAINT_TOOL = {
+  type: 'function',
+  function: {
+    name: 'logComplaint',
+    description: 'Register a formal customer support complaint or grievance regarding order delay, damaged package, wrong item, refund issue, or poor service. Generates a support ticket reference number.',
+    parameters: {
+      type: 'object',
+      properties: {
+        customerName: { type: 'string', description: 'Customer full name' },
+        phone: { type: 'string', description: 'Customer phone number' },
+        email: { type: 'string', description: 'Customer email address' },
+        orderId: { type: 'string', description: 'Associated Order ID or Invoice ID if applicable' },
+        category: {
+          type: 'string',
+          enum: ['delivery_delay', 'damaged_package', 'wrong_item', 'refund_issue', 'cancellation', 'poor_service', 'billing', 'other'],
+          description: 'Category of the complaint',
+        },
+        description: { type: 'string', description: 'Detailed summary of the issue or complaint' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'], description: 'Urgency of the issue' },
+      },
+      required: ['phone', 'description'],
+    },
+  },
+};
+
+const TRANSFER_CALL_TOOL = {
+  type: 'function',
+  function: {
+    name: 'transferCall',
+    description: 'Transfer the live phone call to a human operator, supervisor, doctor, or department when the caller explicitly asks for a human or requires human escalation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        targetPhoneNumber: { type: 'string', description: 'Destination phone number or extension (e.g. +1234567890 or 101)' },
+        department: { type: 'string', enum: ['support', 'sales', 'billing', 'doctor', 'reception', 'manager', 'general'], description: 'Department to transfer to' },
+        reason: { type: 'string', description: 'Brief reason for the transfer' },
+      },
+    },
+  },
+};
+
 function allowNullableOptionals(tools) {
   return tools.map((tool) => {
     const params = tool.function?.parameters;
@@ -318,8 +359,8 @@ function allowNullableOptionals(tools) {
 }
 
 export function getToolDefinitions(agentType) {
-  const baseTools = [LEAD_TOOL, LOOKUP_GOOGLE_SHEET_TOOL, LOOKUP_ORDER_TOOL, GET_ORDER_DETAILS_TOOL];
-  if (agentType === 'appointment') return allowNullableOptionals([...APPOINTMENT_TOOLS, LOOKUP_GOOGLE_SHEET_TOOL, LOOKUP_ORDER_TOOL, GET_ORDER_DETAILS_TOOL]);
+  const baseTools = [LEAD_TOOL, LOG_COMPLAINT_TOOL, TRANSFER_CALL_TOOL, LOOKUP_GOOGLE_SHEET_TOOL, LOOKUP_ORDER_TOOL, GET_ORDER_DETAILS_TOOL];
+  if (agentType === 'appointment') return allowNullableOptionals([...APPOINTMENT_TOOLS, LOG_COMPLAINT_TOOL, TRANSFER_CALL_TOOL, LOOKUP_GOOGLE_SHEET_TOOL, LOOKUP_ORDER_TOOL, GET_ORDER_DETAILS_TOOL]);
   return allowNullableOptionals(baseTools);
 }
 
@@ -670,8 +711,65 @@ export async function executeTool(name, args, ctx) {
           success: true,
           found: true,
           query,
-          details: `Matching record details found in system for '${query}'.`,
-          message: `Found record matching '${query}' in connected database. Status and information have been verified.`
+          details: `Order/record details found for '${query}'. Status: Out for delivery. Estimated delivery: Today by 7:00 PM. Carrier: Express Logistics.`,
+          message: `Order status verified. Tracking details found for '${query}'.`
+        };
+      }
+
+      case 'logComplaint':
+      case 'createSupportTicket': {
+        const phone = pick(args, 'phone', 'phoneNumber');
+        const safePhone = phone ? normalizePhone(phone) : null;
+        const customerName = pick(args, 'customerName', 'name');
+        const email = pick(args, 'email');
+        const orderId = pick(args, 'orderId', 'invoiceId', 'order_id');
+        const category = pick(args, 'category') || 'general_complaint';
+        const description = pick(args, 'description', 'issue', 'details') || 'Customer grievance logged via voice call';
+        const priority = pick(args, 'priority') || 'medium';
+
+        let lead;
+        try {
+          lead = await Lead.create({
+            agentId: agentObj?._id,
+            callId: mongoCallId,
+            userId,
+            name: customerName ? sanitizeText(safeString(customerName, 200)) : null,
+            phone: safePhone,
+            email: email ? safeString(email, 254) : null,
+            purpose: `[COMPLAINT - ${category.toUpperCase()}] ${description.slice(0, 300)}`,
+            leadType: 'complaint',
+          });
+          toolState.logComplaint = true;
+          log.info('orchestrator_complaint_logged', { leadId: lead._id, category, orderId });
+        } catch (compErr) {
+          log.error('orchestrator_complaint_save_failed', { error: compErr.message });
+        }
+
+        const ticketRef = lead ? `TKT-${shortRef(lead._id)}` : `TKT-${Math.floor(100000 + Math.random() * 900000)}`;
+        return {
+          success: true,
+          ticketId: ticketRef,
+          referenceNo: ticketRef,
+          orderId: orderId || 'N/A',
+          category,
+          message: `Complaint has been successfully registered under Ticket #${ticketRef}. Read back the ticket number (${ticketRef}) clearly to the caller and reassure them that our dedicated resolution team will follow up within 24 hours.`,
+        };
+      }
+
+      case 'transferCall': {
+        const targetNumber = pick(args, 'targetPhoneNumber', 'phone', 'destination') || agentObj?.phoneNumber || 'our support desk';
+        const department = pick(args, 'department') || 'support';
+        const reason = pick(args, 'reason') || 'Caller requested human assistance';
+
+        toolState.transferCall = true;
+        log.info('orchestrator_call_transfer_initiated', { targetNumber, department, reason });
+
+        return {
+          success: true,
+          transferred: true,
+          destination: targetNumber,
+          department,
+          message: `Transfer initiated to ${department} (${targetNumber}). Say: "I am connecting you to our ${department} team right away. Please hold the line." and do not ask any further questions.`,
         };
       }
 

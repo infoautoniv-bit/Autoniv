@@ -69,6 +69,13 @@ const DEFAULT_FORM_DATA = {
   prompt: '',
   language: 'en',
   voiceId: 'sarvam:bulbul:v3:shreya',
+  voiceSpeed: 1.0,
+  customTtsBaseUrl: '',
+  firstMessage: '',
+  dialogueMode: 'graph' as 'linear' | 'graph',
+  telephonyProvider: 'twilio' as 'twilio' | 'telnyx' | 'plivo' | 'asterisk',
+  mcpServerUrl: '',
+  mcpApiKey: '',
   useCustomEngine: true,
   customEngineModel: 'groq:llama-3.3-70b',
   phoneNumberId: '',
@@ -284,6 +291,13 @@ export function CreateCustomAgent() {
           prompt: templateData.prompt,
           language: 'en',
           voiceId: 'sarvam:bulbul',
+          voiceSpeed: 1.0,
+          customTtsBaseUrl: '',
+          firstMessage: '',
+          dialogueMode: 'graph' as 'linear' | 'graph',
+          telephonyProvider: 'twilio' as 'twilio' | 'telnyx' | 'plivo' | 'asterisk',
+          mcpServerUrl: '',
+          mcpApiKey: '',
           useCustomEngine: true,
           customEngineModel: 'groq:llama-3.3-70b',
           phoneNumberId: '',
@@ -300,6 +314,38 @@ export function CreateCustomAgent() {
         }
       : DEFAULT_FORM_DATA
   );
+  const patch = useCallback((partial: Partial<typeof formData>) => {
+    setFormData(prev => ({ ...prev, ...partial }));
+  }, []);
+
+  const [faqKnowledge, setFaqKnowledge] = useState({
+    businessName: '',
+    hours: 'Mon-Sat: 9:00 AM - 7:00 PM, Sunday: Closed',
+    location: '',
+    pricing: '',
+    customQAs: [
+      { q: 'What is your refund / cancellation policy?', a: 'Cancellations made 24 hours in advance receive a full refund.' },
+      { q: 'Do you accept insurance or digital payments?', a: 'Yes, we accept major credit cards, UPI, and leading insurance providers.' },
+    ],
+  });
+
+  const applyFaqToPrompt = useCallback(() => {
+    let text = `You are a professional FAQ & Customer Support assistant for ${faqKnowledge.businessName || formData.name || 'our business'}.\n\n`;
+    text += `BUSINESS KNOWLEDGE BASE:\n`;
+    if (faqKnowledge.businessName) text += `- Business Name: ${faqKnowledge.businessName}\n`;
+    if (faqKnowledge.location) text += `- Address & Location: ${faqKnowledge.location}\n`;
+    if (faqKnowledge.hours) text += `- Hours of Operation: ${faqKnowledge.hours}\n`;
+    if (faqKnowledge.pricing) text += `- Services & Pricing:\n${faqKnowledge.pricing}\n`;
+    text += `\nFREQUENTLY ASKED QUESTIONS:\n`;
+    faqKnowledge.customQAs.forEach((item, i) => {
+      if (item.q && item.a) {
+        text += `Q${i + 1}: ${item.q}\nA${i + 1}: ${item.a}\n\n`;
+      }
+    });
+    text += `GUIDELINES:\n- Answer questions clearly, warmly, and concisely (2-3 sentences max per turn).\n- If a caller asks something not listed in the knowledge base, politely say: "I don't have that exact detail right now, but I can have our team get back to you with an answer. Would you like me to leave a note?"\n- If they would like to leave their contact details or request a callback, collect their name and phone, then call saveLead.`;
+    patch({ prompt: text });
+  }, [faqKnowledge, formData.name, patch]);
+
   const filteredVoices = getVoicesForLanguage(formData.language);
   const selectedVoiceOpt = filteredVoices.find(v => v.value === formData.voiceId) || filteredVoices[0];
   const selectedVoiceName = selectedVoiceOpt ? selectedVoiceOpt.label.split(' (')[0] : 'Sarvam Bulbul';
@@ -391,10 +437,6 @@ export function CreateCustomAgent() {
     { label: 'Instructions written', done: formData.prompt.length > 20 },
   ];
   const readinessPct = Math.round(readinessItems.filter(r => r.done).length / readinessItems.length * 100);
-
-  const patch = useCallback((fields: Partial<typeof formData>) => {
-    setFormData(p => ({ ...p, ...fields }));
-  }, []);
 
   const handleSheetFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -642,6 +684,79 @@ export function CreateCustomAgent() {
                 </div>
               </div>
 
+              {/* Voice Speed Slider */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label style={fieldLabel}>Speech Pace / Speed</label>
+                  <span className="text-[11px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                    {formData.voiceSpeed ?? 1.0}x
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.6"
+                  max="1.5"
+                  step="0.05"
+                  value={formData.voiceSpeed ?? 1.0}
+                  onChange={e => patch({ voiceSpeed: parseFloat(e.target.value) })}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <div className="flex justify-between text-[9px] text-slate-400 font-semibold mt-1">
+                  <span>0.6x (Deliberate)</span>
+                  <span>1.0x (Natural)</span>
+                  <span>1.5x (Fast)</span>
+                </div>
+              </div>
+
+              {/* Opening Greeting / First Message */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label style={fieldLabel}>Opening Greeting (Optional)</label>
+                  <span className="text-[9.5px] text-slate-400">Supports dynamic tags</span>
+                </div>
+                <input
+                  type="text"
+                  value={formData.firstMessage ?? ''}
+                  onChange={e => patch({ firstMessage: e.target.value })}
+                  placeholder="e.g. Hello {{callerName | ''}}! Thank you for calling {{company}}, how may I help you today?"
+                  style={inputBase}
+                  onFocus={focusStyle}
+                  onBlur={blurStyle}
+                />
+                <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Tags:</span>
+                  {['{{company}}', '{{callerName}}', '{{date}}', '{{phone}}'].map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => patch({ firstMessage: (formData.firstMessage || '') + ' ' + tag })}
+                      className="px-1.5 py-0.5 text-[9.5px] font-mono rounded bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 cursor-pointer"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Speaches / OpenAI TTS Base URL */}
+              {formData.voiceId.startsWith('openai:') && (
+                <div className="mb-4">
+                  <label style={fieldLabel}>Custom Speech Endpoint URL (Speaches / Local)</label>
+                  <input
+                    type="text"
+                    value={formData.customTtsBaseUrl ?? ''}
+                    onChange={e => patch({ customTtsBaseUrl: e.target.value })}
+                    placeholder="https://your-speaches-instance.internal/v1 (Leave blank for OpenAI default)"
+                    style={inputBase}
+                    onFocus={focusStyle}
+                    onBlur={blurStyle}
+                  />
+                  <p className="text-[9.5px] text-slate-400 mt-1 font-medium">
+                    Optional: Connect to any self-hosted OpenAI-compatible TTS server.
+                  </p>
+                </div>
+              )}
+
               {/* Engine Specs Badge */}
               <div
                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl"
@@ -671,6 +786,206 @@ export function CreateCustomAgent() {
 
             {/* 3 — Prompt */}
             <SectionCard step={3} title="Behavioral Guidelines" subtitle="Define how the agent thinks and responds">
+              {/* Dialogue Flow Engine Mode */}
+              <div className="mb-4 p-3 rounded-xl bg-slate-50/70 border border-slate-200/80">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-800 block">Dialogue Flow Architecture</span>
+                    <span className="text-[9.5px] text-slate-500">Choose between multi-stage state machine or single prompt</span>
+                  </div>
+                  <div className="flex items-center bg-slate-200/70 p-0.5 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => patch({ dialogueMode: 'graph' })}
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${
+                        formData.dialogueMode === 'graph'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-800'
+                      }`}
+                    >
+                      Graph State Machine
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => patch({ dialogueMode: 'linear' })}
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${
+                        formData.dialogueMode === 'linear'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-800'
+                      }`}
+                    >
+                      Single Prompt
+                    </button>
+                  </div>
+                </div>
+
+                {formData.dialogueMode === 'graph' && (
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/60">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                      Active Dialogue Pipeline Nodes:
+                    </span>
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                      {['1. Greeting', '➔', '2. Qualification', '➔', '3. Service & FAQ', '➔', '4. Slot Booking', '➔', '5. Wrap-Up'].map((stage, idx) => (
+                        <span
+                          key={idx}
+                          className={stage === '➔' ? 'text-slate-300 font-bold' : 'px-2 py-0.5 rounded-md font-semibold bg-white border border-blue-100 text-blue-700 shadow-2xs'}
+                        >
+                          {stage}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Structured Knowledge Base Builder for FAQ type */}
+              {formData.type === 'faq' && (
+                <div className="mb-5 p-4 rounded-xl border border-indigo-200/80 bg-indigo-50/40 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                      <span className="text-xs font-bold text-indigo-900">FAQ & Business Knowledge Base</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={applyFaqToPrompt}
+                      className="px-3 py-1 text-[10.5px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Auto-Compile to System Prompt
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-indigo-700">
+                    Provide all business details, service rates, hours, and FAQs below. The voice assistant will use this knowledge to answer caller inquiries accurately.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-700 block mb-1">Business Name</label>
+                      <input
+                        type="text"
+                        value={faqKnowledge.businessName}
+                        onChange={e => setFaqKnowledge(p => ({ ...p, businessName: e.target.value }))}
+                        placeholder="e.g. Apex Health & Dental Clinic"
+                        style={inputBase}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-700 block mb-1">Opening Hours & Days</label>
+                      <input
+                        type="text"
+                        value={faqKnowledge.hours}
+                        onChange={e => setFaqKnowledge(p => ({ ...p, hours: e.target.value }))}
+                        placeholder="Mon-Sat: 9 AM - 7 PM, Sun: Closed"
+                        style={inputBase}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-700 block mb-1">Location / Address</label>
+                      <input
+                        type="text"
+                        value={faqKnowledge.location}
+                        onChange={e => setFaqKnowledge(p => ({ ...p, location: e.target.value }))}
+                        placeholder="123 Main Street, Suite 400"
+                        style={inputBase}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-700 block mb-1">Services & Pricing Overview</label>
+                      <input
+                        type="text"
+                        value={faqKnowledge.pricing}
+                        onChange={e => setFaqKnowledge(p => ({ ...p, pricing: e.target.value }))}
+                        placeholder="Consultation: $50, Follow-up: $30, Treatment: $120"
+                        style={inputBase}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                    </div>
+                  </div>
+
+                  {/* FAQ Q&A List */}
+                  <div className="space-y-2 pt-1 border-t border-indigo-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10.5px] font-bold text-slate-700">Frequently Asked Questions (Q&A Pairs)</span>
+                      <button
+                        type="button"
+                        onClick={() => setFaqKnowledge(p => ({
+                          ...p,
+                          customQAs: [...p.customQAs, { q: '', a: '' }],
+                        }))}
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                      >
+                        + Add FAQ Question
+                      </button>
+                    </div>
+
+                    {faqKnowledge.customQAs.map((item, idx) => (
+                      <div key={idx} className="p-2.5 rounded-lg bg-white border border-indigo-100 space-y-1.5 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9.5px] font-bold text-indigo-600">Question #{idx + 1}</span>
+                          {faqKnowledge.customQAs.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setFaqKnowledge(p => ({
+                                ...p,
+                                customQAs: p.customQAs.filter((_, i) => i !== idx),
+                              }))}
+                              className="text-[9.5px] text-rose-500 hover:text-rose-700 cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={item.q}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setFaqKnowledge(p => {
+                              const next = [...p.customQAs];
+                              next[idx].q = val;
+                              return { ...p, customQAs: next };
+                            });
+                          }}
+                          placeholder="e.g. Do you offer emergency consultations?"
+                          style={{ ...inputBase, fontSize: '11px', padding: '6px 10px' }}
+                          onFocus={focusStyle}
+                          onBlur={blurStyle}
+                        />
+                        <textarea
+                          value={item.a}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setFaqKnowledge(p => {
+                              const next = [...p.customQAs];
+                              next[idx].a = val;
+                              return { ...p, customQAs: next };
+                            });
+                          }}
+                          placeholder="e.g. Yes, emergency walk-ins are available 24/7 with a dedicated on-call doctor."
+                          rows={2}
+                          style={{ ...inputBase, fontSize: '11px', padding: '6px 10px', resize: 'none' }}
+                          onFocus={focusStyle}
+                          onBlur={blurStyle}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Template chips */}
               <div className="flex flex-wrap items-center gap-1.5 mb-3">
                 <span className="text-[10px] font-bold mr-1 text-slate-400" style={{ color: 'var(--text-muted)' }}>Quick-fill:</span>
@@ -948,6 +1263,47 @@ export function CreateCustomAgent() {
                   <p className="text-[10.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
                     Paste your Google Sheets URL or click <strong>Upload File from Computer</strong> to load Excel (.xlsx), CSV (.csv), or JSON credentials directly.
                   </p>
+                </div>
+
+                {/* Model Context Protocol (MCP) Dynamic Remote Tools */}
+                <div className="p-3.5 rounded-xl border border-indigo-100 bg-indigo-50/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                      <label style={{ ...fieldLabel, marginBottom: 0, color: '#4338ca' }}>Model Context Protocol (MCP) Server</label>
+                    </div>
+                    <span className="text-[9.5px] font-bold text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded border border-indigo-200">
+                      Live Dynamic Tools
+                    </span>
+                  </div>
+                  <div>
+                    <input
+                      type="url"
+                      value={formData.mcpServerUrl}
+                      onChange={e => patch({ mcpServerUrl: e.target.value })}
+                      placeholder="https://your-mcp-server.com/rpc or https://internal-api.corp/mcp"
+                      style={inputBase}
+                      onFocus={focusStyle}
+                      onBlur={blurStyle}
+                    />
+                    <p className="text-[10px] mt-1 text-slate-500 font-medium">
+                      Connect any MCP server to let the voice agent query internal databases, CRM tools, or private ERPs in real-time during live calls.
+                    </p>
+                  </div>
+                  {formData.mcpServerUrl && (
+                    <div>
+                      <label style={fieldLabel}>MCP Bearer API Key (Optional)</label>
+                      <input
+                        type="password"
+                        value={formData.mcpApiKey}
+                        onChange={e => patch({ mcpApiKey: e.target.value })}
+                        placeholder="Bearer token or API secret for MCP endpoint"
+                        style={inputBase}
+                        onFocus={focusStyle}
+                        onBlur={blurStyle}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <details className="group">
