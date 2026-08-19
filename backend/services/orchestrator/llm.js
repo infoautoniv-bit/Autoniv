@@ -19,7 +19,7 @@ const GROQ_MODEL_ALIASES = {
   'mixtral-8x7b': 'openai/gpt-oss-120b',
   'gemma-2-9b': 'groq/compound-mini',
 };
-const GROQ_DEFAULT_MODEL = 'groq/compound-mini';
+const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
 const MAX_REPLY_TOKENS = 160;
 const REPLY_TEMPERATURE = 0.6;
@@ -59,6 +59,8 @@ export function createLLMClient() {
 
 async function requestCompletion(client, modelName, messages, tools, timeoutMs = 12000) {
   const isGemini = modelName.toLowerCase().includes('gemini');
+  const supportsTools = !modelName.toLowerCase().includes('compound');
+  const applicableTools = supportsTools && tools && tools.length > 0 ? tools : [];
 
   if (isGemini) {
     log.info('llm_gemini_non_streamed', { model: modelName });
@@ -68,7 +70,7 @@ async function requestCompletion(client, modelName, messages, tools, timeoutMs =
       stream: false,
       max_tokens: MAX_REPLY_TOKENS,
       temperature: REPLY_TEMPERATURE,
-      ...(tools.length > 0 ? { tools, tool_choice: 'auto' } : {}),
+      ...(applicableTools.length > 0 ? { tools: applicableTools, tool_choice: 'auto' } : {}),
     }, { timeout: timeoutMs });
 
     return {
@@ -92,7 +94,7 @@ async function requestCompletion(client, modelName, messages, tools, timeoutMs =
       stream: true,
       max_tokens: MAX_REPLY_TOKENS,
       temperature: REPLY_TEMPERATURE,
-      ...(tools.length > 0 ? { tools, tool_choice: 'auto' } : {}),
+      ...(applicableTools.length > 0 ? { tools: applicableTools, tool_choice: 'auto' } : {}),
     }, { timeout: timeoutMs });
   }
 }
@@ -179,20 +181,20 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
     return m;
   });
 
-  const engineSelected = agentObj?.customEngineModel || 'groq:compound-mini';
+  const engineSelected = agentObj?.customEngineModel || 'groq:gpt-oss-120b';
   const [provider, modelId] = engineSelected.split(':');
 
   const candidates = [];
 
-  // 1. PRIMARY: Groq (ultra low latency LPU, best for real-time voice)
+  // 1. PRIMARY: Groq (ultra low latency LPU, native tool-calling enabled)
   if (groq) {
-    const selectedGroq = resolveGroqModel(provider === 'groq' ? modelId : 'compound-mini');
+    const selectedGroq = resolveGroqModel(provider === 'groq' ? modelId : 'gpt-oss-120b');
     candidates.push({ name: 'Groq', client: groq, model: selectedGroq });
-    if (selectedGroq !== 'groq/compound-mini') {
-      candidates.push({ name: 'Groq', client: groq, model: 'groq/compound-mini' });
+    if (selectedGroq !== 'openai/gpt-oss-20b') {
+      candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
     }
-    if (selectedGroq !== 'openai/gpt-oss-120b') {
-      candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-120b' });
+    if (selectedGroq !== 'qwen/qwen3.6-27b') {
+      candidates.push({ name: 'Groq', client: groq, model: 'qwen/qwen3.6-27b' });
     }
   }
 
