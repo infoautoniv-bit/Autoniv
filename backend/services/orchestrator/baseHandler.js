@@ -52,6 +52,7 @@ export class BaseVoiceHandler {
       pendingLeadData: null,
     };
     this.callerInfo = { name: null, phone: null, email: null };
+    this.pendingUtterance = null;
 
     this.cleanedUp = false;
     this.callTimeout = null;
@@ -122,6 +123,11 @@ export class BaseVoiceHandler {
     this.extractCallerInfo(userInputText);
     this.conversationHistory.push({ role: 'user', content: userInputText });
     this.injectCallerContext();
+
+    if (this.isProcessing) {
+      this.pendingUtterance = userInputText;
+      return;
+    }
     await this.executeCompletionFlow();
   }
 
@@ -150,13 +156,16 @@ export class BaseVoiceHandler {
   }
 
   async executeCompletionFlow() {
-    if (this.isProcessing) return;
+    if (this.isProcessing) {
+      return;
+    }
     this.isProcessing = true;
     const llmStartTime = Date.now();
+    const LLM_STREAM_TIMEOUT_MS = 15000;
 
     try {
       const llmClients = getSharedLLM();
-      const { stream } = await generateCompletion({
+      const completionPromise = generateCompletion({
         ...llmClients,
         conversationHistory: this.conversationHistory,
         agentType: this.agentObj?.type,
@@ -166,11 +175,23 @@ export class BaseVoiceHandler {
         traceId: this.traceId,
       });
 
-      const { fullResponseText, toolCalls, interrupted } = await processStream({
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('LLM stream timeout')), LLM_STREAM_TIMEOUT_MS);
+      });
+
+      const { stream } = await Promise.race([completionPromise, timeoutPromise]);
+
+      const streamPromise = processStream({
         stream,
         checkInterrupted: () => this.isInterrupted,
         onSentence: (sentence) => this.processSentenceForPlay(sentence),
       });
+
+      const streamTimeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('LLM response timeout')), LLM_STREAM_TIMEOUT_MS);
+      });
+
+      const { fullResponseText, toolCalls, interrupted } = await Promise.race([streamPromise, streamTimeoutPromise]);
 
       const llmDuration = Date.now() - llmStartTime;
       this.metrics.totalLlmMs += llmDuration;
@@ -229,6 +250,12 @@ export class BaseVoiceHandler {
       }
     } finally {
       this.isProcessing = false;
+
+      if (this.pendingUtterance && !this.isInterrupted) {
+        const nextUtterance = this.pendingUtterance;
+        this.pendingUtterance = null;
+        await this.handleUserUtterance(nextUtterance);
+      }
     }
   }
 
@@ -281,6 +308,14 @@ export class BaseVoiceHandler {
 
   buildSystemPromptInstructions(ownerUser) {
     let systemInstructions = buildSystemPrompt(this.agentObj?.type || 'receptionist', this.agentObj?.prompt);
+    log.info(`${this.logPrefix}_system_prompt_source`, {
+      traceId: this.traceId,
+      agentId: this.agentObj?._id,
+      hasCustomPrompt: Boolean(this.agentObj?.prompt),
+      promptLength: this.agentObj?.prompt?.length || 0,
+      promptPreview: this.agentObj?.prompt ? this.agentObj.prompt.substring(0, 100) : 'DEFAULT',
+      agentType: this.agentObj?.type,
+    });
     if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser);
     if ((this.agentObj?.type || 'receptionist') === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
     systemInstructions += TIME_LIMIT_RULES;

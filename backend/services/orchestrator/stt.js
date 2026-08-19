@@ -137,7 +137,7 @@ export class ReconnectingDeepgramWS {
               if (this.silenceTimer) clearTimeout(this.silenceTimer);
               this.silenceTimer = setTimeout(() => {
                 this.flushBuffer();
-              }, 900);
+              }, 400);
             }
           } else if (this.onInterruption) {
             const cleanWords = transcript.trim();
@@ -331,7 +331,7 @@ export function createDeepgramSTT({ agentObj, encoding, sampleRate, logPrefix, o
   }
 
   const langCode = getLangCode(agentObj?.language || 'en');
-  const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langCode}&encoding=${encoding}&sample_rate=${sampleRate}&interim_results=true&endpointing=500&utterance_end_ms=1200&vad_events=true&smart_format=true&keywords=Autoniv:2,Ava:2,appointment:2,pricing:2,booking:2,support:2`;
+  const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langCode}&encoding=${encoding}&sample_rate=${sampleRate}&interim_results=true&endpointing=300&utterance_end_ms=600&vad_events=true&smart_format=true&keywords=Autoniv:2,Ava:2,appointment:2,pricing:2,booking:2,support:2`;
 
   const wrapper = new ReconnectingDeepgramWS(
     deepgramUrl,

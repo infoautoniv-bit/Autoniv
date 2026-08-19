@@ -11,11 +11,14 @@ const GROQ_MODEL_ALIASES = {
   'llama-3.1-70b': 'openai/gpt-oss-120b',
   'llama-3.1-70b-versatile': 'openai/gpt-oss-120b',
   'llama3-70b': 'openai/gpt-oss-120b',
+  'llama-4-scout': 'meta-llama/llama-4-scout-17b-16e-instruct',
+  'llama-4-scout-17b': 'meta-llama/llama-4-scout-17b-16e-instruct',
   'compound-mini': 'openai/gpt-oss-20b',
   'compound': 'openai/gpt-oss-120b',
   'gpt-oss-120b': 'openai/gpt-oss-120b',
   'gpt-oss-20b': 'openai/gpt-oss-20b',
   'qwen-27b': 'qwen/qwen3.6-27b',
+  'qwen-32b': 'qwen/qwen3-32b',
   'mixtral-8x7b': 'openai/gpt-oss-120b',
   'gemma-2-9b': 'openai/gpt-oss-20b',
 };
@@ -57,45 +60,79 @@ export function createLLMClient() {
   return { groq, openaiClient, gemini };
 }
 
-async function requestCompletion(client, modelName, messages, tools, timeoutMs = 12000) {
+async function requestCompletion(client, modelName, messages, tools, timeoutMs = 8000) {
   const isGemini = modelName.toLowerCase().includes('gemini');
   const supportsTools = !modelName.toLowerCase().includes('compound');
   const applicableTools = supportsTools && tools && tools.length > 0 ? tools : [];
 
-  if (isGemini) {
-    log.info('llm_gemini_non_streamed', { model: modelName });
-    const completion = await client.chat.completions.create({
-      model: modelName,
-      messages,
-      stream: false,
-      max_tokens: MAX_REPLY_TOKENS,
-      temperature: REPLY_TEMPERATURE,
-      ...(applicableTools.length > 0 ? { tools: applicableTools, tool_choice: 'auto' } : {}),
-    }, { timeout: timeoutMs });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    return {
-      async *[Symbol.asyncIterator]() {
-        yield {
-          choices: [
-            {
-              delta: {
-                content: completion.choices[0]?.message?.content || null,
-                tool_calls: completion.choices[0]?.message?.tool_calls || null,
+  try {
+    if (isGemini) {
+      log.info('llm_gemini_non_streamed', { model: modelName });
+      const completion = await client.chat.completions.create({
+        model: modelName,
+        messages,
+        stream: false,
+        max_tokens: MAX_REPLY_TOKENS,
+        temperature: REPLY_TEMPERATURE,
+        ...(applicableTools.length > 0 ? { tools: applicableTools, tool_choice: 'auto' } : {}),
+      }, { signal: controller.signal, timeout: timeoutMs });
+
+      clearTimeout(timeoutId);
+      return {
+        async *[Symbol.asyncIterator]() {
+          yield {
+            choices: [
+              {
+                delta: {
+                  content: completion.choices[0]?.message?.content || null,
+                  tool_calls: completion.choices[0]?.message?.tool_calls || null,
+                }
               }
-            }
-          ]
-        };
-      }
-    };
-  } else {
-    return client.chat.completions.create({
-      model: modelName,
-      messages,
-      stream: true,
-      max_tokens: MAX_REPLY_TOKENS,
-      temperature: REPLY_TEMPERATURE,
-      ...(applicableTools.length > 0 ? { tools: applicableTools, tool_choice: 'auto' } : {}),
-    }, { timeout: timeoutMs });
+            ]
+          };
+        }
+      };
+    } else {
+      const stream = await client.chat.completions.create({
+        model: modelName,
+        messages,
+        stream: true,
+        max_tokens: MAX_REPLY_TOKENS,
+        temperature: REPLY_TEMPERATURE,
+        ...(applicableTools.length > 0 ? { tools: applicableTools, tool_choice: 'auto' } : {}),
+      }, { signal: controller.signal, timeout: timeoutMs });
+
+      clearTimeout(timeoutId);
+
+      const originalIterator = stream[Symbol.asyncIterator]();
+      stream[Symbol.asyncIterator] = async function* () {
+        try {
+          while (true) {
+            const result = await Promise.race([
+              originalIterator.next(),
+              new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('LLM stream chunk timeout')), timeoutMs);
+              })
+            ]);
+            if (result.done) break;
+            yield result.value;
+          }
+        } catch (err) {
+          if (err.name === 'AbortError' || err.message.includes('timeout')) {
+            log.warn('llm_stream_aborted', { model: modelName, error: err.message });
+          }
+          throw err;
+        }
+      };
+
+      return stream;
+    }
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
   }
 }
 
@@ -172,6 +209,14 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
     prunedHistory.filter(m => m.role === 'tool' && m.tool_call_id).map(m => m.tool_call_id)
   );
 
+  log.info(`${logPrefix}_system_prompt_check`, {
+    hasSystemMsg: Boolean(systemMsg),
+    systemMsgLength: systemMsg?.content?.length || 0,
+    systemMsgPreview: (systemMsg?.content?.substring(0, 200)) || 'NONE',
+    totalMessages: prunedHistory.length,
+    messageRoles: prunedHistory.map(m => m.role),
+  });
+
   prunedHistory = prunedHistory.map(m => {
     if (m.role === 'assistant' && Array.isArray(m.tool_calls)) {
       const validCalls = m.tool_calls.filter(
@@ -192,32 +237,28 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
 
   const candidates = [];
 
-  // 1. PRIMARY: Groq (ultra low latency LPU: openai/gpt-oss-120b & openai/gpt-oss-20b)
+  // 1. PRIMARY: Groq (ultra low latency LPU)
   if (groq) {
     candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-120b' });
     candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-20b' });
+    candidates.push({ name: 'Groq', client: groq, model: 'meta-llama/llama-4-scout-17b-16e-instruct' });
     candidates.push({ name: 'Groq', client: groq, model: 'qwen/qwen3.6-27b' });
+    candidates.push({ name: 'Groq', client: groq, model: 'llama-3.3-70b-versatile' });
   }
 
-  // 2. Secondary: Specific agent model if requested and not Groq
-  if (provider === 'gemini' && gemini) {
-    candidates.push({ name: 'Gemini', client: gemini, model: modelId || 'gemini-2.5-flash' });
-    candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.5-flash-lite' });
-  } else if (provider === 'openai' && openaiClient) {
-    candidates.push({ name: 'OpenAI', client: openaiClient, model: modelId || 'gpt-4o-mini' });
-  }
-
-  // 3. Fallbacks: Gemini, then OpenAI
+  // 2. SECONDARY: Gemini
   if (gemini) {
-    if (!candidates.some(c => c.name === 'Gemini' && c.model === 'gemini-2.5-flash')) {
-      candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.5-flash' });
-    }
-    if (!candidates.some(c => c.name === 'Gemini' && c.model === 'gemini-2.5-flash-lite')) {
+    const geminiModel = (provider === 'gemini' && modelId) ? modelId : 'gemini-2.5-flash';
+    candidates.push({ name: 'Gemini', client: gemini, model: geminiModel });
+    if (geminiModel !== 'gemini-2.5-flash-lite') {
       candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.5-flash-lite' });
     }
   }
-  if (openaiClient && !candidates.some(c => c.name === 'OpenAI')) {
-    candidates.push({ name: 'OpenAI', client: openaiClient, model: 'gpt-4o-mini' });
+
+  // 3. TERTIARY: OpenAI
+  if (openaiClient) {
+    const openaiModel = (provider === 'openai' && modelId) ? modelId : 'gpt-4o-mini';
+    candidates.push({ name: 'OpenAI', client: openaiClient, model: openaiModel });
   }
 
   if (candidates.length === 0) {
@@ -230,7 +271,7 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
   for (const candidate of candidates) {
     try {
       log.info('llm_attempt', { prefix: logPrefix, provider: candidate.name, model: candidate.model });
-      stream = await requestCompletion(candidate.client, candidate.model, prunedHistory, tools, 12000);
+      stream = await requestCompletion(candidate.client, candidate.model, prunedHistory, tools, 8000);
       break;
     } catch (err) {
       log.warn('llm_provider_failed', { prefix: logPrefix, provider: candidate.name, error: err.message });

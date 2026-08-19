@@ -151,6 +151,7 @@ export async function handleWebCall(clientWs, req) {
 
   const handleUserUtterance = async (userInputText) => {
     if (!userInputText || userInputText.trim().length === 0) return;
+    log.info('web_user_utterance_received', { text: userInputText, isProcessing, pendingUtterance });
     isInterrupted = false;
     isSpeaking = false;
     if (speakingTimer) { clearTimeout(speakingTimer); speakingTimer = null; }
@@ -158,10 +159,15 @@ export async function handleWebCall(clientWs, req) {
     conversationHistory.push({ role: 'user', content: userInputText });
     injectCallerContext();
     if (isProcessing) {
+      log.info('web_utterance_queued', { text: userInputText });
       pendingUtterance = true;
       return;
     }
-    executeCompletionFlow();
+    try {
+      await executeCompletionFlow();
+    } catch (err) {
+      log.error('web_utterance_flow_error', { error: err.message, text: userInputText });
+    }
   };
 
   const processSentenceForPlay = async (sentence) => {
@@ -191,33 +197,52 @@ export async function handleWebCall(clientWs, req) {
 
   const executeCompletionFlow = async () => {
     if (isProcessing) {
-      pendingUtterance = true;
+      log.info('web_flow_blocked_by_processing', { pendingUtterance });
       return;
     }
     isProcessing = true;
 
+    const LLM_STREAM_TIMEOUT_MS = 15000;
+    log.info('web_flow_started', { conversationLength: conversationHistory.length });
+
     try {
       while (true) {
-        pendingUtterance = false;
         isInterrupted = false;
 
         const lastMsg = conversationHistory[conversationHistory.length - 1];
         if (!lastMsg || lastMsg.role === 'assistant') {
+          log.info('web_flow_break_no_user_msg', { lastRole: lastMsg?.role });
           break;
         }
 
-        const { stream } = await llmQueue.add(() => generateCompletion({
+        pendingUtterance = false;
+
+        const completionPromise = llmQueue.add(() => generateCompletion({
           groq, openaiClient, gemini, conversationHistory,
           agentType: agentObj?.type, logPrefix: 'Web LLM',
           toolState: toolAlreadyExecuted,
           agentObj,
         }), agentObj?.customEngineModel?.split(':')[0] || 'groq');
 
-        const { fullResponseText, toolCalls, interrupted } = await processStream({
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('LLM stream timeout')), LLM_STREAM_TIMEOUT_MS);
+        });
+
+        const { stream } = await Promise.race([completionPromise, timeoutPromise]);
+        log.info('web_llm_stream_received', { hasStream: Boolean(stream) });
+
+        const streamPromise = processStream({
           stream,
           checkInterrupted: () => isInterrupted,
           onSentence: processSentenceForPlay,
         });
+
+        const streamTimeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('LLM response timeout')), LLM_STREAM_TIMEOUT_MS);
+        });
+
+        const { fullResponseText, toolCalls, interrupted } = await Promise.race([streamPromise, streamTimeoutPromise]);
+        log.info('web_llm_response_received', { fullResponseText: fullResponseText?.substring(0, 100), toolCallsCount: toolCalls.length, interrupted });
 
         if (interrupted) {
           if (pendingUtterance) continue;
@@ -262,7 +287,12 @@ export async function handleWebCall(clientWs, req) {
         }
       }
     } catch (err) {
-      log.error('web_completions_error', { error: err.message });
+      const isTimeout = err.message?.includes('timeout');
+      if (isTimeout) {
+        log.warn('web_llm_timeout', { error: err.message, pendingUtterance });
+      } else {
+        log.error('web_completions_error', { error: err.message });
+      }
       if (!isInterrupted) {
         try {
           await processSentenceForPlay('Sorry, I missed that. Could you say it again?');
@@ -271,8 +301,16 @@ export async function handleWebCall(clientWs, req) {
     } finally {
       isProcessing = false;
       if (pendingUtterance) {
+        const nextText = pendingUtterance;
         pendingUtterance = false;
-        setTimeout(() => executeCompletionFlow(), 10);
+        log.info('web_processing_pending_utterance', { text: nextText });
+        setTimeout(async () => {
+          try {
+            await executeCompletionFlow();
+          } catch (err) {
+            log.error('web_pending_utterance_flow_error', { error: err.message });
+          }
+        }, 10);
       }
     }
   };
@@ -287,6 +325,13 @@ export async function handleWebCall(clientWs, req) {
     }
 
     let systemInstructions = buildSystemPrompt(agentObj.type, agentObj.prompt);
+    log.info('web_system_prompt_source', {
+      agentId: agentObj._id,
+      hasCustomPrompt: Boolean(agentObj.prompt),
+      promptLength: agentObj.prompt?.length || 0,
+      promptPreview: agentObj.prompt ? agentObj.prompt.substring(0, 100) : 'DEFAULT',
+      agentType: agentObj.type,
+    });
     if (ownerUser) systemInstructions = interpolatePrompt(systemInstructions, ownerUser, preCallContext);
     if (agentObj.type === 'appointment') systemInstructions += APPOINTMENT_BOOKING_RULES;
     systemInstructions += TIME_LIMIT_RULES;
@@ -311,6 +356,11 @@ export async function handleWebCall(clientWs, req) {
     greetingText = result.greetingText;
 
     conversationHistory.push({ role: 'system', content: systemInstructions });
+    log.info('web_system_prompt_stored', {
+      promptLength: systemInstructions.length,
+      promptPreview: systemInstructions.substring(0, 300),
+      hasCustomPrompt: Boolean(agentObj.prompt),
+    });
     log.info('web_greeting', { greeting: greetingText });
     conversationHistory.push({ role: 'assistant', content: greetingText });
     fullTranscript += `Agent: ${greetingText}\n`;
@@ -324,8 +374,16 @@ export async function handleWebCall(clientWs, req) {
     } finally {
       isProcessing = false;
       if (pendingUtterance) {
+        const nextText = pendingUtterance;
         pendingUtterance = false;
-        setTimeout(() => executeCompletionFlow(), 10);
+        log.info('web_processing_pending_after_greeting', { text: nextText });
+        setTimeout(async () => {
+          try {
+            await executeCompletionFlow();
+          } catch (err) {
+            log.error('web_pending_after_greeting_error', { error: err.message });
+          }
+        }, 10);
       }
     }
 
