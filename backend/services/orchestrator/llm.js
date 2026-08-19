@@ -3,28 +3,20 @@ import { getToolDefinitions, executeTool } from '../appointmentTools.js';
 import { log } from '../logger.js';
 
 const GROQ_MODEL_ALIASES = {
-  'llama-3.1-8b-instant': 'openai/gpt-oss-20b',
-  'llama-3.1-8b': 'openai/gpt-oss-20b',
-  'llama3-8b': 'openai/gpt-oss-20b',
-  'llama-3.3-70b': 'openai/gpt-oss-120b',
-  'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
-  'llama-3.1-70b': 'openai/gpt-oss-120b',
-  'llama-3.1-70b-versatile': 'openai/gpt-oss-120b',
-  'llama3-70b': 'openai/gpt-oss-120b',
-  'llama-4-scout': 'meta-llama/llama-4-scout-17b-16e-instruct',
-  'llama-4-scout-17b': 'meta-llama/llama-4-scout-17b-16e-instruct',
-  'compound-mini': 'openai/gpt-oss-20b',
-  'compound': 'openai/gpt-oss-120b',
-  'gpt-oss-120b': 'openai/gpt-oss-120b',
-  'gpt-oss-20b': 'openai/gpt-oss-20b',
-  'qwen-27b': 'qwen/qwen3.6-27b',
-  'qwen-32b': 'qwen/qwen3-32b',
-  'mixtral-8x7b': 'openai/gpt-oss-120b',
-  'gemma-2-9b': 'openai/gpt-oss-20b',
+  'llama-3.3-70b': 'llama-3.3-70b-versatile',
+  'llama-3.1-70b': 'llama-3.1-70b-versatile',
+  'llama-3.1-8b': 'llama-3.1-8b-instant',
+  'llama3-70b': 'llama-3.3-70b-versatile',
+  'llama3-8b': 'llama-3.1-8b-instant',
+  'mixtral-8x7b': 'mixtral-8x7b-32768',
+  'gemma-2-9b': 'gemma2-9b-it',
+  'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
+  'llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
+  'llama-3.1-70b-versatile': 'llama-3.1-70b-versatile',
 };
-const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-20b';
+const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
-const MAX_REPLY_TOKENS = 180;
+const MAX_REPLY_TOKENS = 250;
 const REPLY_TEMPERATURE = 0.3;
 
 export function resolveGroqModel(modelId) {
@@ -316,6 +308,7 @@ export async function processStream({ stream, isInterrupted, checkInterrupted, o
   let fullResponseText = '';
   let toolCalls = [];
   let chunkCount = 0;
+  let reasoningText = '';
 
   const isCancelled = () => {
     if (typeof checkInterrupted === 'function') return checkInterrupted();
@@ -334,7 +327,11 @@ export async function processStream({ stream, isInterrupted, checkInterrupted, o
       log.info('processStream_chunk_detail', { chunkCount, chunk: JSON.stringify(chunk).substring(0, 500) });
     }
     if (chunkCount <= 3 || chunkCount % 20 === 0) {
-      log.info('processStream_chunk', { chunkCount, hasContent: Boolean(delta?.content), hasToolCalls: Boolean(delta?.tool_calls), finishReason: chunk.choices[0]?.finish_reason, deltaKeys: delta ? Object.keys(delta) : [], role: delta?.role });
+      log.info('processStream_chunk', { chunkCount, hasContent: Boolean(delta?.content), hasToolCalls: Boolean(delta?.tool_calls), hasReasoning: Boolean(delta?.reasoning_content), finishReason: chunk.choices[0]?.finish_reason, deltaKeys: delta ? Object.keys(delta) : [], role: delta?.role });
+    }
+
+    if (delta?.reasoning_content) {
+      reasoningText += delta.reasoning_content;
     }
 
     if (delta?.content) {
@@ -382,7 +379,7 @@ export async function processStream({ stream, isInterrupted, checkInterrupted, o
     }
   }
 
-  log.info('processStream_complete', { chunkCount, fullResponseTextLength: fullResponseText.length, toolCallsCount: toolCalls.length, sentenceBufferLength: sentenceBuffer.length });
+  log.info('processStream_complete', { chunkCount, fullResponseTextLength: fullResponseText.length, reasoningTextLength: reasoningText.length, toolCallsCount: toolCalls.length, sentenceBufferLength: sentenceBuffer.length });
 
   return { fullResponseText, toolCalls, interrupted: false };
 }
