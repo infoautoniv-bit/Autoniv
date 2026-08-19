@@ -175,24 +175,25 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
   const [provider, modelId] = engineSelected.split(':');
 
   const candidates = [];
-  if (provider === 'gemini' && gemini) {
-    candidates.push({ name: 'Gemini', client: gemini, model: modelId || 'gemini-2.0-flash' });
-    candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-1.5-flash' });
-  } else if (provider === 'openai' && openaiClient) {
-    candidates.push({ name: 'OpenAI', client: openaiClient, model: modelId || 'gpt-4o-mini' });
-  } else if (groq) {
-    const selectedGroq = resolveGroqModel(modelId);
+
+  // 1. PRIMARY: Groq (ultra low latency LPU, best for real-time voice)
+  if (groq) {
+    const selectedGroq = resolveGroqModel(provider === 'groq' ? modelId : 'llama-3.3-70b');
     candidates.push({ name: 'Groq', client: groq, model: selectedGroq });
     if (selectedGroq !== 'llama-3.1-8b-instant') {
       candidates.push({ name: 'Groq', client: groq, model: 'llama-3.1-8b-instant' });
     }
   }
 
-  if (groq) {
-    if (!candidates.some(c => c.name === 'Groq' && c.model === 'llama-3.1-8b-instant')) {
-      candidates.push({ name: 'Groq', client: groq, model: 'llama-3.1-8b-instant' });
-    }
+  // 2. Secondary: Specific agent model if requested and not Groq
+  if (provider === 'gemini' && gemini) {
+    candidates.push({ name: 'Gemini', client: gemini, model: modelId || 'gemini-2.0-flash' });
+    candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-1.5-flash' });
+  } else if (provider === 'openai' && openaiClient) {
+    candidates.push({ name: 'OpenAI', client: openaiClient, model: modelId || 'gpt-4o-mini' });
   }
+
+  // 3. Fallbacks: Gemini, then OpenAI
   if (gemini) {
     if (!candidates.some(c => c.name === 'Gemini' && c.model === 'gemini-2.0-flash')) {
       candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.0-flash' });
