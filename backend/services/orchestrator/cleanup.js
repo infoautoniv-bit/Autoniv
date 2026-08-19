@@ -126,6 +126,9 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
     }
 
     if (pendingLeadData && (pendingLeadData.name || pendingLeadData.phone)) {
+      if (pendingLeadData.agentId && !mongoose.Types.ObjectId.isValid(pendingLeadData.agentId)) {
+        pendingLeadData.agentId = undefined;
+      }
       let mongoCallId = null;
       if (pendingLeadData.callId) {
         if (mongoose.Types.ObjectId.isValid(pendingLeadData.callId)) {
@@ -137,17 +140,22 @@ export async function closeAndCleanup({ callSid, agentObj, callStartTime, fullTr
       }
       pendingLeadData.callId = mongoCallId;
 
-      const existingLead = await Lead.findOne({
-        agentId: pendingLeadData.agentId,
-        $or: [
-          ...(mongoCallId ? [{ callId: mongoCallId }] : []),
-          ...(pendingLeadData.phone ? [{ phone: pendingLeadData.phone }] : [])
-        ]
-      }).lean();
+      const orConditions = [
+        ...(mongoCallId ? [{ callId: mongoCallId }] : []),
+        ...(pendingLeadData.phone ? [{ phone: pendingLeadData.phone }] : [])
+      ];
 
-      if (!existingLead) {
-        const lead = await Lead.create(pendingLeadData);
-        log.info('lead_saved', { leadId: lead._id, agentId: pendingLeadData.agentId });
+      if (orConditions.length > 0) {
+        const query = {
+          ...(pendingLeadData.agentId ? { agentId: pendingLeadData.agentId } : {}),
+          $or: orConditions
+        };
+        const existingLead = await Lead.findOne(query).lean();
+
+        if (!existingLead) {
+          const lead = await Lead.create(pendingLeadData);
+          log.info('lead_saved', { leadId: lead._id, agentId: pendingLeadData.agentId });
+        }
       }
     }
   } catch (dbErr) {

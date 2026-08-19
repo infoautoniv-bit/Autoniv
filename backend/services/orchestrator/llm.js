@@ -3,15 +3,23 @@ import { getToolDefinitions, executeTool } from '../appointmentTools.js';
 import { log } from '../logger.js';
 
 const GROQ_MODEL_ALIASES = {
-  'llama-3.3-70b': 'llama-3.3-70b-versatile',
-  'llama-3.1-70b': 'llama-3.1-70b-versatile',
-  'llama-3.1-8b': 'llama-3.1-8b-instant',
-  'llama3-70b': 'llama-3.3-70b-versatile',
-  'llama3-8b': 'llama-3.1-8b-instant',
-  'mixtral-8x7b': 'mixtral-8x7b-32768',
-  'gemma-2-9b': 'gemma2-9b-it',
+  'llama-3.3-70b': 'openai/gpt-oss-120b',
+  'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
+  'llama-3.1-70b': 'openai/gpt-oss-120b',
+  'llama-3.1-70b-versatile': 'openai/gpt-oss-120b',
+  'llama-3.1-8b': 'groq/compound-mini',
+  'llama-3.1-8b-instant': 'groq/compound-mini',
+  'llama3-70b': 'openai/gpt-oss-120b',
+  'llama3-8b': 'groq/compound-mini',
+  'compound-mini': 'groq/compound-mini',
+  'compound': 'groq/compound',
+  'gpt-oss-120b': 'openai/gpt-oss-120b',
+  'gpt-oss-20b': 'openai/gpt-oss-20b',
+  'qwen-27b': 'qwen/qwen3.6-27b',
+  'mixtral-8x7b': 'openai/gpt-oss-120b',
+  'gemma-2-9b': 'groq/compound-mini',
 };
-const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_DEFAULT_MODEL = 'groq/compound-mini';
 
 const MAX_REPLY_TOKENS = 160;
 const REPLY_TEMPERATURE = 0.6;
@@ -171,35 +179,38 @@ export async function generateCompletion({ groq, openaiClient, gemini, conversat
     return m;
   });
 
-  const engineSelected = agentObj?.customEngineModel || 'groq:llama-3.3-70b';
+  const engineSelected = agentObj?.customEngineModel || 'groq:compound-mini';
   const [provider, modelId] = engineSelected.split(':');
 
   const candidates = [];
 
   // 1. PRIMARY: Groq (ultra low latency LPU, best for real-time voice)
   if (groq) {
-    const selectedGroq = resolveGroqModel(provider === 'groq' ? modelId : 'llama-3.3-70b');
+    const selectedGroq = resolveGroqModel(provider === 'groq' ? modelId : 'compound-mini');
     candidates.push({ name: 'Groq', client: groq, model: selectedGroq });
-    if (selectedGroq !== 'llama-3.1-8b-instant') {
-      candidates.push({ name: 'Groq', client: groq, model: 'llama-3.1-8b-instant' });
+    if (selectedGroq !== 'groq/compound-mini') {
+      candidates.push({ name: 'Groq', client: groq, model: 'groq/compound-mini' });
+    }
+    if (selectedGroq !== 'openai/gpt-oss-120b') {
+      candidates.push({ name: 'Groq', client: groq, model: 'openai/gpt-oss-120b' });
     }
   }
 
   // 2. Secondary: Specific agent model if requested and not Groq
   if (provider === 'gemini' && gemini) {
-    candidates.push({ name: 'Gemini', client: gemini, model: modelId || 'gemini-2.0-flash' });
-    candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-1.5-flash' });
+    candidates.push({ name: 'Gemini', client: gemini, model: modelId || 'gemini-2.5-flash' });
+    candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.5-flash-lite' });
   } else if (provider === 'openai' && openaiClient) {
     candidates.push({ name: 'OpenAI', client: openaiClient, model: modelId || 'gpt-4o-mini' });
   }
 
   // 3. Fallbacks: Gemini, then OpenAI
   if (gemini) {
-    if (!candidates.some(c => c.name === 'Gemini' && c.model === 'gemini-2.0-flash')) {
-      candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.0-flash' });
+    if (!candidates.some(c => c.name === 'Gemini' && c.model === 'gemini-2.5-flash')) {
+      candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.5-flash' });
     }
-    if (!candidates.some(c => c.name === 'Gemini' && c.model === 'gemini-1.5-flash')) {
-      candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-1.5-flash' });
+    if (!candidates.some(c => c.name === 'Gemini' && c.model === 'gemini-2.5-flash-lite')) {
+      candidates.push({ name: 'Gemini', client: gemini, model: 'gemini-2.5-flash-lite' });
     }
   }
   if (openaiClient && !candidates.some(c => c.name === 'OpenAI')) {
