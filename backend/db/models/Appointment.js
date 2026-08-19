@@ -12,7 +12,7 @@ const appointmentSchema = new mongoose.Schema({
   referenceNo: { type: String, unique: true, index: true },
   agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', default: null },
   callId: { type: mongoose.Schema.Types.ObjectId, ref: 'Call', default: null },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   name: { type: String, default: null },
   phone: { type: String, default: null },
   email: { type: String, default: null },

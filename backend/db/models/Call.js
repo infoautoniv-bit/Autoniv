@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const callSchema = new mongoose.Schema({
   agentId:            { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', default: null },
-  userId:             { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId:             { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   orchestratorCallId: { type: String, default: undefined },
   vapiCallId:         { type: String, default: undefined }, // legacy backward compatibility
   callerNumber:       { type: String, default: null },
