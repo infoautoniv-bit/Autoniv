@@ -372,7 +372,7 @@ app.use(errorHandler);
         
         // Ping every 30 minutes to save Render hours
         // Service will be awake ~30 min, sleep ~15 min before next ping
-        setInterval(keepAlive, 30 * 60 * 1000);
+        setInterval(keepAlive, 5 * 60 * 1000);
         log.info('keep_alive_initialized', { intervalMinutes: 30 });
       }
     });
